@@ -1,0 +1,15 @@
+{
+  "name": "claude-mini-hud",
+  "description": "极简 Claude Code 状态栏插件 - 上下文 / 当前任务 / 模型 / 废话 (上次响应 token),4 行信息, 不打扰。",
+  "version": "0.1.0",
+  "author": {
+    "name": "claude-mini-hud contributors"
+  },
+  "commands": [
+    "./commands/setup.md"
+  ],
+  "homepage": "https://github.com/your-org/claude-mini-hud",
+  "repository": "https://github.com/your-org/claude-mini-hud",
+  "license": "MIT",
+  "keywords": ["hud", "statusline", "context", "todos", "model", "claude-code", "minimal"]
+}
