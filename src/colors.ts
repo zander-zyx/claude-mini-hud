@@ -1,5 +1,9 @@
 /**
  * claude-mini-hud — ANSI 颜色 (零依赖)
+ *
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
  */
 
 const RESET = '\x1b[0m';

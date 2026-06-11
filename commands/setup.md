@@ -62,7 +62,7 @@ echo "EXISTS_DIST=$([ -f "$PLUGIN_DIR/dist/index.js" ] && echo YES || echo NO)"
 **Windows (PowerShell)**:
 
 ```powershell
-$claudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } } else { Join-Path $HOME ".claude" }
+$claudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME ".claude" }
 $pluginDir = Get-ChildItem (Join-Path $claudeDir "plugins\cache") -Directory | ForEach-Object {
   Get-ChildItem $_.FullName -Directory | Where-Object { $_.Name -like "*claude-mini-hud*" }
 } | Select-Object -First 1 -ExpandProperty FullName
@@ -131,8 +131,8 @@ if [ -n "$EXISTING" ]; then
   jq '.statusLine' "$CLAUDE_DIR/settings.json" > "$CLAUDE_DIR/statusLine.bak.$TS.json"
 fi
 
-# 3) 写入新配置
-jq --arg cmd "node '$RUNTIME_PATH'" \
+# 3) 写入新配置 (包含语言环境变量)
+jq --arg cmd "CLAUDE_MINI_HUD_LANG=$LANG node '$RUNTIME_PATH'" \
    '.statusLine = {"type": "command", "command": $cmd}' \
    "$CLAUDE_DIR/settings.json" > "$CLAUDE_DIR/settings.json.tmp"
 mv "$CLAUDE_DIR/settings.json.tmp" "$CLAUDE_DIR/settings.json"
@@ -143,9 +143,17 @@ mv "$CLAUDE_DIR/settings.json.tmp" "$CLAUDE_DIR/settings.json"
 $runtimePath = Join-Path $pluginDir "dist\index.js"
 $settingsPath = Join-Path $claudeDir "settings.json"
 $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
+
+# 备份原配置
+if ($settings.statusLine) {
+  $ts = Get-Date -Format "yyyyMMdd-HHmmss"
+  $backupPath = Join-Path $claudeDir "statusLine.bak.$ts.json"
+  $settings.statusLine | ConvertTo-Json -Depth 10 | Set-Content $backupPath
+}
+
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node '$runtimePath'"
+  command = "CLAUDE_MINI_HUD_LANG=$lang node '$runtimePath'"
 } -Force
 $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath
 ```

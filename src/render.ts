@@ -1,6 +1,10 @@
 /**
  * claude-mini-hud — 渲染函数 + 格式化工具
  *
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
+ *
  * 所有 UI 输出的渲染逻辑
  */
 
@@ -9,9 +13,8 @@ import type { UsageData } from './usage.js';
 import { c } from './colors.js';
 import { t, MINIMAL } from './i18n.js';
 import { truncate } from './transcript.js';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 
 // ─── 格式化工具 ───────────────────────────────────────────────────────────
 
@@ -477,8 +480,8 @@ export function renderUsageLine(usage: UsageData | null): string | null {
 
   if (usage.newApi) {
     const q = usage.newApi;
-    const pct = q.quota + q.usedQuota > 0
-      ? ` ${Math.round((q.usedQuota / (q.quota + q.usedQuota)) * 100)}%`
+    const pct = q.quota > 0
+      ? ` ${Math.round((q.usedQuota / q.quota) * 100)}%`
       : '';
     return `${c.gray(`[B] ${t.usage}`)} ${c.bold(formatTokenCount(q.quota))}${c.dim(` (${t.used} ${formatTokenCount(q.usedQuota)}${pct})`)}`;
   }

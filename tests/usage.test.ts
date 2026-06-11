@@ -1,5 +1,9 @@
 /**
  * claude-mini-hud 用量查询 smoke tests
+ *
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
  */
 
 import { test } from 'node:test';

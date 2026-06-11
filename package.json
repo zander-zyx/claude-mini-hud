@@ -16,7 +16,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc -p tsconfig.test.json",
-    "test": "npm run build && npm run typecheck && node --import tsx --test tests/*.test.ts",
+    "test": "npm run build && npm run typecheck && node --import tsx --test tests/stdin.test.ts tests/usage.test.ts",
     "test:stdin": "npm run build && echo '{\"model\":{\"display_name\":\"MiniMax-M3\"},\"context_window\":{\"current_usage\":{\"input_tokens\":45000},\"context_window_size\":200000},\"transcript_path\":\"/tmp/test.jsonl\"}' | node dist/index.js"
   },
   "keywords": [

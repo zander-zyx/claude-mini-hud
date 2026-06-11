@@ -1,6 +1,10 @@
 /**
  * claude-mini-hud smoke tests
  *
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
+ *
  * 用法: npm test (= npm run build && node --test)
  *
  * 跑 stdin 冒烟测试: npm run test:stdin
@@ -21,7 +25,7 @@ function runCli(input: string, env: NodeJS.ProcessEnv = process.env) {
     input,
     encoding: 'utf8',
     timeout: 3000,
-    env: { ...env, NO_COLOR: '1' },  // 禁掉 NO_COLOR 让 ANSI 仍输出
+    env: { ...env, NO_COLOR: '1' },  // 注意: 当前代码未实现 NO_COLOR, 设此值不影响 ANSI 输出
   });
 }
 

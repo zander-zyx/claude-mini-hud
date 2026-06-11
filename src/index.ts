@@ -1,13 +1,21 @@
+#!/usr/bin/env node
 /**
  * claude-mini-hud - 极简 Claude Code 状态栏
  *
- * 从 stdin 读 JSON (Claude Code StatusLine 契约), 默认输出 3 必显行 + 1 可选:
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
+ *
+ * 从 stdin 读 JSON (Claude Code StatusLine 契约), 默认输出 2 必显行 + 可选行 (最多 7 行):
  *   [#] 上下文  进度条 + used/total + 剩余
- *   [$] Token   总数 + in/out/cache 细分
+ *   [$] Token   总数 + in/out/cache 细分 + tok/s 速率
+ *   [B] 用量/余额 (多平台自动检测)
  *   [>] 当前任务  in-progress todo + 完成度
+ *   [>] 工具活动  ◐ 运行中 / ✓ 已完成
+ *   [>] Agent   ◐ 描述 + 耗时
  *   [>] 模型    (可选: CLAUDE_MINI_HUD_SHOW_MODEL=1)
  *
- * 零依赖, 纯 ANSI 转义, 编译产物 ~6KB
+ * 零依赖, 纯 ANSI 转义
  */
 
 // ─── 模块导入 ──────────────────────────────────────────────────────────────
@@ -92,7 +100,7 @@ function readLastStdinCache(): StdinData | null {
     if (!existsSync(STDIN_CACHE_PATH)) return null;
     const raw = readFileSync(STDIN_CACHE_PATH, 'utf8');
     const data = JSON.parse(raw) as StdinData;
-    // 缓存超过 60 秒视为过期, 不用太旧的数据
+    // 无 context_window 视为无效缓存
     if (!data.context_window) return null;
     return data;
   } catch {

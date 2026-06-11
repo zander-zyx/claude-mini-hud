@@ -336,6 +336,7 @@ The statusline automatically refreshes at these moments:
 |------|---------|---------|-----------------|
 | **📊 Context** | Progress bar + % + `used / total` + remaining | ✅ Always shown | `renderContextLine` |
 | **🪙 Token** | Cumulative in/out/cache + ⚡ speed | ✅ Always shown | `renderTokenLine` |
+| **💰 Usage/Balance** | Multi-platform usage % / balance | When usage data exists | `renderUsageLine` |
 | **▶️ Current Task** | In-progress todo + completion count | When todos exist | `renderTodoLine` |
 | **🔧 Tools** | ◐ running / ✓ completed ×N | When tool activity exists | `renderToolActivityLines` |
 | **🤖 Agent** | ◐ description + duration | When active agents exist | `renderAgentLines` |
@@ -673,7 +674,7 @@ PRs are welcome! Here are the contribution guidelines:
 
 **Feature requests** should explain:
 - What scenario does it solve?
-- Why aren't the existing 6 lines enough?
+- Why aren't the existing 7 lines enough?
 - Can it be added to existing fields without changing the API?
 
 ### Submitting PRs

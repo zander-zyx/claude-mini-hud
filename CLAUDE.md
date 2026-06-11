@@ -52,5 +52,5 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 
 - **Zero runtime dependencies** — only Node.js built-ins
 - **Never crash Claude Code** — all errors caught, fallback message printed
-- **Compiled output is a single file** — `dist/index.js`, must stay small
+- **Compiled output is lightweight** — `dist/` contains multi-module JS files, must stay small
 - **Environment variables control behavior**: `CLAUDE_MINI_HUD_LANG` (zh/en/minimal), `CLAUDE_MINI_HUD_SHOW_MODEL` (1 to show model line)

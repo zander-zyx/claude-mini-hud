@@ -1,5 +1,9 @@
 /**
  * claude-mini-hud — i18n 国际化
+ *
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
  */
 
 export type Lang = 'zh' | 'en' | 'minimal';

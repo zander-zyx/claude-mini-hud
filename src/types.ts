@@ -1,5 +1,9 @@
 /**
  * claude-mini-hud — 共享类型定义
+ *
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
  */
 
 // ─── stdin 契约 (Claude Code StatusLine JSON) ────────────────────────────

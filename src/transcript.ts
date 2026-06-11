@@ -1,6 +1,10 @@
 /**
  * claude-mini-hud — Transcript 解析
  *
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
+ *
  * 读取 transcript JSONL 文件，提取 todos / 工具活动 / Agent / session token
  */
 
@@ -48,7 +52,7 @@ function shortToolLabel(block: { name?: string; input?: Record<string, unknown> 
   // 提取最相关的标识字段
   const fp = typeof input.file_path === 'string' ? input.file_path : '';
   if (fp) {
-    const base = fp.split('/').pop() ?? fp;
+    const base = fp.replace(/\\/g, '/').split('/').pop() ?? fp;
     return base;
   }
 
@@ -302,7 +306,6 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
                   const rawId = inp.taskId;
                   const tid = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : String(taskCreateCount);
                   // 只添加 tail 中尚未存在的 task (避免重复导致总数虚高)
-                  const existIdx = tailTaskContents.has(taskContent) ? null : null; // placeholder
                   if (!todos) todos = [];
                   if (!tailTaskContents.has(taskContent)) {
                     todos.push({ content: taskContent, status: 'pending', activeForm: typeof inp.activeForm === 'string' ? inp.activeForm : undefined });

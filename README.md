@@ -337,6 +337,7 @@ TMPDIR=~/.cache/tmp claude
 |----|------|---------|---------|
 | **📊 上下文** | 进度条 + % + `used / total` + 剩余 | ✅ 必显 | `renderContextLine` |
 | **🪙 Token** | 累计 in/out/cache + ⚡速率 | ✅ 必显 | `renderTokenLine` |
+| **💰 用量/余额** | 多平台用量百分比 / 余额 | 有用量数据时 | `renderUsageLine` |
 | **▶️ 当前任务** | in-progress todo + 完成度 | 有 todo 时 | `renderTodoLine` |
 | **🔧 工具** | ◐ 运行中 / ✓ 已完成×N | 有工具活动时 | `renderToolActivityLines` |
 | **🤖 Agent** | ◐ 描述 + 耗时 | 有活跃 Agent 时 | `renderAgentLines` |
@@ -674,7 +675,7 @@ claude-mini-hud/
 
 **功能请求**请说明:
 - 解决什么场景?
-- 为什么现有 6 行还不够?
+- 为什么现有 7 行还不够?
 - 能否在不改 API 的情况下加进现有字段?
 
 ### 提 PR

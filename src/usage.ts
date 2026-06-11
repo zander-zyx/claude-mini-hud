@@ -1,6 +1,10 @@
 /**
  * claude-mini-hud — 多平台用量/余额查询
  *
+ * @author  Zander
+ * @since   2025-06
+ * @see     https://github.com/zander-zyx/claude-mini-hud
+ *
  * 零依赖: 只用 Node.js 内置 https / fs / path / os.
  *
  * 支持平台:

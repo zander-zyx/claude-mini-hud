@@ -22,3 +22,6 @@ coverage/
 # Build artifacts
 *.tgz
 *.tar.gz
+
+# Claude Code local config (may contain credentials)
+.claude/
