@@ -854,6 +854,25 @@ function renderUsageLine(usage: import('./usage.js').UsageData | null): string |
     return `${c.gray('🔋 用量')} ${c.bold(formatTokenCount(q.quota))}${c.dim(` (已用 ${formatTokenCount(q.usedQuota)}${pct})`)}`;
   }
 
+  if (usage.kimi) {
+    const total = usage.kimi.totalBalance.toFixed(2);
+    const grant = usage.kimi.grantedBalance && usage.kimi.grantedBalance > 0
+      ? c.dim(` (赠送 ¥${usage.kimi.grantedBalance.toFixed(2)})`)
+      : '';
+    return `${c.gray('🔋 Kimi')} ${c.cyan(c.bold(`¥${total}`))}${grant}`;
+  }
+
+  if (usage.zhipu) {
+    const z = usage.zhipu;
+    const rem = formatTokenCount(z.quota);
+    if (z.usedQuota !== undefined && z.usedQuota > 0) {
+      const total = z.quota + z.usedQuota;
+      const pct = Math.round((z.usedQuota / total) * 100);
+      return `${c.gray('🔋 智谱')} ${c.bold(rem)}${c.dim(` / ${formatTokenCount(total)} (已用 ${pct}%)`)}`;
+    }
+    return `${c.gray('🔋 智谱')} ${c.bold(rem)}`;
+  }
+
   return null;
 }
 

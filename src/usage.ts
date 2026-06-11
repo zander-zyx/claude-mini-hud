@@ -7,6 +7,8 @@
  *   - Claude 原生  : 从 stdin.rate_limits 读取 (5小时 / 7天), 无需 HTTP
  *   - MiniMax      : Coding Plan 剩余 token
  *   - DeepSeek      : 账户余额 (CNY)
+ *   - Kimi          : Moonshot 余额 (CNY)
+ *   - 智谱          : GLM Coding Plan 用量
  *   - New API      : 开源网关, /api/user/self (含 OpenAI / Claude / 自建代理)
  */
 
@@ -38,15 +40,27 @@ export interface ClaudeRateLimit {
 }
 
 export interface NewApiQuota {
-  quota: number;          // 剩余额度 (美元分 / token 数, 取决于配置)
-  usedQuota: number;      // 已使用
-  quotaDisplay?: string;  // 可选的显示标签
+  quota: number;
+  usedQuota: number;
+  quotaDisplay?: string;
+}
+
+export interface KimiBalance {
+  totalBalance: number;     // CNY
+  grantedBalance?: number;  // 赠送余额
+}
+
+export interface ZhipuUsage {
+  quota: number;            // 剩余 token / 额度
+  usedQuota?: number;       // 已使用
 }
 
 export interface UsageData {
   provider: string;
   miniMax?: MiniMaxUsage;
   deepSeek?: DeepSeekBalance;
+  kimi?: KimiBalance;
+  zhipu?: ZhipuUsage;
   claude?: ClaudeRateLimit;
   newApi?: NewApiQuota;
   updatedAt: number;
@@ -59,6 +73,8 @@ const HTTP_TIMEOUT_MS = 10_000;
 
 const MINIMAX_API = 'https://www.minimaxi.com/v1/api/openplatform/coding_plan/remains';
 const DEEPSEEK_API = 'https://api.deepseek.com/user/balance';
+const KIMI_API = 'https://api.moonshot.cn/v1/users/me/balance';
+const ZHIPU_API = 'https://open.bigmodel.cn/api/paas/v4/user/info';
 
 // ─── 平台检测 ─────────────────────────────────────────────────────────────
 
@@ -85,7 +101,13 @@ export function detectPlatform(stdin: StdinData): string | null {
   // 4) DeepSeek
   if (url.includes('deepseek.com') || url.includes('deepseek')) return 'deepseek';
 
-  // 5) 通用 New API 检测: base URL 非标准 Anthropic/OpenAI
+  // 5) Kimi / Moonshot
+  if (url.includes('moonshot.cn') || url.includes('moonshot.ai') || url.includes('kimi')) return 'kimi';
+
+  // 6) 智谱 / GLM
+  if (url.includes('bigmodel.cn') || url.includes('zhipu') || url.includes('glm')) return 'zhipu';
+
+  // 7) 通用 New API 检测: base URL 非标准 Anthropic/OpenAI
   if (url && !url.includes('anthropic.com') && !url.includes('openai.com')) {
     // 尝试通过 /api/user/self 判断是否为 New API (在异步查询中验证)
     return 'new-api';
@@ -243,6 +265,50 @@ async function queryNewApi(apiKey: string): Promise<UsageData | null> {
   }
 }
 
+async function queryKimi(apiKey: string): Promise<UsageData | null> {
+  try {
+    const body = await httpGet(KIMI_API, apiKey);
+    const json = JSON.parse(body);
+    // Kimi 响应: { "data": { "available_balance": 42.50, "granted_balance": 10.00 } }
+    const d = json.data ?? json;
+    const balance = d.available_balance ?? d.balance ?? d.total_balance;
+    if (typeof balance !== 'number' && typeof balance !== 'string') return null;
+    return {
+      provider: 'kimi',
+      kimi: {
+        totalBalance: parseFloat(String(balance)),
+        grantedBalance: typeof d.granted_balance === 'number' ? d.granted_balance : undefined,
+      },
+      updatedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function queryZhipu(apiKey: string): Promise<UsageData | null> {
+  try {
+    const body = await httpGet(ZHIPU_API, apiKey);
+    const json = JSON.parse(body);
+    // 智谱响应格式: { "code": 200, "data": { "balance": "850.00", "quota": 5000000, "used_quota": 1200000 } }
+    const d = json.data ?? json;
+    const quota = d.quota ?? d.balance ?? d.total_quota;
+    if (quota === undefined && quota === null) return null;
+    const qNum = typeof quota === 'string' ? parseFloat(quota) : quota;
+    if (typeof qNum !== 'number' || !Number.isFinite(qNum)) return null;
+    return {
+      provider: 'zhipu',
+      zhipu: {
+        quota: Math.round(qNum),
+        usedQuota: typeof d.used_quota === 'number' ? Math.round(d.used_quota) : undefined,
+      },
+      updatedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ─── 主入口 ───────────────────────────────────────────────────────────────
 
 /** 异步刷新缓存 (不阻塞) */
@@ -261,6 +327,12 @@ async function refreshCache(platform: string, apiKey: string, stdin: StdinData):
       break;
     case 'new-api':
       data = await queryNewApi(apiKey);
+      break;
+    case 'kimi':
+      data = await queryKimi(apiKey);
+      break;
+    case 'zhipu':
+      data = await queryZhipu(apiKey);
       break;
   }
 

@@ -54,6 +54,24 @@ test('detectPlatform: null (unknown provider)', async () => {
   delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('detectPlatform: kimi (by base URL)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.moonshot.cn/anthropic';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'kimi');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: zhipu (by base URL)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://open.bigmodel.cn/anthropic';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'zhipu');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
 test('readCache: 无缓存返回 null', async () => {
   const { readCache } = await import('../src/usage.js');
   const result = readCache('nonexistent-platform-xyz');
