@@ -184,9 +184,9 @@ const c = {
   blue:   (s: string) => `\x1b[34m${s}${RESET}`,
   magenta:(s: string) => `\x1b[35m${s}${RESET}`,
   cyan:   (s: string) => `\x1b[36m${s}${RESET}`,
-  gray:   (s: string) => `\x1b[90m${s}${RESET}`,
+  gray:   (s: string) => `\x1b[37m${DIM}${s}${RESET}`,  // 亮白+dim → 暗黑/亮色模式都可见
   bold:   (s: string) => `${BOLD}${s}${RESET}`,
-  dim:    (s: string) => `${DIM}${s}${RESET}`,
+  dim:    (s: string) => `\x1b[37m${DIM}${s}${RESET}`,   // 亮白+dim → 兼容暗黑模式
 };
 
 // ─── stdin 读取 (复用 claude-hud 思路, 简化) ──────────────────────────────
@@ -401,14 +401,16 @@ function todoLabel(t: (typeof STRINGS)[Lang]): string {
 async function readTranscriptData(transcriptPath: string): Promise<TranscriptData | null> {
   try {
     const fs = await import('node:fs/promises');
-    // 只读文件尾部 (避免长会话全量读取数 MB)
-    const TAIL_BYTES = 256 * 1024;
+    // 尾部读取 512KB (覆盖更多工具活动 + 尽量包含 TaskCreate)
+    const TAIL_BYTES = 512 * 1024;
     const handle = await fs.open(transcriptPath, 'r');
+    let fileSize = 0;
     let content: string;
     try {
-      const { size } = await handle.stat();
-      const start = Math.max(0, size - TAIL_BYTES);
-      const length = size - start;
+      const stat = await handle.stat();
+      fileSize = stat.size;
+      const start = Math.max(0, fileSize - TAIL_BYTES);
+      const length = fileSize - start;
       const buf = Buffer.alloc(length);
       await handle.read(buf, 0, length, start);
       content = buf.toString('utf8');
@@ -428,8 +430,11 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
     const agentSpawns = new Map<string, AgentActivity>();  // tool_use_id → AgentActivity
     const agentResults = new Set<string>();                // completed agent tool_use_ids
     const taskIdToIndex = new Map<string, number>();       // taskId → todos[] index
+    let taskCreateCount = 0;                                // TaskCreate 序号 (1-based, 即 taskId)
 
-    // session 累计 token: 取最后一轮的 usage (input_tokens 是累计上下文, 不是增量)
+    // session 累计 token: 对第三方代理 (智谱/MiniMax/DeepSeek 等) input_tokens 是每轮增量需累加
+    // 对 Claude 原生, input_tokens 是累计上下文 (取最后一轮更大值), 但累加也正确 (值递增)
+    // 所以统一用累加 (sum) 策略, 兼容所有平台
     const sessionTokens = { input: 0, output: 0, cache: 0 };
     let lastUsage: { i: number; o: number; c: number } | null = null;
 
@@ -461,9 +466,9 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
           const cache = (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
           // 跳过完全相同的连续 usage (Claude Code 可能重复写入)
           if (lastUsage && i === lastUsage.i && o === lastUsage.o && cache === lastUsage.c) continue;
-          sessionTokens.input = i;           // input 是累计上下文, 取最后一轮
+          sessionTokens.input += i;           // input 累加 (兼容 Claude 原生递增 + 第三方每轮增量)
           sessionTokens.output += o;          // output 是每轮增量, 累加
-          sessionTokens.cache = cache;        // cache 随 input 变化, 取最后一轮
+          sessionTokens.cache += cache;       // cache 累加 (智谱等每轮都有 cache_read)
           lastUsage = { i, o, c: cache };
         }
         const msg = (entry as unknown as TranscriptEntry).message;
@@ -479,10 +484,12 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
               const content = subject || desc || 'Untitled';
               const status = normalizeTaskStatus(input.status) ?? 'pending';
               if (!todos) todos = [];
-              todos.push({ content, status });
+              todos.push({ content, status, activeForm: typeof input.activeForm === 'string' ? input.activeForm : undefined });
 
+              // 建立 taskId 映射: 优先用 input.taskId, 否则用顺序序号 (1-based)
+              taskCreateCount++;
               const rawId = input.taskId;
-              const tid = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : block.id;
+              const tid = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : String(taskCreateCount);
               taskIdToIndex.set(tid, todos.length - 1);
               continue;
             }
@@ -565,6 +572,58 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
 
     // 取最近 20 个工具 (含状态)
     const recentTools = Array.from(toolMap.values()).slice(-20);
+
+    // 如果尾部没找到 todos → 文件前半部分可能有 TaskCreate, 追加扫描
+    if (!todos || todos.length === 0) {
+      const headSize = Math.min(fileSize, TAIL_BYTES);
+      if (headSize > 0 && headSize < fileSize) {
+        try {
+          const hh = await fs.open(transcriptPath, 'r');
+          try {
+            const buf = Buffer.alloc(headSize);
+            await hh.read(buf, 0, headSize, 0);
+            const headContent = buf.toString('utf8');
+            const headLines = headContent.split('\n').filter(Boolean);
+            let headCount = 0;
+            for (const line of headLines) {
+              let he: Record<string, unknown> | null = null;
+              try { he = JSON.parse(line); } catch { continue; }
+              if (!he || he.type !== 'assistant') continue;
+              const hBlocks = Array.isArray((he as { message?: { content?: unknown[] } }).message?.content)
+                ? ((he as { message: { content: unknown[] } }).message.content as unknown[]) : [];
+              for (const hb of hBlocks) {
+                const b = hb as { type?: string; name?: string; id?: string; input?: Record<string, unknown> };
+                if (b.type === 'tool_use' && b.name && b.id) {
+                  if (b.name === 'TaskCreate') {
+                    if (!todos) todos = [];
+                    const inp = b.input ?? {};
+                    const subj = typeof inp.subject === 'string' ? inp.subject : '';
+                    const desc = typeof inp.description === 'string' ? inp.description : '';
+                    headCount++;
+                    todos.push({ content: subj || desc || 'Untitled', status: 'pending', activeForm: typeof inp.activeForm === 'string' ? inp.activeForm : undefined });
+                    const rawId = inp.taskId;
+                    const tid = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : String(headCount);
+                    taskIdToIndex.set(tid, todos.length - 1);
+                  }
+                  if (b.name === 'TaskUpdate' && todos) {
+                    const inp = b.input ?? {};
+                    const idx = resolveTaskIndex(String(inp.taskId ?? ''), taskIdToIndex, todos);
+                    if (idx !== null) {
+                      const ns = normalizeTaskStatus(inp.status);
+                      if (ns) todos[idx].status = ns;
+                      const subj = typeof inp.subject === 'string' ? inp.subject : '';
+                      if (subj) todos[idx].content = subj;
+                    }
+                  }
+                }
+              }
+            }
+          } finally {
+            await hh.close();
+          }
+        } catch { /* 静默 */ }
+      }
+    }
 
     return { todos, recentTools, activeAgents, sessionTokens };
   } catch {

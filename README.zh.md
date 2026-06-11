@@ -65,6 +65,21 @@
 - 🚀 **~10ms 启动**: 不拖慢 Claude Code
 - 🔌 **即插即用**: `/claude-mini-hud:setup` 一条命令
 
+### 多平台用量/余额查询
+
+根据你的 `ANTHROPIC_BASE_URL` 自动检测平台，实时显示用量/余额：
+
+| 平台 | 检测条件 | 显示内容 |
+|------|---------|---------|
+| **Claude 原生** | `rate_limits` 有数据 | 5小时 / 7天用量百分比 |
+| **MiniMax** | URL 含 `minimaxi.com` | Coding Plan 剩余 token |
+| **DeepSeek** | URL 含 `deepseek.com` | 账户余额 (¥ CNY) |
+| **Kimi** | URL 含 `moonshot.cn` | 余额 (¥ CNY) + 赠送余额 |
+| **智谱 (GLM)** | URL 含 `bigmodel.cn` | Coding Plan 用量% + 周限额% + MCP工具 + 倒计时 |
+| **New API** | 其他非 Anthropic URL | 开源网关配额 + 已用量 |
+
+> 💡 **无需额外配置** — 只要设了 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_AUTH_TOKEN`，插件自动识别平台并查询。
+
 **与 `claude-hud` 的定位**
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)。本项目的目标是在**信息密度和简洁之间取得平衡** ——比 claude-hud 轻量,比原版 statusLine 功能丰富。对标了 claude-hud 的工具活动、Agent 追踪、Task 解析等核心功能。
 
@@ -519,8 +534,8 @@ npm run build
 # 用 npmmirror 镜像
 npm config set registry https://registry.npmmirror.com
 
-# git clone 用镜像
-git clone https://mirror.ghproxy.com/https://github.com/zander-zyx/claude-mini-hud.git
+# git clone 用 CNB 镜像 (国内可直连)
+git clone https://cnb.cool/zdking/claude-mini-hud.git
 
 # 或者 SSH 走 443 (适合 GitHub 不通时)
 # ~/.ssh/config 加:
