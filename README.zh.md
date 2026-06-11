@@ -8,7 +8,7 @@
 ![Language: TS](https://img.shields.io/badge/TypeScript-ES2022-blue)
 ![StatusLine](https://img.shields.io/badge/Claude_Code-StatusLine-blueviolet)
 
-[简体中文](#-简体中文) · [English](./README.md) · [安装](#安装) · [FAQ](#faq) · [贡献](#贡献)
+[简体中文](#简体中文) · [English](./README.md) · [安装](#安装) · [FAQ](#faq) · [贡献](#贡献)
 
 ---
 
@@ -243,23 +243,23 @@ TMPDIR=~/.cache/tmp claude
 
 ### 看到的输出
 
-**默认 (中文)**:
+**全部启用** (中文 + 模型 + 工具活动 + Agent 追踪):
 ```
 📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 23k (in 22k · out 342 · cache 768)
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k · ⚡ 45 tok/s)
+▶️  当前任务 ▸ 正在写 skill  (1/4)
+  ◐ 读取 index.ts
+  ◐ 写入 utils.ts
+  ✓ 搜索 ×3  ✓ 执行 ×1
+  [Explore] ◐ 搜索相关代码 2m 15s
+🤖 模型 deepseek-v4-pro  [deepseek]
+```
+
+**简洁模式** (没有工具活动和 Agent 时自动隐藏):
+```
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k)
 ▶️  当前任务 ▸ 调研充电行业政策  (2/5)
-```
-
-**默认 (English)**:
-```
-📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-🪙 Token 23k (in 22k · out 342 · cache 768)
-▶️ Todos   ▸ Research charging industry policy  (2/5)
-```
-
-**启用模型行** (`CLAUDE_MINI_HUD_SHOW_MODEL=1`):
-```
-🤖 模型 MiniMax-M3  [minimaxi]
 ```
 
 ### 显示时机
@@ -279,8 +279,9 @@ TMPDIR=~/.cache/tmp claude
 
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
-| `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` | 界面语言 |
+| `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
+| `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行: session=累计 / context=快照 / both=两行 |
 
 **在 statusLine.command 里设置** (推荐):
 
@@ -299,26 +300,30 @@ TMPDIR=~/.cache/tmp claude
 
 ### 显示字段说明
 
-| 行 | 内容 | 是否必显 | 渲染函数 |
+| 行 | 内容 | 触发条件 | 渲染函数 |
 |----|------|---------|---------|
 | **📊 上下文** | 进度条 + % + `used / total` + 剩余 | ✅ 必显 | `renderContextLine` |
-| **🪙 Token** | 总 token + 细分 in / out / cache | ✅ 必显 | `renderTokenLine` |
-| **▶️ 当前任务** | in-progress todo + 完成度 | ✅ 必显 (无 todo 时跳过) | `renderTodoLine` |
-| **🤖 模型** | 模型名 + provider 标签 | ⭕ 可选 | `renderModelLine` |
+| **🪙 Token** | 累计 in/out/cache + ⚡速率 | ✅ 必显 | `renderTokenLine` |
+| **▶️ 当前任务** | in-progress todo + 完成度 | 有 todo 时 | `renderTodoLine` |
+| **🔧 工具** | ◐ 运行中 / ✓ 已完成×N | 有工具活动时 | `renderToolActivityLines` |
+| **🤖 Agent** | ◐ 描述 + 耗时 | 有活跃 Agent 时 | `renderAgentLines` |
+| **🤖 模型** | 模型名 + provider 标签 | `SHOW_MODEL=1` | `renderModelLine` |
 
 #### Token 行字段详解
 
-`🪙 Token 23k (in 22k · out 342 · cache 768)` 各部分含义:
+`🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k)` 各部分含义:
 
 | 字段 | 来源 | 用途 |
 |------|------|------|
-| **in** | `current_usage.input_tokens` | 上一轮对话的输入 token |
-| **out** | `current_usage.output_tokens` 或 transcript.jsonl 累加 | 累计输出 token |
-| **cache** | `cache_creation_input_tokens` + `cache_read_input_tokens` | prompt cache 命中 (可为 0) |
+| **入 / in** | `total_input_tokens` (stdin) 或 transcript 累加 | 本次会话累计输入 token |
+| **出 / out** | `total_output_tokens` (stdin) 或 transcript 累加 | 本次会话累计输出 token |
+| **缓存 / cache** | `cache_creation_input_tokens` + `cache_read_input_tokens` | prompt cache 命中 |
+| **⚡ tok/s** | 两次 StatusLine 刷新的 `output_tokens` 差值 | 实时解码速度 |
 
-> 📌 **Token 来源说明**:
-> - 优先用 stdin 实时给的 `current_usage`
-> - 如果 stdin 没给 `output_tokens` (Claude Code v2 偶尔会省),会从 `transcript_path` 指向的 jsonl 文件累加
+> 📌 **Token 来源优先级**:
+> 1. stdin `total_input_tokens` / `total_output_tokens` (Claude Code 上报 session 累计)
+> 2. transcript 尾部 `message.usage` 累加 (fallback)
+> 3. `current_usage` 快照 (兜底)
 
 #### 进度条颜色阈值
 
@@ -343,7 +348,7 @@ TMPDIR=~/.cache/tmp claude
 
 ### 改显示文字 / emoji
 
-直接改 `src/index.ts` 顶部的 `STRINGS` 表 (L19-42):
+直接改 `src/index.ts` 顶部的 `STRINGS` 表:
 
 ```ts
 const STRINGS = {
@@ -371,7 +376,7 @@ npm run build   # 重新编译
 
 ### 改进度条颜色阈值
 
-`progressBar` 函数 (src/index.ts:175-178):
+`progressBar` 函数:
 
 ```ts
 function progressBar(percent: number, width: number = 20) {
@@ -388,7 +393,7 @@ function progressBar(percent: number, width: number = 30) {  // 30 格更宽
 
 ### 改 Token 行格式
 
-`renderTokenLine` 函数 (src/index.ts:308):
+`renderTokenLine` 函数:
 
 ```ts
 const parts = [
@@ -400,9 +405,9 @@ if (breakdown.cache > 0) {
 }
 ```
 
-### 添加第 5 行 (例如:当前 git 分支)
+### 添加自定义行 (例如:当前 git 分支)
 
-`src/index.ts` 底部 `main()` 函数,加一个 `renderGitBranchLine`:
+在 `src/index.ts` 的 `main()` 函数中加一个 `renderGitBranchLine`:
 
 ```ts
 async function renderGitBranchLine(): Promise<string | null> {
@@ -473,7 +478,7 @@ export LANG=en_US.UTF-8
 
 ### Q: 可以只显示某一行吗?
 
-**A**: 直接改 `main()` 函数 (src/index.ts:381),删掉不想渲染的行:
+**A**: 直接改 `main()` 函数,删掉不想渲染的行:
 
 ```ts
 async function main() {
@@ -600,9 +605,9 @@ claude-mini-hud/
 ├── commands/
 │   └── setup.md        # /claude-mini-hud:setup 入口
 ├── src/
-│   └── index.ts        # 核心 (单文件 ~13KB)
+│   └── index.ts        # 核心 (单文件 ~25KB)
 └── tests/
-    └── stdin.test.ts   # 12 个 smoke test
+    └── stdin.test.ts   # 13 个测试用例
 ```
 
 ---
@@ -622,7 +627,7 @@ claude-mini-hud/
 
 **功能请求**请说明:
 - 解决什么场景?
-- 为什么现有 3 行不够?
+- 为什么现有 6 行还不够?
 - 能否在不改 API 的情况下加进现有字段?
 
 ### 提 PR
@@ -659,7 +664,7 @@ claude-mini-hud/
 
 | 项目 | 风格 | 适合谁 |
 |------|------|--------|
-| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (本项目) | 极简,3 必显 + 1 可选 | 喜欢清爽,只要核心指标 |
+| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (本项目) | 轻量, 最多 6 行 | 喜欢清爽, 只要核心指标 |
 | [**claude-hud**](https://github.com/jarrodwatts/claude-hud) | 全功能,10+ 行 | 想要 git 状态 / agents / 工具统计 |
 | [**tweakcc**](https://github.com/adamelliotfields/tweakcc) | 配置 / prompt 级 | 想改 Claude Code 本身行为 |
 
