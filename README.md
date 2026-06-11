@@ -69,16 +69,31 @@
 
 根据你的 `ANTHROPIC_BASE_URL` 自动检测平台，实时显示用量/余额：
 
-| 平台 | 检测条件 | 显示内容 |
+| 平台 | 检测条件 | 显示格式 |
 |------|---------|---------|
-| **Claude 原生** | `rate_limits` 有数据 | 5小时 / 7天用量百分比 |
-| **MiniMax** | URL 含 `minimaxi.com` | Coding Plan 剩余 token |
-| **DeepSeek** | URL 含 `deepseek.com` | 账户余额 (¥ CNY) |
-| **Kimi** | URL 含 `moonshot.cn` | 余额 (¥ CNY) + 赠送余额 |
-| **智谱 (GLM)** | URL 含 `bigmodel.cn` | Coding Plan 用量% + 周限额% + MCP工具 + 倒计时 |
-| **New API** | 其他非 Anthropic URL | 开源网关配额 + 已用量 |
+| **Claude 原生** | `rate_limits` 有数据 | `5h:45% (1h30m) 7d:12%` |
+| **MiniMax** | URL 含 `minimaxi.com` | `5h:55% 7d:74% m:50% (26d)` |
+| **智谱 (GLM)** | URL 含 `bigmodel.cn` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
+| **小米 (MiMo)** | URL 含 `xiaomimimo` | `50M/100M m:45% (26d)` |
+| **阿里 (DashScope)** | URL 含 `dashscope` | 平台识别 (暂无公开用量 API) |
+| **火山引擎 (Ark)** | URL 含 `volces.com` | 平台识别 (暂无公开用量 API) |
+| **DeepSeek** | URL 含 `deepseek.com` | `¥123.45` (账户余额) |
+| **Kimi** | URL 含 `moonshot.cn` | `¥42.50 (赠送 ¥10.00)` |
+| **New API** | 其他非 Anthropic URL | `500k (已用 123k 25%)` |
+
+#### 用量显示格式说明
+
+| 标签 | 含义 | 示例 |
+|------|------|------|
+| `5h:` | 5小时窗口用量 | `5h:19% (1h54m)` — 已用 19%, 1小时54分后重置 |
+| `7d:` | 7天 (周) 用量 | `7d:26% (5d7h)` — 已用 26%, 5天7小时后重置 |
+| `m:` | 月度用量 | `m:30% (26d)` — 已用 30%, 26天后重置 (只显示天数) |
+| `mcp:` | MCP 工具调用次数 | `mcp:20/1000` — 已调用 20 次 / 总限额 1000 次 |
+| 固定额度 | TOKEN PLAN 已用/总额 | `50M/100M` — 大数自动用 M/k 单位 |
 
 > 💡 **无需额外配置** — 只要设了 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_AUTH_TOKEN`，插件自动识别平台并查询。
+>
+> 🍪 **小米 (MiMo)** 需要额外设置 `XIAOMI_COOKIE` 环境变量 (从浏览器 DevTools 获取 Cookie)，因为小米用量 API 使用 Cookie 认证而非 API Key。
 
 **与 `claude-hud` 的定位**
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)。本项目的目标是在**信息密度和简洁之间取得平衡** ——比 claude-hud 轻量,比原版 statusLine 功能丰富。对标了 claude-hud 的工具活动、Agent 追踪、Task 解析等核心功能。
@@ -576,7 +591,7 @@ npm run build      # tsc 编译 src/index.ts → dist/index.js
 
 ```bash
 npm install
-npm test            # build + typecheck + 跑 29 个测试 (用 tsx 直接跑 ts 测试)
+npm test            # build + typecheck + 跑 32 个测试 (用 tsx 直接跑 ts 测试)
 npm run test:stdin  # 手测单个 stdin 输入
 npm run typecheck   # 只做类型检查, 不 emit
 ```
@@ -589,7 +604,7 @@ npm run dev   # tsc --watch, 自动重新编译
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### 测试覆盖 (29 个用例)
+### 测试覆盖 (32 个用例)
 
 | # | 用例 | 验证 |
 |---|------|------|
@@ -606,7 +621,8 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` 默认中文 | 中文 label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` 显示英文 | 无中文 marker |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` 无 emoji + 英中混搭 | 混合输出验证 |
-| 14–29 | 多平台用量查询 | 见 `tests/usage.test.ts` |
+| 14–22 | 多平台检测 (claude/deepseek/minimax/null/kimi/zhipu/xiaomi/alibaba/volcengine) | URL 匹配 |
+| 23–32 | 缓存读写 + 端到端 + MiniMax 模型匹配 | 见 `tests/usage.test.ts` |
 
 ### 项目结构
 

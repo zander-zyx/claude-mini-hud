@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-claude-mini-hud is a minimal, zero-dependency Claude Code StatusLine plugin. It reads JSON from stdin (per the StatusLine contract) and outputs ANSI-colored status lines (context usage, token breakdown, current todo, optional model name). Single-file architecture: all source logic lives in `src/index.ts` (~440 lines).
+claude-mini-hud is a minimal, zero-dependency Claude Code StatusLine plugin. It reads JSON from stdin (per the StatusLine contract) and outputs ANSI-colored status lines (context usage, token breakdown, current todo, optional model name). Multi-module architecture under `src/`.
 
 ## Commands
 
@@ -13,29 +13,44 @@ npm install          # Install dev dependencies
 npm run build        # Compile TypeScript to dist/
 npm run dev          # Watch mode compilation
 npm run typecheck    # Type-check tests (tsconfig.test.json, no emit)
-npm test             # Full suite: build + typecheck + 13 smoke tests
+npm test             # Full suite: build + typecheck + 32 tests
 ```
 
 No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/strict`, run via `tsx`.
 
 ## Architecture
 
-**Single-file design** — `src/index.ts` contains everything:
+**Multi-module design** — `src/` contains:
 
-1. **i18n** — `STRINGS` object with `zh`/`en`/`minimal` keys, selected by `CLAUDE_MINI_HUD_LANG` env var
-2. **Type contracts** — `StdinData`, `TodoItem`, `TranscriptEntry` interfaces
-3. **ANSI colors** — Zero-dependency color helpers (no chalk)
-4. **`readStdin()`** — Async stdin JSON reader with 500ms timeout, 256KB limit
-5. **Render functions** — `renderContextLine()`, `renderTokenLine()`, `renderModelLine()`, `renderTodoLine()`
-6. **`main()`** — Entry point, orchestrates render functions, catch-all error handler
+1. **index.ts** — Entry point, stdin reader, main() orchestrator
+2. **types.ts** — Shared type definitions (`StdinData`, `TodoItem`, etc.)
+3. **i18n.ts** — `STRINGS` object with `zh`/`en`/`minimal` keys, selected by `CLAUDE_MINI_HUD_LANG`
+4. **colors.ts** — ANSI color helpers (zero-dependency)
+5. **render.ts** — All render functions (context, token, model, todo, usage)
+6. **transcript.ts** — Transcript JSONL parser
+7. **usage.ts** — Multi-platform usage/quota query (9 providers)
 
-**Plugin integration** via `.claude-plugin/plugin.json` (registers the setup command) and `commands/setup.md` (interactive setup skill that compiles and configures `~/.claude/settings.json`).
+**Plugin integration** via `.claude-plugin/plugin.json` (registers the setup command) and `commands/setup.md` (interactive setup skill).
 
-**Two tsconfig files** — `tsconfig.json` compiles only `src/` → `dist/`; `tsconfig.test.json` adds `tests/` with `noEmit: true` to avoid rootDir conflicts.
+**Two tsconfig files** — `tsconfig.json` compiles only `src/` → `dist/`; `tsconfig.test.json` adds `tests/` with `noEmit: true`.
+
+## Supported Platforms
+
+| Platform | Detection | Query Method |
+|----------|-----------|--------------|
+| Claude native | `rate_limits` in stdin | stdin (no HTTP) |
+| MiniMax | URL contains `minimaxi.com` | HTTP API |
+| 智谱 (GLM) | URL contains `bigmodel.cn` | HTTP API |
+| 小米 (MiMo) | URL contains `xiaomimimo` | HTTP + Cookie |
+| 阿里 (DashScope) | URL contains `dashscope` | No public API |
+| 火山引擎 (Ark) | URL contains `volces.com` | No public API |
+| DeepSeek | URL contains `deepseek.com` | HTTP API |
+| Kimi | URL contains `moonshot.cn` | HTTP API |
+| New API | Fallback for non-Anthropic URLs | HTTP API |
 
 ## Key Design Constraints
 
-- **Zero runtime dependencies** — only Node.js built-ins (`node:fs/promises`, `node:child_process`)
+- **Zero runtime dependencies** — only Node.js built-ins
 - **Never crash Claude Code** — all errors caught, fallback message printed
 - **Compiled output is a single file** — `dist/index.js`, must stay small
 - **Environment variables control behavior**: `CLAUDE_MINI_HUD_LANG` (zh/en/minimal), `CLAUDE_MINI_HUD_SHOW_MODEL` (1 to show model line)

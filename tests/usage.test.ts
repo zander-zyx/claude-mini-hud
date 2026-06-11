@@ -72,6 +72,33 @@ test('detectPlatform: zhipu (by base URL)', async () => {
   delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('detectPlatform: xiaomi (by base URL)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://token-plan-cn.xiaomimimo.com/anthropic';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'xiaomi');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: alibaba (by base URL)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'alibaba');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: volcengine (by base URL)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://ark.cn-beijing.volces.com/api/coding';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'volcengine');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
 test('readCache: 无缓存返回 null', async () => {
   const { readCache } = await import('../src/usage.js');
   const result = readCache('nonexistent-platform-xyz');

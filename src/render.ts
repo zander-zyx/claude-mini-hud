@@ -29,8 +29,8 @@ export function formatTokenCount(n: number, decimals: number = 1): string {
   return String(n);
 }
 
-/** 将 unix 秒时间戳转为倒计时字符串 (如 "1h14m", "4d19h") */
-export function formatCountdown(resetAtSec: number): string | null {
+/** 将 unix 秒时间戳转为倒计时字符串 (如 "1h14m", "4d19h", 月度 "26d") */
+export function formatCountdown(resetAtSec: number, daysOnly: boolean = false): string | null {
   const nowSec = Math.floor(Date.now() / 1000);
   let diff = resetAtSec - nowSec;
   if (diff <= 0) return null;
@@ -40,6 +40,12 @@ export function formatCountdown(resetAtSec: number): string | null {
   const hours = Math.floor(diff / 3600);
   diff %= 3600;
   const mins = Math.floor(diff / 60);
+
+  if (daysOnly) {
+    if (days > 0) return `${days}d`;
+    if (hours > 0) return `${hours}h`;
+    return `${mins}m`;
+  }
 
   if (days > 0) return `${days}d${hours}h`;
   if (hours > 0) return `${hours}h${mins}m`;
@@ -133,8 +139,8 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
 /** 构建余额标签: 仅非套餐平台 (余额型) 在 Context 行显示 */
 function buildBalanceTag(usage: UsageData | null): string | null {
   if (!usage) return null;
-  // 智谱 Coding Plan → 不在这里显示 (有独立的智谱行)
-  if (usage.zhipu) return null;
+  // 智谱 / 小米 / 阿里 / 火山引擎 → 不在这里显示 (有独立行)
+  if (usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine) return null;
   // DeepSeek → 余额
   if (usage.deepSeek) {
     return c.cyan(`¥${usage.deepSeek.totalBalance.toFixed(2)}`);
@@ -397,28 +403,38 @@ export function renderUsageLine(usage: UsageData | null): string | null {
   if (!usage) return null;
 
   if (usage.claude) {
-    const { fiveHour, sevenDay } = usage.claude;
+    const { fiveHour, sevenDay, fiveHourResetAt, sevenDayResetAt } = usage.claude;
     const parts: string[] = [];
     if (fiveHour !== null) {
       const color = fiveHour >= 80 ? c.red : fiveHour >= 60 ? c.yellow : c.green;
-      parts.push(`5h ${color(`${fiveHour}%`)}`);
+      let seg = `5h:${color(`${fiveHour}%`)}`;
+      if (fiveHourResetAt) {
+        const countdown = formatCountdown(fiveHourResetAt);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
     }
     if (sevenDay !== null) {
       const color = sevenDay >= 80 ? c.red : sevenDay >= 60 ? c.yellow : c.green;
-      parts.push(`7d ${color(`${sevenDay}%`)}`);
+      let seg = `7d:${color(`${sevenDay}%`)}`;
+      if (sevenDayResetAt) {
+        const countdown = formatCountdown(sevenDayResetAt);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
     }
     if (parts.length === 0) return null;
-    return `${c.gray('[B] API')} ${parts.join('  ')}`;
+    return `${c.gray('[B] API')} ${parts.join(' ')}`;
   }
 
   if (usage.miniMax) {
     const m = usage.miniMax;
     const parts: string[] = [];
-    // 5小时窗口剩余百分比
+    // 5小时窗口剩余百分比 (仅存在时显示)
     if (m.intervalRemainingPercent !== undefined) {
       const used = 100 - m.intervalRemainingPercent;
       const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
-      let seg = c.bold(`${color(`${used}%`)}`);
+      let seg = `5h:${color(`${used}%`)}`;
       if (m.intervalResetAt) {
         const countdown = formatCountdown(m.intervalResetAt);
         if (countdown) seg += c.dim(` (${countdown})`);
@@ -429,12 +445,28 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     if (m.weeklyRemainingPercent !== undefined) {
       const used = 100 - m.weeklyRemainingPercent;
       const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
-      parts.push(color(`${used}%`));
+      let seg = `7d:${color(`${used}%`)}`;
+      if (m.weeklyResetAt) {
+        const countdown = formatCountdown(m.weeklyResetAt);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
+    }
+    // 月窗口
+    if (m.monthlyRemainingPercent !== undefined) {
+      const used = 100 - m.monthlyRemainingPercent;
+      const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
+      let seg = `m:${color(`${used}%`)}`;
+      if (m.monthlyResetAt) {
+        const countdown = formatCountdown(m.monthlyResetAt, true);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
     }
     if (parts.length === 0) return null;
     const modelTag = m.modelName ? c.dim(` [${m.modelName}]`) : '';
     const prefix = MINIMAL ? 'MiniMax' : c.gray('[B] MiniMax');
-    return `${prefix}${modelTag} ${parts.join(c.dim(' · '))}`;
+    return `${prefix}${modelTag} ${parts.join(' ')}`;
   }
 
   if (usage.deepSeek) {
@@ -463,10 +495,10 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     const z = usage.zhipu;
     const parts: string[] = [];
 
-    // 5小时窗口 Token 用量 + 刷新倒计时
+    // 5小时窗口 Token 用量 + 刷新倒计时 (仅存在时显示)
     if (z.usedPercent !== undefined) {
       const color = z.usedPercent >= 80 ? c.red : z.usedPercent >= 60 ? c.yellow : c.green;
-      let seg = c.bold(`${color(`${z.usedPercent}%`)}`);
+      let seg = `5h:${color(`${z.usedPercent}%`)}`;
       if (z.resetAt) {
         const countdown = formatCountdown(z.resetAt);
         if (countdown) seg += c.dim(` (${countdown})`);
@@ -477,23 +509,83 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     // 周限额
     if (z.weeklyPercent !== undefined) {
       const color = z.weeklyPercent >= 80 ? c.red : z.weeklyPercent >= 60 ? c.yellow : c.green;
-      parts.push(color(`${z.weeklyPercent}%`));
+      let seg = `7d:${color(`${z.weeklyPercent}%`)}`;
+      if (z.weeklyResetAt) {
+        const countdown = formatCountdown(z.weeklyResetAt);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
     }
 
-    // MCP 工具用量 — 简短格式: M 已用/总数
+    // 月限额
+    if (z.monthlyPercent !== undefined) {
+      const color = z.monthlyPercent >= 80 ? c.red : z.monthlyPercent >= 60 ? c.yellow : c.green;
+      let seg = `m:${color(`${z.monthlyPercent}%`)}`;
+      if (z.monthlyResetAt) {
+        const countdown = formatCountdown(z.monthlyResetAt, true);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
+    }
+
+    // MCP 工具用量 — 简短格式: mcp 已用/总数
     if (z.mcpPercent !== undefined) {
       const detail = (z.mcpUsed !== undefined && z.mcpTotal !== undefined)
-        ? `M${z.mcpUsed}/${z.mcpTotal}`
-        : `M${z.mcpPercent}%`;
-      const color = z.mcpPercent >= 80 ? c.red : z.mcpPercent >= 60 ? c.yellow : c.green;
-      parts.push(color(detail));
+        ? `mcp:${z.mcpUsed}/${z.mcpTotal}`
+        : `mcp:${z.mcpPercent}%`;
+      parts.push(c.dim(detail));
     }
 
     if (parts.length === 0) return null;
 
     const levelTag = z.level ? c.dim(` [${z.level}]`) : '';
     const prefix = MINIMAL ? '智谱' : c.gray('[B] 智谱');
-    return `${prefix}${levelTag} ${parts.join(c.dim(' · '))}`;
+    return `${prefix}${levelTag} ${parts.join(' ')}`;
+  }
+
+  // ─── 固定额度平台 (小米 / 阿里 / 火山引擎) ────────────────────────────
+
+  const fixedQuota = usage.xiaomi || usage.alibaba || usage.volcengine;
+  if (fixedQuota) {
+    const parts: string[] = [];
+
+    // 已用/总额度 (智能单位: 大数 M, 小数实际)
+    if (fixedQuota.total > 0) {
+      const usedStr = formatTokenCount(fixedQuota.used);
+      const totalStr = formatTokenCount(fixedQuota.total);
+      const pct = Math.round((fixedQuota.used / fixedQuota.total) * 100);
+      const color = pct >= 80 ? c.red : pct >= 60 ? c.yellow : c.green;
+      parts.push(`${color(`${usedStr}/${totalStr}`)}`);
+    }
+
+    // 月度百分比
+    if (fixedQuota.monthlyPercent !== undefined) {
+      const color = fixedQuota.monthlyPercent >= 80 ? c.red : fixedQuota.monthlyPercent >= 60 ? c.yellow : c.green;
+      let seg = `m:${color(`${fixedQuota.monthlyPercent}%`)}`;
+      if (fixedQuota.expiresAt) {
+        const countdown = formatCountdown(fixedQuota.expiresAt, true);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
+    }
+
+    if (parts.length === 0) return null;
+
+    // 确定平台名
+    let platformName = '';
+    let levelTag = '';
+    if (usage.xiaomi) {
+      platformName = MINIMAL ? '小米' : c.gray('[B] 小米');
+      levelTag = fixedQuota.plan ? c.dim(` [${fixedQuota.plan}]`) : '';
+    } else if (usage.alibaba) {
+      platformName = MINIMAL ? '阿里' : c.gray('[B] 阿里');
+      levelTag = fixedQuota.plan ? c.dim(` [${fixedQuota.plan}]`) : '';
+    } else if (usage.volcengine) {
+      platformName = MINIMAL ? '火山' : c.gray('[B] 火山');
+      levelTag = fixedQuota.plan ? c.dim(` [${fixedQuota.plan}]`) : '';
+    }
+
+    return `${platformName}${levelTag} ${parts.join(' ')}`;
   }
 
   return null;

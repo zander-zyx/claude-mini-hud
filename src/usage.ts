@@ -5,10 +5,13 @@
  *
  * 支持平台:
  *   - Claude 原生  : 从 stdin.rate_limits 读取 (5小时 / 7天), 无需 HTTP
- *   - MiniMax      : Coding Plan 剩余 token
+ *   - MiniMax      : Coding Plan 剩余 token (5h / 7d / 月)
  *   - DeepSeek      : 账户余额 (CNY)
  *   - Kimi          : Moonshot 余额 (CNY)
- *   - 智谱          : GLM Coding Plan 用量
+ *   - 智谱          : GLM Coding Plan 用量 (5h / 7d / 月 / MCP)
+ *   - 小米          : MiMo Token Plan 固定额度
+ *   - 阿里          : DashScope (暂无公开 API)
+ *   - 火山引擎      : Ark (暂无公开 API)
  *   - New API      : 开源网关, /api/user/self (含 OpenAI / Claude / 自建代理)
  */
 
@@ -24,8 +27,10 @@ import { get as httpsGetImpl } from 'node:https';
 export interface MiniMaxUsage {
   intervalRemainingPercent?: number;   // 当前 5小时窗口剩余百分比 (0-100)
   weeklyRemainingPercent?: number;     // 周窗口剩余百分比 (0-100)
+  monthlyRemainingPercent?: number;    // 月窗口剩余百分比 (0-100)
   intervalResetAt?: number;            // 5小时窗口重置时间 (unix 秒)
   weeklyResetAt?: number;              // 周窗口重置时间 (unix 秒)
+  monthlyResetAt?: number;             // 月窗口重置时间 (unix 秒)
   modelName?: string;                  // 主模型名 (如 "general")
 }
 
@@ -56,11 +61,23 @@ export interface KimiBalance {
 export interface ZhipuUsage {
   usedPercent?: number;    // 5小时窗口 Token 已用百分比 (0-100)
   weeklyPercent?: number;  // 周限额 Token 已用百分比 (0-100)
+  monthlyPercent?: number; // 月限额 Token 已用百分比 (0-100)
   mcpPercent?: number;     // MCP 工具用量百分比 (0-100)
   mcpUsed?: number;        // MCP 已用次数
   mcpTotal?: number;       // MCP 总次数
   level?: string;          // 套餐等级 (如 "pro")
   resetAt?: number;        // 5小时窗口重置时间 (unix 秒)
+  weeklyResetAt?: number;  // 周限额重置时间 (unix 秒)
+  monthlyResetAt?: number; // 月限额重置时间 (unix 秒)
+}
+
+/** 固定额度套餐 (TOKEN PLAN) */
+export interface FixedQuotaUsage {
+  used: number;            // 已用 token 数 (或信用点)
+  total: number;           // 总额度 token 数 (或信用点)
+  plan?: string;           // 套餐名 (如 "max", "pro")
+  expiresAt?: number;      // 到期时间 (unix 秒)
+  monthlyPercent?: number; // 月度使用百分比 (0-100)
 }
 
 export interface UsageData {
@@ -71,6 +88,9 @@ export interface UsageData {
   zhipu?: ZhipuUsage;
   claude?: ClaudeRateLimit;
   newApi?: NewApiQuota;
+  xiaomi?: FixedQuotaUsage;
+  alibaba?: FixedQuotaUsage;
+  volcengine?: FixedQuotaUsage;
   updatedAt: number;
 }
 
@@ -115,7 +135,16 @@ export function detectPlatform(stdin: StdinData): string | null {
   // 6) 智谱 / GLM
   if (url.includes('bigmodel.cn') || url.includes('zhipu') || url.includes('glm')) return 'zhipu';
 
-  // 7) 通用 New API 检测: base URL 非标准 Anthropic/OpenAI
+  // 7) 小米 / MiMo
+  if (url.includes('xiaomimimo') || url.includes('xiaomi') || url.includes('mimo.xiaomi')) return 'xiaomi';
+
+  // 8) 阿里 / DashScope / 百炼 / Qwen
+  if (url.includes('dashscope') || url.includes('aliyun') || url.includes('qwen') || url.includes('bailian')) return 'alibaba';
+
+  // 9) 火山引擎 / Ark
+  if (url.includes('volces.com') || url.includes('volcengine') || url.includes('ark.cn')) return 'volcengine';
+
+  // 10) 通用 New API 检测: base URL 非标准 Anthropic/OpenAI
   if (url && !url.includes('anthropic.com') && !url.includes('openai.com')) {
     // 尝试通过 /api/user/self 判断是否为 New API (在异步查询中验证)
     return 'new-api';
@@ -262,15 +291,18 @@ async function queryMiniMax(apiKey: string, stdin: StdinData): Promise<UsageData
 
     const intervalPct = typeof main.current_interval_remaining_percent === 'number' ? main.current_interval_remaining_percent : undefined;
     const weeklyPct = typeof main.current_weekly_remaining_percent === 'number' ? main.current_weekly_remaining_percent : undefined;
-    if (intervalPct === undefined && weeklyPct === undefined) return null;
+    const monthlyPct = typeof main.current_monthly_remaining_percent === 'number' ? main.current_monthly_remaining_percent : undefined;
+    if (intervalPct === undefined && weeklyPct === undefined && monthlyPct === undefined) return null;
 
     return {
       provider: 'minimax',
       miniMax: {
         intervalRemainingPercent: intervalPct !== undefined ? Math.round(intervalPct) : undefined,
         weeklyRemainingPercent: weeklyPct !== undefined ? Math.round(weeklyPct) : undefined,
+        monthlyRemainingPercent: monthlyPct !== undefined ? Math.round(monthlyPct) : undefined,
         intervalResetAt: typeof main.end_time === 'number' ? Math.round(main.end_time / 1000) : undefined,
         weeklyResetAt: typeof main.weekly_end_time === 'number' ? Math.round(main.weekly_end_time / 1000) : undefined,
+        monthlyResetAt: typeof main.monthly_end_time === 'number' ? Math.round(main.monthly_end_time / 1000) : undefined,
         modelName: typeof main.model_name === 'string' ? main.model_name : undefined,
       },
       updatedAt: Date.now(),
@@ -375,13 +407,16 @@ async function queryZhipu(apiKey: string): Promise<UsageData | null> {
       nextResetTime?: number;
     }>;
 
-    // unit=3 → 5小时窗口 Token 限额; unit=6 → 周限额; TIME_LIMIT → MCP
+    // unit=3 → 5小时窗口 Token 限额; unit=6 → 周限额; TIME_LIMIT → MCP; 其他 unit → 月限额
     let usedPercent: number | undefined;
     let weeklyPercent: number | undefined;
+    let monthlyPercent: number | undefined;
     let mcpPercent: number | undefined;
     let mcpUsed: number | undefined;
     let mcpTotal: number | undefined;
     let resetAt: number | undefined;
+    let weeklyResetAt: number | undefined;
+    let monthlyResetAt: number | undefined;
 
     for (const item of limits) {
       if (item.type === 'TOKENS_LIMIT' && item.unit === 3) {
@@ -389,14 +424,21 @@ async function queryZhipu(apiKey: string): Promise<UsageData | null> {
         resetAt = item.nextResetTime ? Math.round(item.nextResetTime / 1000) : undefined;
       } else if (item.type === 'TOKENS_LIMIT' && item.unit === 6) {
         weeklyPercent = item.percentage;
+        weeklyResetAt = item.nextResetTime ? Math.round(item.nextResetTime / 1000) : undefined;
       } else if (item.type === 'TIME_LIMIT') {
         mcpPercent = item.percentage;
         mcpUsed = item.currentValue;
         mcpTotal = item.usage;
+      } else if (item.type === 'TOKENS_LIMIT' && item.unit !== 3 && item.unit !== 6) {
+        // 其他 unit 值视为月限额 (仅取第一个)
+        if (monthlyPercent === undefined) {
+          monthlyPercent = item.percentage;
+          monthlyResetAt = item.nextResetTime ? Math.round(item.nextResetTime / 1000) : undefined;
+        }
       }
     }
 
-    if (usedPercent === undefined && weeklyPercent === undefined && mcpPercent === undefined) {
+    if (usedPercent === undefined && weeklyPercent === undefined && monthlyPercent === undefined && mcpPercent === undefined) {
       return null;
     }
 
@@ -405,17 +447,100 @@ async function queryZhipu(apiKey: string): Promise<UsageData | null> {
       zhipu: {
         usedPercent: typeof usedPercent === 'number' ? Math.round(usedPercent) : undefined,
         weeklyPercent: typeof weeklyPercent === 'number' ? Math.round(weeklyPercent) : undefined,
+        monthlyPercent: typeof monthlyPercent === 'number' ? Math.round(monthlyPercent) : undefined,
         mcpPercent: typeof mcpPercent === 'number' ? Math.round(mcpPercent) : undefined,
         mcpUsed,
         mcpTotal,
         level: json.data.level ?? undefined,
         resetAt,
+        weeklyResetAt,
+        monthlyResetAt,
       },
       updatedAt: Date.now(),
     };
   } catch {
     return null;
   }
+}
+
+async function queryXiaomi(apiKey: string): Promise<UsageData | null> {
+  try {
+    // 小米 MiMo Token Plan 用量 API
+    // 需要通过 Cookie 认证 (从浏览器 DevTools 获取, 设置 XIAOMI_COOKIE 环境变量)
+    // Bearer token 也尝试 (部分端点可能支持)
+    const cookie = process.env.XIAOMI_COOKIE?.trim();
+    if (!cookie && !apiKey) return null;
+
+    const apiUrl = 'https://platform.xiaomimimo.com/api/v1/tokenPlan/usage';
+
+    let body: string;
+    if (cookie) {
+      // Cookie 认证模式
+      body = await new Promise<string>((resolve, reject) => {
+        const lib = apiUrl.startsWith('https') ? httpsGetImpl : httpGetImpl;
+        const req = lib(apiUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Cookie': cookie,
+          },
+          timeout: HTTP_TIMEOUT_MS,
+        }, (res: any) => {
+          let data = '';
+          res.on('data', (chunk: string) => data += chunk);
+          res.on('end', () => {
+            if (res.statusCode === 200) resolve(data);
+            else reject(new Error(`HTTP ${res.statusCode}`));
+          });
+        });
+        req.on('error', reject);
+        req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+      });
+    } else {
+      body = await httpGet(apiUrl, apiKey);
+    }
+
+    const json = JSON.parse(body);
+    if (json.code !== 0 || !json.data) return null;
+
+    const usage = json.data.monthUsage;
+    if (!usage) return null;
+
+    // percent 是 0.0-1.0, 转为 0-100
+    const monthlyPercent = typeof usage.percent === 'number'
+      ? Math.round(usage.percent * 100) : undefined;
+
+    // 从 items 汇总 used/total
+    let used = 0;
+    let total = 0;
+    if (Array.isArray(usage.items)) {
+      for (const item of usage.items) {
+        used += item.used ?? 0;
+        total += item.limit ?? 0;
+      }
+    }
+
+    return {
+      provider: 'xiaomi',
+      xiaomi: {
+        used,
+        total,
+        monthlyPercent,
+      },
+      updatedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// 阿里 DashScope Coding Plan — 暂无公开的用量查询 API
+async function queryAlibaba(): Promise<UsageData | null> {
+  return null;
+}
+
+// 火山引擎 Ark — 管控面 API 需要 HMAC-SHA256 签名, 零依赖实现暂不支持
+async function queryVolcengine(): Promise<UsageData | null> {
+  return null;
 }
 
 // ─── 主入口 ───────────────────────────────────────────────────────────────
@@ -426,6 +551,9 @@ async function queryZhipu(apiKey: string): Promise<UsageData | null> {
  *   - DeepSeek: DEEPSEEK_API_KEY
  *   - Kimi:     MOONSHOT_API_KEY
  *   - 智谱:      ZHIPUAI_API_KEY / GLM_API_KEY
+ *   - 小米:      XIAOMI_API_KEY / MIMO_API_KEY
+ *   - 阿里:      DASHSCOPE_API_KEY
+ *   - 火山引擎:  ARK_API_KEY / VOLC_API_KEY
  *   - 第三方代理: ANTHROPIC_AUTH_TOKEN (代理转发)
  */
 function getApiKeyForPlatform(platform: string): string | null {
@@ -438,6 +566,20 @@ function getApiKeyForPlatform(platform: string): string | null {
     case 'zhipu':
       return process.env.ZHIPUAI_API_KEY?.trim()
         || process.env.GLM_API_KEY?.trim()
+        || authToken
+        || null;
+    case 'xiaomi':
+      return process.env.XIAOMI_API_KEY?.trim()
+        || process.env.MIMO_API_KEY?.trim()
+        || authToken
+        || null;
+    case 'alibaba':
+      return process.env.DASHSCOPE_API_KEY?.trim()
+        || authToken
+        || null;
+    case 'volcengine':
+      return process.env.ARK_API_KEY?.trim()
+        || process.env.VOLC_API_KEY?.trim()
         || authToken
         || null;
     default:
@@ -468,6 +610,15 @@ async function refreshCache(platform: string, apiKey: string, stdin: StdinData):
       break;
     case 'zhipu':
       data = await queryZhipu(apiKey);
+      break;
+    case 'xiaomi':
+      data = await queryXiaomi(apiKey);
+      break;
+    case 'alibaba':
+      data = await queryAlibaba();
+      break;
+    case 'volcengine':
+      data = await queryVolcengine();
       break;
   }
 
