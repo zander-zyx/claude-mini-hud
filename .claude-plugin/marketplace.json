@@ -1,0 +1,28 @@
+{
+  "name": "claude-mini-hud",
+  "owner": {
+    "name": "Zander Zhang",
+    "email": "sou_time@163.com"
+  },
+  "metadata": {
+    "description": "Minimal Claude Code statusline — context / token / todos (model optional)",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-mini-hud",
+      "source": "./",
+      "description": "Minimal statusline showing context progress, token usage (in/out/cache), and current todo. 3 required lines + 1 optional model line. Zero dependencies, single TS file.",
+      "category": "monitoring",
+      "tags": [
+        "hud",
+        "statusline",
+        "monitoring",
+        "context",
+        "token",
+        "todos",
+        "minimal"
+      ]
+    }
+  ]
+}

@@ -12,7 +12,7 @@
 
 // ─── i18n (★ 用户安装时选 1.中文 / 2.英文) ──────────────────────────────
 
-type Lang = 'zh' | 'en';
+type Lang = 'zh' | 'en' | 'minimal';
 
 const STRINGS = {
   zh: {
@@ -43,14 +43,35 @@ const STRINGS = {
     noInProgress: '— none in progress —',
     allDone: '✓ all done',
   },
+  // ★ 英中混搭 + 删 emoji: 'Context' + '剩余' + 'Token' + '当前任务'
+  minimal: {
+    context: 'Context',
+    contextRemaining: '剩余',
+    token: 'Token',
+    in: 'in',
+    out: 'out',
+    cache: 'cache',
+    model: 'Model',
+    todo: '当前任务',
+    fallback: 'no stdin input',
+    renderFailed: 'render failed, fallback',
+    noInProgress: '— 无进行中 —',
+    allDone: '✓ 全部完成',
+  },
 } as const;
 
-// 默认语言 (运行时可通过 env CLAUDE_MINI_HUD_LANG=zh|en 覆盖)
-const LANG: Lang = (process.env.CLAUDE_MINI_HUD_LANG === 'en' ? 'en' : 'zh');
+// 默认语言 (运行时可通过 env CLAUDE_MINI_HUD_LANG=zh|en|minimal 覆盖)
+const LANG: Lang = (['zh', 'en', 'minimal'] as const)
+  .includes(process.env.CLAUDE_MINI_HUD_LANG as Lang)
+  ? (process.env.CLAUDE_MINI_HUD_LANG as Lang)
+  : 'zh';
 const t = STRINGS[LANG];
 
 // 模型行可选显示: CLAUDE_MINI_HUD_SHOW_MODEL=1 显示, 默认隐藏
 const SHOW_MODEL = process.env.CLAUDE_MINI_HUD_SHOW_MODEL === '1';
+
+// 是否 minimal 模式 (无 emoji 前缀)
+const MINIMAL = LANG === 'minimal';
 
 // ─── 类型契约 (Claude Code StatusLine stdin JSON) ────────────────────────
 
@@ -208,7 +229,10 @@ function renderContextLine(stdin: StdinData): string {
     ? c.dim(`${formatTokenCount(tokens)} / ${formatTokenCount(size)}  ${c.dim(`${t.contextRemaining}`)} ${formatTokenCount(remaining)}`)
     : c.dim(`${formatTokenCount(tokens)}`);
 
-  return `${c.gray(`📊 ${t.context}`)} ${bar} ${pctStr}  ${detail}`;
+  const label = MINIMAL
+    ? ` ${t.context}`  // minimal: 前置空格, 无 emoji
+    : `${c.gray(`📊 ${t.context}`)}`;  // zh/en: 灰色 + emoji
+  return `${label} ${bar} ${pctStr}  ${detail}`;
 }
 
 // ─── 当前任务行 ───────────────────────────────────────────────────────────
@@ -225,13 +249,21 @@ async function renderTodoLine(transcriptPath: string | undefined): Promise<strin
 
   if (!inProgress) {
     if (completed === total) {
-      return `${c.gray(`▶️  ${t.todo}`)} ${c.green(t.allDone)}  ${progress}`;
+      return `${todoLabel(t)} ${c.green(t.allDone)}  ${progress}`;
     }
-    return `${c.gray(`▶️  ${t.todo}`)} ${c.dim(t.noInProgress)}  ${progress}`;
+    return `${todoLabel(t)} ${c.dim(t.noInProgress)}  ${progress}`;
   }
 
   const content = truncate(inProgress.activeForm ?? inProgress.content, 60);
-  return `${c.gray(`▶️  ${t.todo}`)} ${c.yellow('▸')} ${content}  ${progress}`;
+  return `${todoLabel(t)} ${c.yellow('▸')} ${content}  ${progress}`;
+}
+
+// 渲染 todo 行的 label, 区分 minimal 模式
+function todoLabel(t: typeof STRINGS.zh): string {
+  if (MINIMAL) {
+    return ` ${t.todo}`;
+  }
+  return c.gray(`▶️  ${t.todo}`);
 }
 
 async function readTodos(transcriptPath: string): Promise<TodoItem[] | null> {
@@ -274,7 +306,10 @@ function renderModelLine(stdin: StdinData): string {
   const provider = detectProvider(stdin);
   const providerBadge = provider ? c.dim(`[${provider}]`) : '';
 
-  return `${c.gray(`🤖 ${t.model}`)} ${c.cyan(c.bold(name))}  ${providerBadge}`;
+  const label = MINIMAL
+    ? ` ${t.model}`
+    : c.gray(`🤖 ${t.model}`);
+  return `${label} ${c.cyan(c.bold(name))}  ${providerBadge}`;
 }
 
 function detectProvider(stdin: StdinData): string | null {
@@ -340,7 +375,10 @@ async function renderTokenLine(stdin: StdinData, transcriptPath: string | undefi
     parts.push(`${c.gray(t.cache)} ${cacheStr}`);
   }
 
-  return `${c.gray(`🪙 ${t.token}`)} ${c.bold(totalStr)} ${c.dim('(' + parts.join(' · ') + ')')}`;
+  const label = MINIMAL
+    ? ` ${t.token}`  // minimal: 前置空格, 无 emoji
+    : `${c.gray(`🪙 ${t.token}`)}`;  // zh/en: 灰色 + emoji
+  return `${label} ${c.bold(totalStr)} ${c.dim('(' + parts.join(' · ') + ')')}`;
 }
 
 async function readOutputFromTranscript(transcriptPath: string): Promise<number | null> {
@@ -373,7 +411,10 @@ async function main(): Promise<void> {
   const stdin = await readStdin();
   if (!stdin) {
     // 测试模式或没有输入, 输出占位
-    console.log(`${c.gray(`📊 ${t.context}`)} ${c.dim('—')}  ${c.dim(t.fallback)}`);
+    const label = MINIMAL
+      ? ` ${t.context}`
+      : `${c.gray(`📊 ${t.context}`)}`;
+    console.log(`${label} ${c.dim('—')}  ${c.dim(t.fallback)}`);
     return;
   }
 

@@ -230,3 +230,31 @@ test('CLAUDE_MINI_HUD_LANG=en 显示英文', () => {
   const hasZh = zhMarkers.some((m) => result.stdout.includes(m));
   assert.equal(hasZh, false, `LANG=en 不应输出中文, 实际: ${result.stdout}`);
 });
+
+test('CLAUDE_MINI_HUD_LANG=minimal: 无 emoji + 英中混搭', () => {
+  const input = JSON.stringify({
+    model: { display_name: 'test' },
+    context_window: {
+      current_usage: { input_tokens: 22000, output_tokens: 342 },
+      context_window_size: 200000,
+    },
+    transcript_path: '/tmp/claude-mini-hud-test.jsonl',
+  });
+
+  const result = runCli(input, { ...process.env, CLAUDE_MINI_HUD_LANG: 'minimal' });
+  assert.equal(result.status, 0);
+
+  // 1) 应有 "Context" (英文) + "Token" (英文) + "剩余" (中文) + "当前任务" (中文)
+  assert.ok(result.stdout.includes('Context'), `minimal 应含 "Context": ${result.stdout}`);
+  assert.ok(result.stdout.includes('Token'), `minimal 应含 "Token": ${result.stdout}`);
+  assert.ok(result.stdout.includes('剩余'), `minimal 应含中文"剩余": ${result.stdout}`);
+
+  // 2) 不应有任何 emoji 前缀
+  const emojis = ['📊', '🪙', '▶️', '🤖'];
+  for (const e of emojis) {
+    assert.ok(
+      !result.stdout.includes(e),
+      `minimal 不应含 emoji "${e}", 实际: ${result.stdout}`
+    );
+  }
+});

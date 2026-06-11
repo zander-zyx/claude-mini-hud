@@ -1,15 +1,25 @@
 {
   "name": "claude-mini-hud",
-  "description": "极简 Claude Code 状态栏插件 - 上下文 / 当前任务 / 模型 / 废话 (上次响应 token),4 行信息, 不打扰。",
+  "description": "极简 Claude Code 状态栏插件 - 上下文 / Token / 当前任务 (模型可选),3 必显 + 1 可选",
   "version": "0.1.0",
   "author": {
-    "name": "claude-mini-hud contributors"
+    "name": "Zander Zhang",
+    "email": "sou_time@163.com",
+    "url": "https://github.com/zander-zyx"
   },
   "commands": [
     "./commands/setup.md"
   ],
-  "homepage": "https://github.com/your-org/claude-mini-hud",
-  "repository": "https://github.com/your-org/claude-mini-hud",
+  "homepage": "https://github.com/zander-zyx/claude-mini-hud",
+  "repository": "https://github.com/zander-zyx/claude-mini-hud",
   "license": "MIT",
-  "keywords": ["hud", "statusline", "context", "todos", "model", "claude-code", "minimal"]
+  "keywords": [
+    "hud",
+    "statusline",
+    "context",
+    "token",
+    "todos",
+    "minimal",
+    "claude-code"
+  ]
 }

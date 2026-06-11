@@ -9,20 +9,43 @@ allowed-tools: Bash, Read, Edit, AskUserQuestion
 
 ## Step 1: 选择语言 / Select Language
 
-**必须先调用 AskUserQuestion 弹出语言选择菜单**, 根据用户选择决定后续步骤里的提示文案:
+**必须先调用 AskUserQuestion 弹出语言选择菜单**, 根据用户选择决定后续步骤里的提示文案 + 写入 settings.json 的环境变量:
 
 ```
 Use AskUserQuestion:
   header: "Language"
-  question: "请选择 setup 提示语言 / Select setup language"
+  question: "请选择显示模式 / Select display mode"
   options:
     - label: "中文 (Chinese)"
-      description: "所有提示、错误信息、README 都用中文"
+      description: "📊 上下文 + 🪙 Token + ▶️ 当前任务 全部中文 + emoji"
     - label: "English"
-      description: "All prompts, errors, and README in English"
+      description: "📊 Context + 🪙 Token + ▶️ Todos 全部英文 + emoji"
+    - label: "English minimal"
+      description: "英中混搭 + 无 emoji: Context/剩余/Token/当前任务"
 ```
 
-把用户选择存到 `{LANG}` 变量 (zh 或 en), 后续步骤用它决定输出语言。
+把用户选择存到 `{LANG}` 变量 (zh / en / minimal), 后续步骤用它:
+1. 决定 Step 6 输出提示的语种
+2. 写入 `statusLine.command` 的 `CLAUDE_MINI_HUD_LANG={LANG}` 环境变量
+
+**3 种模式输出示例**:
+
+```
+# 中文 (zh)
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 23k (in 22k · out 342 · cache 768)
+▶️  当前任务 ▸ 调研充电行业政策  (2/5)
+
+# English (en)
+📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+🪙 Token 23k (in 22k · out 342 · cache 768)
+▶️ Todos   ▸ Research charging industry policy  (2/5)
+
+# English minimal (新!)
+Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+ Token 23k (in 22k · out 342 · cache 768)
+当前任务 ▸ 调研充电行业政策  (2/5)
+```
 
 ## Step 2: 检测环境
 

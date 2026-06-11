@@ -16,18 +16,37 @@
 
 **claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**3 行必显 + 1 行可选**,不打扰,信息密度高。
 
+### 3 种显示模式
+
+**中文 (zh, 默认)** — 完整中文 + emoji:
 ```
 📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
 🪙 Token 23k (in 22k · out 342 · cache 768)
 ▶️  当前任务 ▸ 调研充电行业政策  (2/5)
 ```
 
+**English (en)** — 完整英文 + emoji:
+```
+📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+🪙 Token 23k (in 22k · out 342 · cache 768)
+▶️ Todos   ▸ Research charging industry policy  (2/5)
+```
+
+**English minimal (minimal)** — 英中混搭 + 无 emoji:
+```
+Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+ Token 23k (in 22k · out 342 · cache 768)
+当前任务 ▸ 调研充电行业政策  (2/5)
+```
+
+切换: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (见 [配置](#配置))
+
 **核心特性**:
 - ⚡ **零依赖**:不需要 npm install 一堆包,单文件 TS
-- 🌍 **双语**:中文 (默认) / English,运行时切换
+- 🌍 **三模式**:中文 / English / English minimal (英中混搭),运行时切换
 - 🎨 **可定制**:改 4 个 `render*Line` 函数即可调整任何字段
 - 🚀 **10ms 启动**:编译产物 ~6KB
-- 🔌 **即插即用**:`/claude-mini-hud:setup` 一条命令
+- 🔌 **即插即用**:`/claude-mini-hud:setup` 一条命令 (setup 时选 1.中文 / 2.English / 3.minimal)
 
 **为什么不用 `claude-hud`?**
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是社区里最流行的同类插件,但它默认显示 **10+ 行** (项目路径 / Git文件 / 环境变量 / agents / tools ...)。我们专注核心 3 个指标,把屏幕留给真正的工作内容。
@@ -242,7 +261,7 @@ TMPDIR=~/.cache/tmp claude
 
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
-| `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` | 界面语言 |
+| `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 
 **在 statusLine.command 里设置** (推荐):
@@ -363,7 +382,7 @@ if (breakdown.cache > 0) {
 }
 ```
 
-### 添加第 5 行 (例如:分支名)
+### 添加第 5 行 (例如:当前 git 分支)
 
 `src/index.ts` 底部 `main()` 函数,加一个 `renderGitBranchLine`:
 
@@ -470,6 +489,27 @@ npm run build
 "command": "C:\\Program Files\\nodejs\\node.exe C:\\Users\\you\\.claude\\..."
 ```
 
+### Q: 安装慢 / GitHub 不可达 (中国大陆用户)
+
+**A**: 默认情况下,从 GitHub clone + npm install 在国内可能很慢或失败。解决方案:
+
+```bash
+# 1. 用 npmmirror 加速 npm
+npm config set registry https://registry.npmmirror.com
+
+# 2. 用 ghproxy 镜像 clone (如果 GitHub 直接不通)
+git clone https://mirror.ghproxy.com/https://github.com/zander-zyx/claude-mini-hud.git
+
+# 3. 用 SSH over port 443 (绕过 GFW 对 22 端口的限速)
+# ~/.ssh/config:
+#   Host github.com
+#     HostName ssh.github.com
+#     Port 443
+#     User git
+```
+
+本项目 README / 代码全部用 ASCII + 通用 UTF-8 emoji,在任何 locale 下渲染都没问题。
+
 ### Q: 想贡献但不知道从哪开始
 
 **A**: 看 [贡献章节](#贡献)。新手友好的 issues 标了 `good first issue` 标签。
@@ -478,12 +518,30 @@ npm run build
 
 ## 开发
 
+### 跨平台编译 (Windows / macOS / Linux)
+
+项目用纯 TypeScript + Node.js, 不依赖任何二进制或原生模块. 编译只需:
+
+```bash
+npm install        # 装 typescript + tsx + @types/node
+npm run build      # tsc 编译 src/index.ts → dist/index.js
+```
+
+**两个 tsconfig 文件**:
+- `tsconfig.json`: 主配置, **只编译 src/**, 产物输出到 `dist/`
+- `tsconfig.test.json`: 类型检查 tests/, `noEmit: true` 不写文件
+
+> **为什么两个 tsconfig?**
+> 单 tsconfig 的话, `rootDir: "./src"` 跟 `include: ["tests/**/*"]` 会冲突
+> (tests 不在 src 下, TypeScript 报 "TS6059"). 拆分后两边都干净.
+
 ### 跑测试
 
 ```bash
 npm install
-npm test            # 编译 + 跑 12 个 smoke test
+npm test            # build + typecheck + 跑 13 个 smoke test (用 tsx 直接跑 ts 测试)
 npm run test:stdin  # 手测单个 stdin 输入
+npm run typecheck   # 只做类型检查, 不 emit
 ```
 
 ### 开发模式
@@ -494,7 +552,7 @@ npm run dev   # tsc --watch, 自动重新编译
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### 测试覆盖 (12 个用例)
+### 测试覆盖 (13 个用例)
 
 | # | 用例 | 验证 |
 |---|------|------|
@@ -510,6 +568,7 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 10 | provider 检测 (minimaxi) | SHOW_MODEL=1 时输出 |
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` 默认中文 | 中文 label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` 显示英文 | 无中文 marker |
+| 13 | `CLAUDE_MINI_HUD_LANG=minimal` 无 emoji + 英中混搭 | 混合输出验证 |
 
 ### 项目结构
 
@@ -548,7 +607,7 @@ claude-mini-hud/
 
 **功能请求**请说明:
 - 解决什么场景?
-- 为什么现有 4 行不够?
+- 为什么现有 3 必显 + 1 可选不够?
 - 能否在不改 API 的情况下加进现有字段?
 
 ### 提 PR
@@ -567,17 +626,17 @@ claude-mini-hud/
 - 保留中文/英文双语字符串
 - 加新字段时同步更新 README + 测试
 
-### 路线图
+### Roadmap
 
-短期 (v0.2):
-- [ ] 支持 session cost 显示 (需要 Claude Code 提供 cost 字段)
-- [ ] 多窗口切换时刷新更平滑
-- [ ] 从环境变量读取颜色阈值
+Short-term (v0.2):
+- [ ] Session cost display (requires Claude Code to expose `cost` field)
+- [ ] Smoother refresh across multi-window switches
+- [ ] Read color thresholds from environment variables
 
-中期 (v0.3):
-- [ ] 主题切换 (light / dark / 自定义)
-- [ ] 鼠标 hover 显示 tooltip (Claude Code TUI 限制,看能否 work)
-- [ ] 把 statusLine 渲染成可点击链接 (回到当前 transcript)
+Medium-term (v0.3):
+- [ ] Theme switching (light / dark / custom)
+- [ ] Mouse hover tooltips (subject to Claude Code TUI limits)
+- [ ] Clickable statusLine links (jump to current transcript)
 
 ---
 

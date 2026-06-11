@@ -16,18 +16,37 @@
 
 **claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**3 行必显 + 1 行可选**,不打扰,信息密度高。
 
+### 3 种显示模式
+
+**中文 (zh, 默认)** — 完整中文 + emoji:
 ```
 📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
 🪙 Token 23k (in 22k · out 342 · cache 768)
 ▶️  当前任务 ▸ 调研充电行业政策  (2/5)
 ```
 
+**English (en)** — 完整英文 + emoji:
+```
+📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+🪙 Token 23k (in 22k · out 342 · cache 768)
+▶️ Todos   ▸ Research charging industry policy  (2/5)
+```
+
+**English minimal (minimal)** — 英中混搭 + 无 emoji:
+```
+Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+ Token 23k (in 22k · out 342 · cache 768)
+当前任务 ▸ 调研充电行业政策  (2/5)
+```
+
+切换: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (见 [配置](#配置))
+
 **核心特性**:
 - ⚡ **零依赖**:不需要 `npm install` 一堆包,单文件 TypeScript
-- 🌍 **中英双语**:中文 (默认) / English,运行时切换
+- 🌍 **三模式**:中文 / English / English minimal (英中混搭),运行时切换
 - 🎨 **可定制**:改 4 个 `render*Line` 函数就能调整任何字段
 - 🚀 **10ms 启动**:编译产物仅 ~6KB
-- 🔌 **即插即用**:`/claude-mini-hud:setup` 一条命令搞定
+- 🔌 **即插即用**:`/claude-mini-hud:setup` 一条命令搞定 (setup 时选 1.中文 / 2.English / 3.minimal)
 
 **为什么不用 `claude-hud`?**
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是社区最流行的同类插件,但它默认显示 **10+ 行** (项目路径 / Git文件 / 环境变量 / agents / tools ...)。我们专注核心 3 个指标,把屏幕留给真正的工作内容。
@@ -497,12 +516,30 @@ git clone https://mirror.ghproxy.com/https://github.com/zander-zyx/claude-mini-h
 
 ## 开发
 
+### 跨平台编译 (Windows / macOS / Linux)
+
+项目用纯 TypeScript + Node.js, 不依赖任何二进制或原生模块. 编译只需:
+
+```bash
+npm install        # 装 typescript + tsx + @types/node
+npm run build      # tsc 编译 src/index.ts → dist/index.js
+```
+
+**两个 tsconfig 文件**:
+- `tsconfig.json`: 主配置, **只编译 src/**, 产物输出到 `dist/`
+- `tsconfig.test.json`: 类型检查 tests/, `noEmit: true` 不写文件
+
+> **为什么两个 tsconfig?**
+> 单 tsconfig 的话, `rootDir: "./src"` 跟 `include: ["tests/**/*"]` 会冲突
+> (tests 不在 src 下, TypeScript 报 "TS6059"). 拆分后两边都干净.
+
 ### 跑测试
 
 ```bash
 npm install
-npm test            # 编译 + 跑 12 个 smoke test
+npm test            # build + typecheck + 跑 13 个 smoke test (用 tsx 直接跑 ts 测试)
 npm run test:stdin  # 手测单个 stdin 输入
+npm run typecheck   # 只做类型检查, 不 emit
 ```
 
 ### 开发模式
@@ -513,7 +550,7 @@ npm run dev   # tsc --watch, 自动重新编译
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### 测试覆盖 (12 个用例)
+### 测试覆盖 (13 个用例)
 
 | # | 用例 | 验证 |
 |---|------|------|
@@ -529,6 +566,7 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 10 | provider 检测 (minimaxi) | SHOW_MODEL=1 时输出 |
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` 默认中文 | 中文 label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` 显示英文 | 无中文 marker |
+| 13 | `CLAUDE_MINI_HUD_LANG=minimal` 无 emoji + 英中混搭 | 混合输出验证 |
 
 ### 项目结构
 

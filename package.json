@@ -1,7 +1,7 @@
 {
   "name": "claude-mini-hud",
   "version": "0.1.0",
-  "description": "Minimal Claude Code statusline - context / todos / model / token cost",
+  "description": "Minimal Claude Code statusline - context / token / todos (model optional)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -15,7 +15,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "npm run build && node --test",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "npm run build && npm run typecheck && node --import tsx --test tests/*.test.ts",
     "test:stdin": "npm run build && echo '{\"model\":{\"display_name\":\"MiniMax-M3\"},\"context_window\":{\"current_usage\":{\"input_tokens\":45000},\"context_window_size\":200000},\"transcript_path\":\"/tmp/test.jsonl\"}' | node dist/index.js"
   },
   "keywords": [
@@ -24,13 +25,14 @@
     "hud",
     "minimal"
   ],
-  "author": "claude-mini-hud contributors",
+  "author": "Zander Zhang",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.4.0"
   }
 }
