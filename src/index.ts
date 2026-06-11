@@ -864,13 +864,22 @@ function renderUsageLine(usage: import('./usage.js').UsageData | null): string |
 
   if (usage.zhipu) {
     const z = usage.zhipu;
-    const rem = formatTokenCount(z.quota);
-    if (z.usedQuota !== undefined && z.usedQuota > 0) {
-      const total = z.quota + z.usedQuota;
-      const pct = Math.round((z.usedQuota / total) * 100);
-      return `${c.gray('🔋 智谱')} ${c.bold(rem)}${c.dim(` / ${formatTokenCount(total)} (已用 ${pct}%)`)}`;
+    // 优先百分比 (Coding Plan)
+    if (z.usedPercent !== undefined) {
+      const color = z.usedPercent >= 80 ? c.red : z.usedPercent >= 60 ? c.yellow : c.green;
+      return `${c.gray('🔋 智谱')} ${c.bold(`已用 ${color(`${z.usedPercent}%`)}`)}  ${c.dim(`剩余 ${100 - z.usedPercent}%`)}`;
     }
-    return `${c.gray('🔋 智谱')} ${c.bold(rem)}`;
+    // 兜底: token 量
+    if (z.quota !== undefined) {
+      const rem = formatTokenCount(z.quota);
+      if (z.usedQuota !== undefined && z.usedQuota > 0) {
+        const total = z.quota + z.usedQuota;
+        const pct = Math.round((z.usedQuota / total) * 100);
+        return `${c.gray('🔋 智谱')} ${c.bold(rem)}${c.dim(` / ${formatTokenCount(total)} (已用 ${pct}%)`)}`;
+      }
+      return `${c.gray('🔋 智谱')} ${c.bold(rem)}`;
+    }
+    return null;
   }
 
   return null;

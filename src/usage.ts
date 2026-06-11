@@ -51,8 +51,9 @@ export interface KimiBalance {
 }
 
 export interface ZhipuUsage {
-  quota: number;            // 剩余 token / 额度
-  usedQuota?: number;       // 已使用
+  usedPercent?: number;  // 已用百分比 (0-100), Coding Plan 返回
+  quota?: number;        // 剩余 token / 额度 (兜底)
+  usedQuota?: number;
 }
 
 export interface UsageData {
@@ -290,10 +291,21 @@ async function queryZhipu(apiKey: string): Promise<UsageData | null> {
   try {
     const body = await httpGet(ZHIPU_API, apiKey);
     const json = JSON.parse(body);
-    // 智谱响应格式: { "code": 200, "data": { "balance": "850.00", "quota": 5000000, "used_quota": 1200000 } }
     const d = json.data ?? json;
+
+    // Coding Plan 响应可能含百分比 (如 used_percentage / usedPercent)
+    const usedPct = d.used_percentage ?? d.usedPercent ?? d.usage_percent;
+    if (typeof usedPct === 'number' && Number.isFinite(usedPct)) {
+      return {
+        provider: 'zhipu',
+        zhipu: { usedPercent: Math.round(usedPct) },
+        updatedAt: Date.now(),
+      };
+    }
+
+    // 兜底: token 量格式
     const quota = d.quota ?? d.balance ?? d.total_quota;
-    if (quota === undefined && quota === null) return null;
+    if (quota === undefined || quota === null) return null;
     const qNum = typeof quota === 'string' ? parseFloat(quota) : quota;
     if (typeof qNum !== 'number' || !Number.isFinite(qNum)) return null;
     return {
