@@ -363,12 +363,13 @@ function getContextTokens(stdin: StdinData): TokenBreakdown {
 }
 
 function formatTokenParts(b: TokenBreakdown, speed: number | null): string {
+  // 固定 4 段排列: in · out · cache · speed
   const parts = [
     `${c.gray(t.in)} ${formatTokenCount(b.input)}`,
     `${c.gray(t.out)} ${formatTokenCount(b.output)}`,
+    `${c.gray(t.cache)} ${formatTokenCount(b.cache)}`,
+    speed ? `${speed} t/s` : '-- t/s',
   ];
-  if (b.cache > 0) parts.push(`${c.gray(t.cache)} ${formatTokenCount(b.cache)}`);
-  if (speed) parts.push(`${speed} t/s`);
   return c.dim('(' + parts.join(' · ') + ')');
 }
 
