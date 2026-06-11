@@ -380,7 +380,7 @@ The statusline automatically refreshes at these moments:
 
 ### Change Display Text / Emoji
 
-Edit the `STRINGS` table at the top of `src/index.ts`:
+Edit the `STRINGS` table in `src/i18n.ts`:
 
 ```ts
 const STRINGS = {
@@ -579,7 +579,7 @@ The project uses pure TypeScript + Node.js, with no binary or native module depe
 
 ```bash
 npm install        # install typescript + tsx + @types/node
-npm run build      # tsc compile src/index.ts → dist/index.js
+npm run build      # tsc compile src/ → dist/
 ```
 
 **Two tsconfig files**:
@@ -653,7 +653,7 @@ claude-mini-hud/
 │   └── usage.ts        # Multi-platform usage/balance queries
 └── tests/
     ├── stdin.test.ts   # Statusline render tests (13 cases)
-    └── usage.test.ts   # Multi-platform usage query tests (16 cases)
+    └── usage.test.ts   # Multi-platform usage query tests (19 cases)
 ```
 
 ---

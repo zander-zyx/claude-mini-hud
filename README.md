@@ -14,7 +14,7 @@
 
 ## 这是什么?
 
-**claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**最多 7 行**,信息密度高,对标 [claude-hud](https://github.com/jarrodwatts/claude-hud) 但更轻量。
+**claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**最多 7 行**,信息密度高。对标 [claude-hud](https://github.com/jarrodwatts/claude-hud) 的核心功能,同时深度适配国产大模型 Coding Plan / Token Plan 用量查询。
 
 ### 显示效果
 
@@ -381,7 +381,7 @@ TMPDIR=~/.cache/tmp claude
 
 ### 改显示文字 / emoji
 
-直接改 `src/index.ts` 顶部的 `STRINGS` 表:
+直接改 `src/i18n.ts` 里的 `STRINGS` 表:
 
 ```ts
 const STRINGS = {
@@ -580,7 +580,7 @@ git clone https://cnb.cool/zdking/claude-mini-hud.git
 
 ```bash
 npm install        # 装 typescript + tsx + @types/node
-npm run build      # tsc 编译 src/index.ts → dist/index.js
+npm run build      # tsc 编译 src/ → dist/
 ```
 
 **两个 tsconfig 文件**:
@@ -654,7 +654,7 @@ claude-mini-hud/
 │   └── usage.ts        # 多平台用量/余额查询
 └── tests/
     ├── stdin.test.ts   # 状态栏渲染测试 (13 用例)
-    └── usage.test.ts   # 多平台用量查询测试 (16 用例)
+    └── usage.test.ts   # 多平台用量查询测试 (19 用例)
 ```
 
 ---
@@ -695,15 +695,15 @@ claude-mini-hud/
 
 ### Roadmap
 
-Short-term (v0.2):
-- [ ] Session cost display (requires Claude Code to expose `cost` field)
-- [ ] Smoother refresh across multi-window switches
-- [ ] Read color thresholds from environment variables
+近期 (v0.2):
+- [ ] Session 费用显示 (需要 Claude Code 暴露 `cost` 字段)
+- [ ] 多窗口切换时更平滑的刷新
+- [ ] 从环境变量读取颜色阈值
 
-Medium-term (v0.3):
-- [ ] Theme switching (light / dark / custom)
-- [ ] Mouse hover tooltips (subject to Claude Code TUI limits)
-- [ ] Clickable statusLine links (jump to current transcript)
+中期 (v0.3):
+- [ ] 主题切换 (亮色 / 暗色 / 自定义)
+- [ ] 鼠标悬停提示 (受 Claude Code TUI 限制)
+- [ ] 可点击的状态栏链接 (跳转到当前 transcript)
 
 ---
 
