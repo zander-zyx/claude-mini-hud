@@ -109,14 +109,40 @@ function getContextPercent(stdin: StdinData): number {
   const size = resolveContextSize(stdin);
   if (!size || size <= 0) return 0;
 
-  return Math.min(100, Math.round((getTotalTokens(stdin) / size) * 100));
+  const tokens = getTotalTokens(stdin);
+  // current_usage 快照合理 (0 < tokens <= size): 直接用
+  if (tokens > 0 && tokens <= size) {
+    return Math.min(100, Math.round((tokens / size) * 100));
+  }
+
+  // current_usage 不准 (全零或超出 size): 用 session 累计 input 估算
+  const totalInput = stdin.context_window?.total_input_tokens;
+  if (typeof totalInput === 'number' && totalInput > 0) {
+    return Math.min(100, Math.round((Math.min(totalInput, size) / size) * 100));
+  }
+
+  // tokens > size 但没有 totalInput → 大概率上下文已满
+  if (tokens > size) return 100;
+  return 0;
 }
 
 export function renderContextLine(stdin: StdinData, usage: UsageData | null): string {
   const pct = getContextPercent(stdin);
   const size = resolveContextSize(stdin);
-  const tokens = getTotalTokens(stdin);
-  const remaining = Math.max(0, size - tokens);
+  const rawTokens = getTotalTokens(stdin);
+
+  // 显示用 token 数: 不超过 context window size (避免 "562k / 200k" 误导)
+  // 当 rawTokens 不合理时 (0 或 >size), 用百分比反推
+  let displayTokens: number;
+  if (rawTokens > 0 && rawTokens <= size) {
+    displayTokens = rawTokens;
+  } else if (pct > 0 && size > 0) {
+    displayTokens = Math.round((pct / 100) * size);
+  } else {
+    displayTokens = rawTokens;
+  }
+  const remaining = Math.max(0, size - displayTokens);
+
   const bar = progressBar(pct);
   const pctStr = pct >= 80 ? c.red(c.bold(`${pct}%`))
                : pct >= 60 ? c.yellow(c.bold(`${pct}%`))
@@ -127,9 +153,9 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
 
   let detail = '';
   if (size > 0) {
-    detail = c.dim(`${formatTokenCount(tokens)} / ${formatTokenCount(size)}  ${t.contextRemaining} ${formatTokenCount(remaining)}`);
+    detail = c.dim(`${formatTokenCount(displayTokens)} / ${formatTokenCount(size)}  ${t.contextRemaining} ${formatTokenCount(remaining)}`);
   } else {
-    detail = c.dim(`${formatTokenCount(tokens)}`);
+    detail = c.dim(`${formatTokenCount(displayTokens)}`);
   }
   if (balanceTag) detail += `  ${balanceTag}`;
 
@@ -348,7 +374,11 @@ function formatTokenParts(b: TokenBreakdown, speed: number | null): string {
 
 /** 获取输出速率 (tok/s), 无有效数据返回 null */
 function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
-  const outputTokens = stdin.context_window?.current_usage?.output_tokens;
+  // 优先用 session 累计 output (单调递增, 比 current_usage 快照更可靠)
+  let outputTokens = stdin.context_window?.total_output_tokens;
+  if (typeof outputTokens !== 'number' || !Number.isFinite(outputTokens) || outputTokens <= 0) {
+    outputTokens = stdin.context_window?.current_usage?.output_tokens;
+  }
   if (typeof outputTokens !== 'number' || !Number.isFinite(outputTokens) || outputTokens <= 0) return null;
   const tp = stdin.transcript_path;
   if (!tp) return null;
@@ -365,7 +395,7 @@ function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
 
     if (!prev || outputTokens <= prev.n) return null;
     const dt = (now - prev.ts) / 1000;
-    if (dt < 0.5 || dt > 5) return null;  // 太短不准, 太长说明已停止
+    if (dt < 0.5 || dt > 300) return null;  // 放宽到 5 分钟 (StatusLine 刷新间隔通常 >5s)
     const speed = Math.round((outputTokens - prev.n) / dt);
     return speed > 0 ? speed : null;
   } catch {
