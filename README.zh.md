@@ -1,7 +1,7 @@
 # 📊 claude-mini-hud
 
-> 极简 Claude Code 状态栏 — 上下文 / Token / 当前任务 (模型可选)  
-> Minimal Claude Code statusline — context / token / todos (model optional)
+> Claude Code 状态栏 — 上下文 / Token / 任务 / 工具活动 / Agent 追踪 (对标 claude-hud 的轻量版)  
+> Minimal Claude Code statusline — context / token / todos / tools / agents (lightweight claude-hud alternative)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
@@ -14,42 +14,48 @@
 
 ## 这是什么?
 
-**claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**3 行必显 + 1 行可选**,不打扰,信息密度高。
+**claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**最多 6 行**,信息密度高,对标 [claude-hud](https://github.com/jarrodwatts/claude-hud) 但更轻量。
 
-### 3 种显示模式
+### 显示效果
 
-**中文 (zh, 默认)** — 完整中文 + emoji:
+**中文 (zh, 默认)**:
 ```
 📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 23k (in 22k · out 342 · cache 768)
-▶️  当前任务 ▸ 调研充电行业政策  (2/5)
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k · ⚡ 45 tok/s)
+▶️  当前任务 ▸ 正在写 skill  (1/4)
+  ◐ 读取 index.ts
+  ◐ 写入 utils.ts
+  ✓ 搜索 ×3  ✓ 执行 ×1
+  [Explore] ◐ 搜索相关代码 2m 15s
+🤖 模型 deepseek-v4-pro  [deepseek]
 ```
 
-**English (en)** — 完整英文 + emoji:
+**English (en)**:
 ```
 📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-🪙 Token 23k (in 22k · out 342 · cache 768)
-▶️ Todos   ▸ Research charging industry policy  (2/5)
-```
-
-**English minimal (minimal)** — 英中混搭 + 无 emoji:
-```
-Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
- Token 23k (in 22k · out 342 · cache 768)
-当前任务 ▸ 调研充电行业政策  (2/5)
+🪙 Token 4.8M (in 3.5M · out 1.2M · cache 103k · ⚡ 45 tok/s)
+▶️ Todos   ▸ Writing skill  (1/4)
+  ◐ reading index.ts
+  ◐ writing utils.ts
+  ✓ searching ×3  ✓ running ×1
+  [Explore] ◐ Searching code 2m 15s
+🤖 Model deepseek-v4-pro  [deepseek]
 ```
 
 切换: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (见 [配置](#配置))
 
 **核心特性**:
-- ⚡ **零依赖**:不需要 `npm install` 一堆包,单文件 TypeScript
-- 🌍 **三模式**:中文 / English / English minimal (英中混搭),运行时切换
-- 🎨 **可定制**:改 4 个 `render*Line` 函数就能调整任何字段
-- 🚀 **10ms 启动**:编译产物仅 ~6KB
-- 🔌 **即插即用**:`/claude-mini-hud:setup` 一条命令搞定 (setup 时选 1.中文 / 2.English / 3.minimal)
+- ⚡ **零依赖**: 单文件 TypeScript,编译产物 ~15KB
+- 🌍 **三种语言**: 中文 / English / Minimal (英中混搭)
+- 🔧 **工具活动**: 实时显示文件读写、搜索、命令执行 (◐ 运行中 / ✓ 已完成×N)
+- 🤖 **Agent 追踪**: 显示活跃子 Agent 及其耗时
+- ⚡ **Token 速率**: 实时解码速度 (tok/s)
+- 📊 **Token 模式**: session 累计 / 上下文快照 / both 三种可切换
+- 🚀 **~10ms 启动**: 不拖慢 Claude Code
+- 🔌 **即插即用**: `/claude-mini-hud:setup` 一条命令
 
-**为什么不用 `claude-hud`?**
-[`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是社区最流行的同类插件,但它默认显示 **10+ 行** (项目路径 / Git文件 / 环境变量 / agents / tools ...)。我们专注核心 3 个指标,把屏幕留给真正的工作内容。
+**与 `claude-hud` 的定位**
+[`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)。本项目的目标是在**信息密度和简洁之间取得平衡** ——比 claude-hud 轻量,比原版 statusLine 功能丰富。对标了 claude-hud 的工具活动、Agent 追踪、Task 解析等核心功能。
 
 ---
 

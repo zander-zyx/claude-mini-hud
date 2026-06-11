@@ -25,6 +25,11 @@ function runCli(input: string, env: NodeJS.ProcessEnv = process.env) {
   });
 }
 
+// 去除 ANSI 转义码, 用于断言纯文本内容 (标签与数字间夹有颜色 reset 码)
+function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
 test('cli 接受 stdin JSON 并输出必显行 (context + token)', () => {
   const input = JSON.stringify({
     model: { display_name: 'MiniMax-M3' },
@@ -54,7 +59,8 @@ test('默认不显示模型行 (SHOW_MODEL 未设)', () => {
     context_window: { current_usage: { input_tokens: 1000 }, context_window_size: 200000 },
   });
 
-  const result = runCli(input);
+  const env = { ...process.env, CLAUDE_MINI_HUD_SHOW_MODEL: '' };
+  const result = runCli(input, env);
   assert.equal(result.status, 0);
   // 默认隐藏模型行 (除非 SHOW_MODEL=1)
   assert.ok(
@@ -69,7 +75,16 @@ test('CLAUDE_MINI_HUD_SHOW_MODEL=1 显示模型行', () => {
     context_window: { current_usage: { input_tokens: 1000 }, context_window_size: 200000 },
   });
 
-  const result = runCli(input, { ...process.env, CLAUDE_MINI_HUD_SHOW_MODEL: '1' });
+  // 清除 ANTHROPIC_MODEL 系列 env, 否则 resolveModelName 会优先用 env 而忽略 stdin
+  const env = {
+    ...process.env,
+    CLAUDE_MINI_HUD_SHOW_MODEL: '1',
+    ANTHROPIC_MODEL: '',
+    ANTHROPIC_DEFAULT_OPUS_MODEL: '',
+    ANTHROPIC_DEFAULT_SONNET_MODEL: '',
+    ANTHROPIC_DEFAULT_HAIKU_MODEL: '',
+  };
+  const result = runCli(input, env);
   assert.equal(result.status, 0);
   assert.ok(
     result.stdout.includes('模型') && result.stdout.includes('MiniMax-M3'),
@@ -93,7 +108,15 @@ test('进度条在 > 80% 时使用红色', () => {
     },
   });
 
-  const result = runCli(input);
+  // 清除 ANTHROPIC_MODEL 系列 env, 否则 [1m] 标签会覆盖 context_window_size
+  const env = {
+    ...process.env,
+    ANTHROPIC_MODEL: '',
+    ANTHROPIC_DEFAULT_OPUS_MODEL: '',
+    ANTHROPIC_DEFAULT_SONNET_MODEL: '',
+    ANTHROPIC_DEFAULT_HAIKU_MODEL: '',
+  };
+  const result = runCli(input, env);
   assert.equal(result.status, 0);
   assert.ok(
     result.stdout.includes('\x1b[31m') && result.stdout.includes('85%'),
@@ -150,14 +173,15 @@ test('Token 行细分 in/out/cache', () => {
     },
   });
 
-  const result = runCli(input);
+  const result = runCli(input, { ...process.env, CLAUDE_MINI_HUD_LANG: 'en' });
   assert.equal(result.status, 0);
+  const plain = stripAnsi(result.stdout);
   // 期望: 🪙 Token 23k (in 22k · out 342 · cache 768)
-  assert.ok(result.stdout.includes('Token'), `应有 Token 行: ${result.stdout}`);
-  assert.ok(result.stdout.includes('23k'), `应输出总数 23k (22k+342+768≈23k), 实际: ${result.stdout}`);
-  assert.ok(result.stdout.includes('in 22k'), `应有 in 22k: ${result.stdout}`);
-  assert.ok(result.stdout.includes('out 342'), `应有 out 342: ${result.stdout}`);
-  assert.ok(result.stdout.includes('cache 768'), `应有 cache 768: ${result.stdout}`);
+  assert.ok(plain.includes('Token'), `应有 Token 行: ${result.stdout}`);
+  assert.ok(plain.includes('23k'), `应输出总数 23k (22k+342+768≈23k), 实际: ${result.stdout}`);
+  assert.ok(plain.includes('in 22k'), `应有 in 22k: ${result.stdout}`);
+  assert.ok(plain.includes('out 342'), `应有 out 342: ${result.stdout}`);
+  assert.ok(plain.includes('cache 768'), `应有 cache 768: ${result.stdout}`);
 });
 
 test('从 transcript_path 读取 todos', () => {
@@ -194,7 +218,17 @@ test('检测非 Anthropic provider (minimaxi) 仅在 SHOW_MODEL=1 时可见', ()
     context_window: { current_usage: { input_tokens: 1000 }, context_window_size: 200000 },
   });
 
-  const result = runCli(input, { ...process.env, ANTHROPIC_BASE_URL: 'https://api.minimaxi.com/anthropic', CLAUDE_MINI_HUD_SHOW_MODEL: '1' });
+  // 清除 ANTHROPIC_MODEL 系列 env, 否则 resolveModelName 会优先用 env 而忽略 stdin
+  const env = {
+    ...process.env,
+    ANTHROPIC_BASE_URL: 'https://api.minimaxi.com/anthropic',
+    CLAUDE_MINI_HUD_SHOW_MODEL: '1',
+    ANTHROPIC_MODEL: '',
+    ANTHROPIC_DEFAULT_OPUS_MODEL: '',
+    ANTHROPIC_DEFAULT_SONNET_MODEL: '',
+    ANTHROPIC_DEFAULT_HAIKU_MODEL: '',
+  };
+  const result = runCli(input, env);
   assert.equal(result.status, 0);
   assert.ok(
     result.stdout.includes('MiniMax-M3'),
