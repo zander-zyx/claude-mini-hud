@@ -96,7 +96,11 @@
 > 🍪 **小米 (MiMo)** 需要额外设置 `XIAOMI_COOKIE` 环境变量 (从浏览器 DevTools 获取 Cookie)，因为小米用量 API 使用 Cookie 认证而非 API Key。
 
 **与 `claude-hud` 的定位**
-[`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)，主要面向 Anthropic Claude 原生用户。本项目在**信息密度和简洁之间取得平衡** ——对标了 claude-hud 的工具活动、Agent 追踪、Task 解析等核心功能，同时额外适配了**国产大模型 Coding Plan / Token Plan 用量查询** (智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、DeepSeek、Kimi 等)，让使用第三方代理的用户也能在状态栏实时看到额度消耗。
+
+[`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)，主要面向 Anthropic Claude 原生用户。**本项目**在信息密度和简洁之间取得平衡，核心思路有两点：
+
+1. **对标 claude-hud 核心功能** — 工具活动、Agent 追踪、Task 解析等能力一个不少，但控制在 7 行以内，比 claude-hud 更轻量
+2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、DeepSeek、Kimi 等平台的 Coding Plan / Token Plan 用量查询，使用第三方代理的用户也能在状态栏实时看到额度消耗
 
 ---
 
