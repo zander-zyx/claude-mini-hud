@@ -363,14 +363,16 @@ function getContextTokens(stdin: StdinData): TokenBreakdown {
 }
 
 function formatTokenParts(b: TokenBreakdown, speed: number | null): string {
-  // 固定 4 段排列: in · out · cache · speed
+  // 括号内: in · out · cache (cache 条件隐藏)
   const parts = [
     `${c.gray(t.in)} ${formatTokenCount(b.input)}`,
     `${c.gray(t.out)} ${formatTokenCount(b.output)}`,
-    `${c.gray(t.cache)} ${formatTokenCount(b.cache)}`,
-    speed ? `${speed} t/s` : '-- t/s',
   ];
-  return c.dim('(' + parts.join(' · ') + ')');
+  if (b.cache > 0) parts.push(`${c.gray(t.cache)} ${formatTokenCount(b.cache)}`);
+  const inner = c.dim('(' + parts.join(' · ') + ')');
+  // speed 放括号外面, 条件隐藏
+  if (speed) return `${inner} ${speed}tok/s`;
+  return inner;
 }
 
 /** 获取输出速率 (tok/s), 无有效数据返回 null */
