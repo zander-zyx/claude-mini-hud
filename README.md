@@ -1,7 +1,7 @@
 # 📊 claude-mini-hud
 
-> Claude Code 状态栏 — 上下文 / Token / 任务 / 工具活动 / Agent 追踪 (对标 claude-hud 的轻量版)  
-> Claude Code statusline — context / token / todos / tools / agents (lightweight claude-hud alternative)
+> Claude Code 状态栏 — 上下文 / Token / 任务 / 工具活动 / Agent 追踪 + 国产大模型用量查询 (对标 claude-hud 的轻量版)
+> Claude Code statusline — context / token / todos / tools / agents + multi-provider usage (lightweight claude-hud alternative)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
