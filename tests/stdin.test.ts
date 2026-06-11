@@ -43,7 +43,7 @@ test('cli 接受 stdin JSON 并输出必显行 (context + token)', () => {
     transcript_path: '/tmp/nonexistent.jsonl',
   });
 
-  const result = runCli(input);
+  const result = runCli(input, { ...process.env, CLAUDE_MINI_HUD_LANG: 'zh' });
   assert.equal(result.status, 0, `exit code 应为 0, 实际 ${result.status}: ${result.stderr}`);
   const lines = result.stdout.trim().split('\n');
 
@@ -78,6 +78,7 @@ test('CLAUDE_MINI_HUD_SHOW_MODEL=1 显示模型行', () => {
   // 清除 ANTHROPIC_MODEL 系列 env, 否则 resolveModelName 会优先用 env 而忽略 stdin
   const env = {
     ...process.env,
+    CLAUDE_MINI_HUD_LANG: 'zh',
     CLAUDE_MINI_HUD_SHOW_MODEL: '1',
     ANTHROPIC_MODEL: '',
     ANTHROPIC_DEFAULT_OPUS_MODEL: '',
@@ -93,7 +94,7 @@ test('CLAUDE_MINI_HUD_SHOW_MODEL=1 显示模型行', () => {
 });
 
 test('空 stdin 输出 fallback', () => {
-  const result = runCli('');
+  const result = runCli('', { ...process.env, CLAUDE_MINI_HUD_LANG: 'zh' });
   assert.equal(result.status, 0);
   assert.ok(result.stdout.includes('上下文') || result.stdout.includes('fallback'));
 });

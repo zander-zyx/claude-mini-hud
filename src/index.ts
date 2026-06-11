@@ -10,6 +10,10 @@
  * 零依赖, 纯 ANSI 转义, 编译产物单文件 ~6KB
  */
 
+// ─── 用量查询 (独立模块) ─────────────────────────────────────────────────
+
+import { getUsageData } from './usage.js';
+
 // ─── i18n (★ 用户安装时选 1.中文 / 2.英文) ──────────────────────────────
 
 type Lang = 'zh' | 'en' | 'minimal';
@@ -101,7 +105,7 @@ const SPEED_CACHE_DIR = (() => {
 
 // ─── 类型契约 (Claude Code StatusLine stdin JSON) ────────────────────────
 
-interface StdinData {
+export interface StdinData {
   model?: { display_name?: string; id?: string };
   context_window?: {
     current_usage?: {
@@ -809,6 +813,50 @@ function renderTokenLine(stdin: StdinData, tdata: TranscriptData | null): string
   return lines;
 }
 
+// ─── 用量/余额行 ──────────────────────────────────────────────────────────
+
+function renderUsageLine(usage: import('./usage.js').UsageData | null): string | null {
+  if (!usage) return null;
+
+  if (usage.claude) {
+    const { fiveHour, sevenDay } = usage.claude;
+    const parts: string[] = [];
+    if (fiveHour !== null) {
+      const color = fiveHour >= 80 ? c.red : fiveHour >= 60 ? c.yellow : c.green;
+      parts.push(`5h ${color(`${fiveHour}%`)}`);
+    }
+    if (sevenDay !== null) {
+      const color = sevenDay >= 80 ? c.red : sevenDay >= 60 ? c.yellow : c.green;
+      parts.push(`7d ${color(`${sevenDay}%`)}`);
+    }
+    if (parts.length === 0) return null;
+    return `${c.gray('🔋 API')} ${parts.join('  ')}`;
+  }
+
+  if (usage.miniMax) {
+    const rem = formatTokenCount(usage.miniMax.remainingTokens);
+    const total = usage.miniMax.totalTokens;
+    const detail = total ? ` / ${formatTokenCount(total)}` : '';
+    return `${c.gray('🔋 MiniMax')} ${c.bold(rem)}${c.dim(detail)}`;
+  }
+
+  if (usage.deepSeek) {
+    const d = usage.deepSeek;
+    const total = d.totalBalance.toFixed(2);
+    return `${c.gray('🔋 DeepSeek')} ${c.cyan(c.bold(`¥${total}`))}${d.grantedBalance > 0 ? c.dim(` (赠送 ¥${d.grantedBalance.toFixed(2)})`) : ''}`;
+  }
+
+  if (usage.newApi) {
+    const q = usage.newApi;
+    const pct = q.quota + q.usedQuota > 0
+      ? ` ${Math.round((q.usedQuota / (q.quota + q.usedQuota)) * 100)}%`
+      : '';
+    return `${c.gray('🔋 用量')} ${c.bold(formatTokenCount(q.quota))}${c.dim(` (已用 ${formatTokenCount(q.usedQuota)}${pct})`)}`;
+  }
+
+  return null;
+}
+
 // ─── 主入口 ───────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -830,6 +878,11 @@ async function main(): Promise<void> {
   lines.push(renderContextLine(stdin));
   // 2) Token 细分 (必显, 模式由 CLAUDE_MINI_HUD_TOKEN_MODE 控制)
   lines.push(...renderTokenLine(stdin, tdata));
+
+  // 2.5) 用量/余额 (有数据就显, Claude 原生 rate_limits 或第三方平台余额)
+  const usageData = getUsageData(stdin);
+  const usageLine = renderUsageLine(usageData);
+  if (usageLine) lines.push(usageLine);
 
   // 3) 当前任务 (必显, 放在工具活动之前——执行计划更重要)
   const todoLine = renderTodoLine(tdata);
