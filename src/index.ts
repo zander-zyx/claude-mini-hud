@@ -349,6 +349,7 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
       : rawLines.slice(1).filter(Boolean);
 
     let todos: TodoItem[] | null = null;
+    let hasToolTodos = false;                              // tool-use 修改过列表 → 后续忽略 entry.todos
     const toolMap = new Map<string, ToolActivity>();       // tool_use_id → ToolActivity
     const agentSpawns = new Map<string, AgentActivity>();  // tool_use_id → AgentActivity
     const agentResults = new Set<string>();                // completed agent tool_use_ids
@@ -367,11 +368,13 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
       const ts = typeof entry.timestamp === 'string' ? new Date(entry.timestamp).getTime() : 0;
       const validTs = !Number.isNaN(ts) && ts > 0 ? ts : Date.now();
 
-      // --- todos: 正向遍历, 后者(top-level 或 TodoWrite)覆盖前者 ---
-      const td = (entry as { todos?: TodoItem[] }).todos;
-      if (Array.isArray(td) && td.length > 0) {
-        todos = td;
-        taskIdToIndex.clear();
+      // --- todos: entry.todos 仅在 tool-use 未修改时作种子数据 ---
+      if (!hasToolTodos) {
+        const td = (entry as { todos?: TodoItem[] }).todos;
+        if (Array.isArray(td) && td.length > 0) {
+          todos = td;
+          taskIdToIndex.clear();
+        }
       }
 
       // --- assistant entry: 累加 usage + 解析 tool_use 块 ---
@@ -393,6 +396,7 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
           if (block.type === 'tool_use' && block.name && block.id) {
             // TaskCreate: 添加新 todo
             if (block.name === 'TaskCreate') {
+              hasToolTodos = true;
               const input = block.input ?? {};
               const subject = typeof input.subject === 'string' ? input.subject : '';
               const desc = typeof input.description === 'string' ? input.description : '';
@@ -409,6 +413,7 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
 
             // TaskUpdate: 更新已有 todo
             if (block.name === 'TaskUpdate') {
+              hasToolTodos = true;
               if (todos) {
                 const input = block.input ?? {};
                 const idx = resolveTaskIndex(String(input.taskId ?? ''), taskIdToIndex, todos);
@@ -424,6 +429,7 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
 
             // TodoWrite: 全量替换 todos
             if (block.name === 'TodoWrite') {
+              hasToolTodos = true;
               const input = block.input as { todos?: TodoItem[] } | undefined;
               if (Array.isArray(input?.todos) && input.todos.length > 0) {
                 todos = input.todos;
