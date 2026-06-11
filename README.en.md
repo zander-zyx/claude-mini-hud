@@ -483,7 +483,9 @@ cat ~/.claude/settings.json | grep -A2 statusLine
 
 **A**: You're using [Claude Code v2.1.5 or earlier](https://docs.claude.com/en/docs/claude-code/statusline), which doesn't pass the `used_percentage` field. This plugin falls back to calculating token percentage manually — if token data is also empty, it shows 0%.
 
-**Fix**: Upgrade to the latest Claude Code:
+v0.1.0+ includes a **Context percentage anti-flicker** mechanism: when Claude Code sends a frame where all token fields are zero/missing, the plugin automatically uses the last valid cached percentage (within 5 minutes) to prevent the progress bar from flashing to zero. After `/clear`, the cache expires automatically and won't leave stale values.
+
+**If you still see frequent 0%**: Upgrade to the latest Claude Code:
 ```bash
 npm update -g @anthropic-ai/claude-code
 ```

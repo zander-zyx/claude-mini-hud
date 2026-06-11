@@ -484,7 +484,9 @@ cat ~/.claude/settings.json | grep -A2 statusLine
 
 **A**: 你用的是 [Claude Code v2.1.5 及以下](https://docs.claude.com/en/docs/claude-code/statusline),它不传 `used_percentage` 字段。本插件会回退到手算 token 百分比,如果 token 数据也空就显示 0%。
 
-**解决**: 升级到最新版 Claude Code:
+v0.1.0+ 已加入 **Context 百分比防闪烁**机制:当 Claude Code 发送的某帧数据所有 token 字段为零/缺失时,自动使用 5 分钟内的上次有效百分比缓存,避免进度条闪烁归零。`/clear` 后缓存自动过期,不会残留旧值。
+
+**如果仍然频繁出现 0%**: 升级到最新版 Claude Code:
 ```bash
 npm update -g @anthropic-ai/claude-code
 ```

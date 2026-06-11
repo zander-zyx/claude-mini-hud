@@ -24,7 +24,7 @@ import type { StdinData } from './types.js';
 import { c } from './colors.js';
 import { t, MINIMAL } from './i18n.js';
 import { readTranscriptData } from './transcript.js';
-import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine } from './render.js';
+import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent } from './render.js';
 import { getUsageData } from './usage.js';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -108,6 +108,26 @@ function readLastStdinCache(): StdinData | null {
   }
 }
 
+// ─── Context 百分比缓存 (防闪烁: 当 stdin 数据退化时用上次有效值兜底) ─────
+
+const CTX_PCT_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'ctx-pct-cache.json');
+
+function readCtxPctCache(): number {
+  try {
+    const { pct, ts } = JSON.parse(readFileSync(CTX_PCT_CACHE_PATH, 'utf8'));
+    // 5 分钟内的缓存才有效 (避免 /clear 后残留旧值)
+    if (typeof pct === 'number' && pct > 0 && Date.now() - ts < 300_000) return pct;
+  } catch { /* ignore */ }
+  return 0;
+}
+
+function writeCtxPctCache(pct: number): void {
+  try {
+    mkdirSync(dirname(CTX_PCT_CACHE_PATH), { recursive: true });
+    writeFileSync(CTX_PCT_CACHE_PATH, JSON.stringify({ pct, ts: Date.now() }));
+  } catch { /* silent */ }
+}
+
 // ─── 主入口 ───────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -130,6 +150,19 @@ async function main(): Promise<void> {
 
   // 缓存本次 stdin (供下次 stdin 为 null 时兜底)
   writeLastStdinCache(stdin);
+
+  // ─── Context 百分比防闪烁 ───
+  // 当前 stdin 的 context 数据可能退化 (全零/缺失), 用缓存的上次有效百分比兜底
+  const pct = getContextPercent(stdin);
+  if (pct > 0) {
+    writeCtxPctCache(pct);
+  } else {
+    const cachedPct = readCtxPctCache();
+    if (cachedPct > 0) {
+      if (!stdin.context_window) stdin.context_window = {};
+      stdin.context_window.used_percentage = cachedPct;
+    }
+  }
 
   // 先读 transcript (一次 I/O, 供 todos / 工具 / Agent / Token fallback 共用)
   const tdata = stdin.transcript_path ? await readTranscriptData(stdin.transcript_path) : null;

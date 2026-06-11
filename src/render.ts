@@ -99,7 +99,7 @@ function resolveContextSize(stdin: StdinData): number {
   return stdin.context_window?.context_window_size ?? 0;
 }
 
-function getContextPercent(stdin: StdinData): number {
+export function getContextPercent(stdin: StdinData): number {
   // 优先用 Claude Code v2.1.6+ 的原生百分比
   const native = stdin.context_window?.used_percentage;
   if (typeof native === 'number' && !Number.isNaN(native) && native > 0) {
