@@ -200,6 +200,10 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
                   if (newStatus) todos[idx].status = newStatus;
                   const subject = typeof input.subject === 'string' ? input.subject : '';
                   if (subject) todos[idx].content = subject;
+                  // activeForm 也需要更新 (TaskUpdate 可能包含新的 activeForm)
+                  if (typeof input.activeForm === 'string' && input.activeForm) {
+                    todos[idx].activeForm = input.activeForm;
+                  }
                 }
               }
               continue;
@@ -265,6 +269,8 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
 
     // 文件 > TAIL_BYTES 时, 总是先扫头部, 找回早期的 TaskCreate 建立 taskId → index 映射
     // (否则 tail 里 TaskUpdate 的 taskId 会因 tMap 缺失而解析失败)
+    // 同时去重: 只添加 tail 中尚未存在的 task (避免重复导致计数虚高)
+    const tailTaskContents = new Set((todos ?? []).map(td => td.content));
     if (fileSize > TAIL_BYTES) {
       const headSize = TAIL_BYTES;
       try {
@@ -291,12 +297,21 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
                   const inp = b.input ?? {};
                   const subj = typeof inp.subject === 'string' ? inp.subject : '';
                   const desc = typeof inp.description === 'string' ? inp.description : '';
+                  const taskContent = subj || desc || 'Untitled';
                   taskCreateCount++;
                   const rawId = inp.taskId;
                   const tid = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : String(taskCreateCount);
+                  // 只添加 tail 中尚未存在的 task (避免重复导致总数虚高)
+                  const existIdx = tailTaskContents.has(taskContent) ? null : null; // placeholder
                   if (!todos) todos = [];
-                  todos.push({ content: subj || desc || 'Untitled', status: 'pending', activeForm: typeof inp.activeForm === 'string' ? inp.activeForm : undefined });
-                  taskIdToIndex.set(tid, todos.length - 1);
+                  if (!tailTaskContents.has(taskContent)) {
+                    todos.push({ content: taskContent, status: 'pending', activeForm: typeof inp.activeForm === 'string' ? inp.activeForm : undefined });
+                    taskIdToIndex.set(tid, todos.length - 1);
+                  } else {
+                    // 已存在: 仅建立 taskIdToIndex 映射 (让 tail 的 TaskUpdate 能找到)
+                    const existingIdx = todos.findIndex(td => td.content === taskContent);
+                    if (existingIdx >= 0) taskIdToIndex.set(tid, existingIdx);
+                  }
                 }
                 // 注意: head scan 不处理 TaskUpdate!
                 // 原因: head scan 在 tail scan 之后运行, 如果在重叠区域处理 TaskUpdate,
