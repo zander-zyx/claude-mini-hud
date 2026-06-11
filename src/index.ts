@@ -13,6 +13,9 @@
 // ─── 用量查询 (独立模块) ─────────────────────────────────────────────────
 
 import { getUsageData } from './usage.js';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { homedir } from 'node:os';
 
 // ─── i18n (★ 用户安装时选 1.中文 / 2.英文) ──────────────────────────────
 
@@ -223,6 +226,33 @@ async function readStdin(): Promise<StdinData | null> {
   });
 }
 
+// ─── stdin 缓存 (兜底超时/空输入, 避免 Context 行闪烁消失) ────────────────
+
+const STDIN_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'stdin-cache.json');
+
+function writeLastStdinCache(data: StdinData): void {
+  try {
+    const dir = dirname(STDIN_CACHE_PATH);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(STDIN_CACHE_PATH, JSON.stringify(data), 'utf8');
+  } catch {
+    // 静默
+  }
+}
+
+function readLastStdinCache(): StdinData | null {
+  try {
+    if (!existsSync(STDIN_CACHE_PATH)) return null;
+    const raw = readFileSync(STDIN_CACHE_PATH, 'utf8');
+    const data = JSON.parse(raw) as StdinData;
+    // 缓存超过 60 秒视为过期, 不用太旧的数据
+    if (!data.context_window) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 // ─── 上下文行 ─────────────────────────────────────────────────────────────
 
 function getTotalTokens(stdin: StdinData): number {
@@ -276,7 +306,24 @@ function formatTokenCount(n: number, decimals: number = 1): string {
   return String(n);
 }
 
-function renderContextLine(stdin: StdinData): string {
+/** 将 unix 秒时间戳转为倒计时字符串 (如 "1h14m", "4d19h") */
+function formatCountdown(resetAtSec: number): string | null {
+  const nowSec = Math.floor(Date.now() / 1000);
+  let diff = resetAtSec - nowSec;
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / 86400);
+  diff %= 86400;
+  const hours = Math.floor(diff / 3600);
+  diff %= 3600;
+  const mins = Math.floor(diff / 60);
+
+  if (days > 0) return `${days}d${hours}h`;
+  if (hours > 0) return `${hours}h${mins}m`;
+  return `${mins}m`;
+}
+
+function renderContextLine(stdin: StdinData, usage: import('./usage.js').UsageData | null): string {
   const pct = getContextPercent(stdin);
   const size = resolveContextSize(stdin);
   const tokens = getTotalTokens(stdin);
@@ -285,15 +332,38 @@ function renderContextLine(stdin: StdinData): string {
   const pctStr = pct >= 80 ? c.red(c.bold(`${pct}%`))
                : pct >= 60 ? c.yellow(c.bold(`${pct}%`))
                : c.green(c.bold(`${pct}%`));
-  // 格式: used / total  remaining (绝对紧凑, 不用 "tokens" 后缀 — 上下文行默认就是 token)
-  const detail = size > 0
-    ? c.dim(`${formatTokenCount(tokens)} / ${formatTokenCount(size)}  ${t.contextRemaining} ${formatTokenCount(remaining)}`)
-    : c.dim(`${formatTokenCount(tokens)}`);
+
+  // 余额标签: 非套餐平台 (DeepSeek/Kimi 等) 在 "剩余" 后显示余额
+  const balanceTag = buildBalanceTag(usage);
+
+  let detail = '';
+  if (size > 0) {
+    detail = c.dim(`${formatTokenCount(tokens)} / ${formatTokenCount(size)}  ${t.contextRemaining} ${formatTokenCount(remaining)}`);
+  } else {
+    detail = c.dim(`${formatTokenCount(tokens)}`);
+  }
+  if (balanceTag) detail += `  ${balanceTag}`;
 
   const label = MINIMAL
     ? ` ${t.context}`  // minimal: 前置空格, 无 emoji
     : `${c.gray(`📊 ${t.context}`)}`;  // zh/en: 灰色 + emoji
   return `${label} ${bar} ${pctStr}  ${detail}`;
+}
+
+/** 构建余额标签: 仅非套餐平台 (余额型) 在 Context 行显示 */
+function buildBalanceTag(usage: import('./usage.js').UsageData | null): string | null {
+  if (!usage) return null;
+  // 智谱 Coding Plan → 不在这里显示 (有独立的智谱行)
+  if (usage.zhipu) return null;
+  // DeepSeek → 余额
+  if (usage.deepSeek) {
+    return c.cyan(`¥${usage.deepSeek.totalBalance.toFixed(2)}`);
+  }
+  // Kimi → 余额
+  if (usage.kimi) {
+    return c.cyan(`¥${usage.kimi.totalBalance.toFixed(2)}`);
+  }
+  return null;
 }
 
 // ─── 当前任务行 ───────────────────────────────────────────────────────────
@@ -359,9 +429,9 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
     const agentResults = new Set<string>();                // completed agent tool_use_ids
     const taskIdToIndex = new Map<string, number>();       // taskId → todos[] index
 
-    // session 累计 token (从 transcript tail 累加, 作为 stdin total_* 的 fallback)
+    // session 累计 token: 取最后一轮的 usage (input_tokens 是累计上下文, 不是增量)
     const sessionTokens = { input: 0, output: 0, cache: 0 };
-    let lastUsageKey = '';
+    let lastUsage: { i: number; o: number; c: number } | null = null;
 
     // 正向遍历 (保持 TaskCreate / TaskUpdate / tool_use → tool_result 的时间顺序)
     for (let i = 0; i < lines.length; i++) {
@@ -383,16 +453,18 @@ async function readTranscriptData(transcriptPath: string): Promise<TranscriptDat
 
       // --- assistant entry: 累加 usage + 解析 tool_use 块 ---
       if (entry.type === 'assistant') {
-        // 累加 session token (去重: Claude Code 可能连续写同一 usage 2-3次)
+        // 累加 session token: output 是每轮增量需要累加, input 是累计上下文取最后一轮
         const usage = (entry as { message?: { usage?: { input_tokens?: number; output_tokens?: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number } } }).message?.usage;
         if (usage) {
-          const key = `${usage.input_tokens}|${usage.output_tokens}|${usage.cache_creation_input_tokens}|${usage.cache_read_input_tokens}`;
-          if (key !== lastUsageKey) {
-            sessionTokens.input += usage.input_tokens ?? 0;
-            sessionTokens.output += usage.output_tokens ?? 0;
-            sessionTokens.cache += (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
-            lastUsageKey = key;
-          }
+          const i = usage.input_tokens ?? 0;
+          const o = usage.output_tokens ?? 0;
+          const cache = (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+          // 跳过完全相同的连续 usage (Claude Code 可能重复写入)
+          if (lastUsage && i === lastUsage.i && o === lastUsage.o && cache === lastUsage.c) continue;
+          sessionTokens.input = i;           // input 是累计上下文, 取最后一轮
+          sessionTokens.output += o;          // output 是每轮增量, 累加
+          sessionTokens.cache = cache;        // cache 随 input 变化, 取最后一轮
+          lastUsage = { i, o, c: cache };
         }
         const msg = (entry as unknown as TranscriptEntry).message;
         const blocks = Array.isArray(msg?.content) ? msg!.content! : [];
@@ -864,22 +936,42 @@ function renderUsageLine(usage: import('./usage.js').UsageData | null): string |
 
   if (usage.zhipu) {
     const z = usage.zhipu;
-    // 优先百分比 (Coding Plan)
+    const parts: string[] = [];
+
+    // 5小时窗口 Token 用量 + 刷新倒计时
     if (z.usedPercent !== undefined) {
       const color = z.usedPercent >= 80 ? c.red : z.usedPercent >= 60 ? c.yellow : c.green;
-      return `${c.gray('🔋 智谱')} ${c.bold(`已用 ${color(`${z.usedPercent}%`)}`)}  ${c.dim(`剩余 ${100 - z.usedPercent}%`)}`;
-    }
-    // 兜底: token 量
-    if (z.quota !== undefined) {
-      const rem = formatTokenCount(z.quota);
-      if (z.usedQuota !== undefined && z.usedQuota > 0) {
-        const total = z.quota + z.usedQuota;
-        const pct = Math.round((z.usedQuota / total) * 100);
-        return `${c.gray('🔋 智谱')} ${c.bold(rem)}${c.dim(` / ${formatTokenCount(total)} (已用 ${pct}%)`)}`;
+      const icon = MINIMAL ? '' : '🪙 ';
+      let seg = c.bold(`${icon}${color(`${z.usedPercent}%`)}`);
+      if (z.resetAt) {
+        const countdown = formatCountdown(z.resetAt);
+        if (countdown) seg += c.dim(` ⏱${countdown}`);
       }
-      return `${c.gray('🔋 智谱')} ${c.bold(rem)}`;
+      parts.push(seg);
     }
-    return null;
+
+    // 周限额
+    if (z.weeklyPercent !== undefined) {
+      const color = z.weeklyPercent >= 80 ? c.red : z.weeklyPercent >= 60 ? c.yellow : c.green;
+      const icon = MINIMAL ? '' : '🗓️';
+      parts.push((MINIMAL ? '' : c.dim(icon)) + color(`${z.weeklyPercent}%`));
+    }
+
+    // MCP 工具用量
+    if (z.mcpPercent !== undefined) {
+      const detail = (z.mcpUsed !== undefined && z.mcpTotal !== undefined)
+        ? `${z.mcpUsed}/${z.mcpTotal}`
+        : `${z.mcpPercent}%`;
+      const color = z.mcpPercent >= 80 ? c.red : z.mcpPercent >= 60 ? c.yellow : c.green;
+      const icon = MINIMAL ? '' : '🔧';
+      parts.push((MINIMAL ? '' : c.dim(icon)) + color(detail));
+    }
+
+    if (parts.length === 0) return null;
+
+    const levelTag = z.level ? c.dim(` [${z.level}]`) : '';
+    const prefix = MINIMAL ? '智谱' : c.gray('🔋 智谱');
+    return `${prefix}${levelTag} ${parts.join(MINIMAL ? c.dim(' · ') : c.dim(' · '))}`;
   }
 
   return null;
@@ -888,27 +980,39 @@ function renderUsageLine(usage: import('./usage.js').UsageData | null): string |
 // ─── 主入口 ───────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  const stdin = await readStdin();
+  let stdin = await readStdin();
+
+  // stdin 为 null (超时/空输入/解析失败) → 尝试用缓存的上次数据渲染
   if (!stdin) {
-    // 测试模式或没有输入, 输出占位
-    const label = MINIMAL
-      ? ` ${t.context}`
-      : `${c.gray(`📊 ${t.context}`)}`;
-    console.log(`${label} ${c.dim('—')}  ${c.dim(t.fallback)}`);
-    return;
+    const cached = readLastStdinCache();
+    if (cached) {
+      stdin = cached;
+    } else {
+      // 真的没有任何数据, 输出占位
+      const label = MINIMAL
+        ? ` ${t.context}`
+        : `${c.gray(`📊 ${t.context}`)}`;
+      console.log(`${label} ${c.dim('—')}  ${c.dim(t.fallback)}`);
+      return;
+    }
   }
+
+  // 缓存本次 stdin (供下次 stdin 为 null 时兜底)
+  writeLastStdinCache(stdin);
 
   // 先读 transcript (一次 I/O, 供 todos / 工具 / Agent / Token fallback 共用)
   const tdata = stdin.transcript_path ? await readTranscriptData(stdin.transcript_path) : null;
 
+  // 用量数据 (提前获取, 供 Context 行的限额标签 + 用量行共用)
+  const usageData = getUsageData(stdin);
+
   const lines: string[] = [];
-  // 1) 上下文 (必显)
-  lines.push(renderContextLine(stdin));
+  // 1) 上下文 (必显, 含智谱限额标签)
+  lines.push(renderContextLine(stdin, usageData));
   // 2) Token 细分 (必显, 模式由 CLAUDE_MINI_HUD_TOKEN_MODE 控制)
   lines.push(...renderTokenLine(stdin, tdata));
 
-  // 2.5) 用量/余额 (有数据就显, Claude 原生 rate_limits 或第三方平台余额)
-  const usageData = getUsageData(stdin);
+  // 2.5) 用量/余额行
   const usageLine = renderUsageLine(usageData);
   if (usageLine) lines.push(usageLine);
 

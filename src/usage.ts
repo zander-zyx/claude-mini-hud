@@ -51,9 +51,13 @@ export interface KimiBalance {
 }
 
 export interface ZhipuUsage {
-  usedPercent?: number;  // 已用百分比 (0-100), Coding Plan 返回
-  quota?: number;        // 剩余 token / 额度 (兜底)
-  usedQuota?: number;
+  usedPercent?: number;    // 5小时窗口 Token 已用百分比 (0-100)
+  weeklyPercent?: number;  // 周限额 Token 已用百分比 (0-100)
+  mcpPercent?: number;     // MCP 工具用量百分比 (0-100)
+  mcpUsed?: number;        // MCP 已用次数
+  mcpTotal?: number;       // MCP 总次数
+  level?: string;          // 套餐等级 (如 "pro")
+  resetAt?: number;        // 5小时窗口重置时间 (unix 秒)
 }
 
 export interface UsageData {
@@ -75,7 +79,7 @@ const HTTP_TIMEOUT_MS = 10_000;
 const MINIMAX_API = 'https://www.minimaxi.com/v1/api/openplatform/coding_plan/remains';
 const DEEPSEEK_API = 'https://api.deepseek.com/user/balance';
 const KIMI_API = 'https://api.moonshot.cn/v1/users/me/balance';
-const ZHIPU_API = 'https://open.bigmodel.cn/api/paas/v4/user/info';
+const ZHIPU_QUOTA_ENDPOINT = '/monitor/usage/quota/limit';
 
 // ─── 平台检测 ─────────────────────────────────────────────────────────────
 
@@ -289,30 +293,62 @@ async function queryKimi(apiKey: string): Promise<UsageData | null> {
 
 async function queryZhipu(apiKey: string): Promise<UsageData | null> {
   try {
-    const body = await httpGet(ZHIPU_API, apiKey);
-    const json = JSON.parse(body);
-    const d = json.data ?? json;
+    // 从 ANTHROPIC_BASE_URL 构建 API 地址: 去掉 /anthropic 后缀, 拼接监控端点
+    const baseUrl = (process.env.ANTHROPIC_BASE_URL ?? '')
+      .replace(/\/anthropic\/?$/, '')
+      .replace(/\/$/, '');
+    if (!baseUrl) return null;
 
-    // Coding Plan 响应可能含百分比 (如 used_percentage / usedPercent)
-    const usedPct = d.used_percentage ?? d.usedPercent ?? d.usage_percent;
-    if (typeof usedPct === 'number' && Number.isFinite(usedPct)) {
-      return {
-        provider: 'zhipu',
-        zhipu: { usedPercent: Math.round(usedPct) },
-        updatedAt: Date.now(),
-      };
+    const apiUrl = `${baseUrl}${ZHIPU_QUOTA_ENDPOINT}`;
+    const body = await httpGet(apiUrl, apiKey);
+    const json = JSON.parse(body);
+
+    if (!json.success || !json.data?.limits) return null;
+
+    const limits = json.data.limits as Array<{
+      type: string;
+      unit: number;
+      usage?: number;
+      currentValue?: number;
+      percentage: number;
+      nextResetTime?: number;
+    }>;
+
+    // unit=3 → 5小时窗口 Token 限额; unit=6 → 周限额; TIME_LIMIT → MCP
+    let usedPercent: number | undefined;
+    let weeklyPercent: number | undefined;
+    let mcpPercent: number | undefined;
+    let mcpUsed: number | undefined;
+    let mcpTotal: number | undefined;
+    let resetAt: number | undefined;
+
+    for (const item of limits) {
+      if (item.type === 'TOKENS_LIMIT' && item.unit === 3) {
+        usedPercent = item.percentage;
+        resetAt = item.nextResetTime ? Math.round(item.nextResetTime / 1000) : undefined;
+      } else if (item.type === 'TOKENS_LIMIT' && item.unit === 6) {
+        weeklyPercent = item.percentage;
+      } else if (item.type === 'TIME_LIMIT') {
+        mcpPercent = item.percentage;
+        mcpUsed = item.currentValue;
+        mcpTotal = item.usage;
+      }
     }
 
-    // 兜底: token 量格式
-    const quota = d.quota ?? d.balance ?? d.total_quota;
-    if (quota === undefined || quota === null) return null;
-    const qNum = typeof quota === 'string' ? parseFloat(quota) : quota;
-    if (typeof qNum !== 'number' || !Number.isFinite(qNum)) return null;
+    if (usedPercent === undefined && weeklyPercent === undefined && mcpPercent === undefined) {
+      return null;
+    }
+
     return {
       provider: 'zhipu',
       zhipu: {
-        quota: Math.round(qNum),
-        usedQuota: typeof d.used_quota === 'number' ? Math.round(d.used_quota) : undefined,
+        usedPercent: typeof usedPercent === 'number' ? Math.round(usedPercent) : undefined,
+        weeklyPercent: typeof weeklyPercent === 'number' ? Math.round(weeklyPercent) : undefined,
+        mcpPercent: typeof mcpPercent === 'number' ? Math.round(mcpPercent) : undefined,
+        mcpUsed,
+        mcpTotal,
+        level: json.data.level ?? undefined,
+        resetAt,
       },
       updatedAt: Date.now(),
     };
