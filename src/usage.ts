@@ -12,7 +12,7 @@
  *   - New API      : 开源网关, /api/user/self (含 OpenAI / Claude / 自建代理)
  */
 
-import type { StdinData } from './index.js';
+import type { StdinData } from './types.js';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
@@ -177,6 +177,51 @@ function getClaudeRateLimit(stdin: StdinData): UsageData | null {
   };
 }
 
+// ─── 模型选择 (MiniMax) ───────────────────────────────────────────────────
+
+/** 从 env / stdin 推断用户当前使用的模型标识 */
+function resolveCurrentModelId(stdin: StdinData): string | null {
+  const fromEnv =
+    process.env.ANTHROPIC_MODEL?.trim() ||
+    process.env.ANTHROPIC_DEFAULT_OPUS_MODEL?.trim() ||
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL?.trim() ||
+    process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL?.trim();
+  if (fromEnv) return fromEnv;
+  return stdin.model?.id?.trim() || stdin.model?.display_name?.trim() || null;
+}
+
+/** 标准化模型名: 小写 + 去非字母数字, 便于跨格式匹配 (MiniMax-M3 / minimax_m3 / M3 等) */
+function normalizeModelKey(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * 从 MiniMax API 的 model_remains 列表里挑出用户当前用的那条
+ * 优先级: 当前模型匹配 (双向子串) > "general" > 第一条
+ */
+export function pickMiniMaxModel(list: unknown[], currentModel: string | null): any | null {
+  if (!Array.isArray(list) || list.length === 0) return null;
+
+  // 1) 匹配当前模型: 双向子串 (兼容 "MiniMax-M3" / "M3" / "minimax_m3" 等变体)
+  if (currentModel) {
+    const cur = normalizeModelKey(currentModel);
+    if (cur) {
+      const matched = list.find((m: any) => {
+        const n = normalizeModelKey(String(m?.model_name ?? ''));
+        return n && (n === cur || n.includes(cur) || cur.includes(n));
+      });
+      if (matched) return matched;
+    }
+  }
+
+  // 2) 回退到 "general" (Coding Plan 默认模型)
+  const general = list.find((m: any) => m?.model_name === 'general');
+  if (general) return general;
+
+  // 3) 最后回退到第一条
+  return list[0] ?? null;
+}
+
 // ─── HTTP 查询 ────────────────────────────────────────────────────────────
 
 function httpGet(url: string, apiKey: string): Promise<string> {
@@ -203,15 +248,16 @@ function httpGet(url: string, apiKey: string): Promise<string> {
   });
 }
 
-async function queryMiniMax(apiKey: string): Promise<UsageData | null> {
+async function queryMiniMax(apiKey: string, stdin: StdinData): Promise<UsageData | null> {
   try {
     const body = await httpGet(MINIMAX_API, apiKey);
     const json = JSON.parse(body);
     const list = json.model_remains;
     if (!Array.isArray(list) || list.length === 0) return null;
 
-    // 优先取 "general" (Coding Plan 主力模型), 否则取第一条
-    const main = list.find((m: any) => m.model_name === 'general') ?? list[0];
+    // 优先匹配用户当前模型 (env / stdin), 否则回退 general → 第一条
+    const currentModel = resolveCurrentModelId(stdin);
+    const main = pickMiniMaxModel(list, currentModel);
     if (!main) return null;
 
     const intervalPct = typeof main.current_interval_remaining_percent === 'number' ? main.current_interval_remaining_percent : undefined;
@@ -374,6 +420,32 @@ async function queryZhipu(apiKey: string): Promise<UsageData | null> {
 
 // ─── 主入口 ───────────────────────────────────────────────────────────────
 
+/**
+ * 获取当前平台的 API key
+ * 优先级: 平台专用 env (直连) → ANTHROPIC_AUTH_TOKEN (代理)
+ *   - DeepSeek: DEEPSEEK_API_KEY
+ *   - Kimi:     MOONSHOT_API_KEY
+ *   - 智谱:      ZHIPUAI_API_KEY / GLM_API_KEY
+ *   - 第三方代理: ANTHROPIC_AUTH_TOKEN (代理转发)
+ */
+function getApiKeyForPlatform(platform: string): string | null {
+  const authToken = process.env.ANTHROPIC_AUTH_TOKEN?.trim();
+  switch (platform) {
+    case 'deepseek':
+      return process.env.DEEPSEEK_API_KEY?.trim() || authToken || null;
+    case 'kimi':
+      return process.env.MOONSHOT_API_KEY?.trim() || authToken || null;
+    case 'zhipu':
+      return process.env.ZHIPUAI_API_KEY?.trim()
+        || process.env.GLM_API_KEY?.trim()
+        || authToken
+        || null;
+    default:
+      // minimax / new-api 都走代理模式, 统一用 ANTHROPIC_AUTH_TOKEN
+      return authToken || null;
+  }
+}
+
 /** 异步刷新缓存 (不阻塞) */
 async function refreshCache(platform: string, apiKey: string, stdin: StdinData): Promise<void> {
   let data: UsageData | null = null;
@@ -383,7 +455,7 @@ async function refreshCache(platform: string, apiKey: string, stdin: StdinData):
       data = getClaudeRateLimit(stdin);
       break;
     case 'minimax':
-      data = await queryMiniMax(apiKey);
+      data = await queryMiniMax(apiKey, stdin);
       break;
     case 'deepseek':
       data = await queryDeepSeek(apiKey);
@@ -419,8 +491,8 @@ export function getUsageData(stdin: StdinData): UsageData | null {
   const cached = readCache(platform);
   if (cached) return cached;
 
-  // 无缓存 → 异步刷新
-  const apiKey = process.env.ANTHROPIC_AUTH_TOKEN?.trim();
+  // 无缓存 → 异步刷新 (fire-and-forget)
+  const apiKey = getApiKeyForPlatform(platform);
   if (apiKey) {
     refreshCache(platform, apiKey, stdin).catch(() => {});
   }

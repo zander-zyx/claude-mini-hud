@@ -14,7 +14,7 @@
 
 ## 这是什么?
 
-**claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**最多 6 行**,信息密度高,对标 [claude-hud](https://github.com/jarrodwatts/claude-hud) 但更轻量。
+**claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**最多 7 行**,信息密度高,对标 [claude-hud](https://github.com/jarrodwatts/claude-hud) 但更轻量。
 
 ### 显示效果
 
@@ -56,11 +56,11 @@
 切换: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (见 [配置](#配置))
 
 **核心特性**:
-- ⚡ **零依赖**: 单文件 TypeScript,编译产物 ~15KB
+- ⚡ **零依赖**: TypeScript 多模块架构,编译产物轻量
 - 🌍 **三种语言**: 中文 / English / Minimal (英中混搭)
 - 🔧 **工具活动**: 实时显示文件读写、搜索、命令执行 (◐ 运行中 / ✓ 已完成×N)
 - 🤖 **Agent 追踪**: 显示活跃子 Agent 及其耗时
-- ⚡ **Token 速率**: 实时解码速度 (tok/s)
+- 🔥 **Token 速率**: 实时解码速度 (tok/s)
 - 📊 **Token 模式**: session 累计 / 上下文快照 / both 三种可切换
 - 🚀 **~10ms 启动**: 不拖慢 Claude Code
 - 🔌 **即插即用**: `/claude-mini-hud:setup` 一条命令
@@ -576,7 +576,7 @@ npm run build      # tsc 编译 src/index.ts → dist/index.js
 
 ```bash
 npm install
-npm test            # build + typecheck + 跑 13 个测试 (用 tsx 直接跑 ts 测试)
+npm test            # build + typecheck + 跑 29 个测试 (用 tsx 直接跑 ts 测试)
 npm run test:stdin  # 手测单个 stdin 输入
 npm run typecheck   # 只做类型检查, 不 emit
 ```
@@ -589,7 +589,7 @@ npm run dev   # tsc --watch, 自动重新编译
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### 测试覆盖 (13 个用例)
+### 测试覆盖 (29 个用例)
 
 | # | 用例 | 验证 |
 |---|------|------|
@@ -606,25 +606,35 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` 默认中文 | 中文 label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` 显示英文 | 无中文 marker |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` 无 emoji + 英中混搭 | 混合输出验证 |
+| 14–29 | 多平台用量查询 | 见 `tests/usage.test.ts` |
 
 ### 项目结构
 
 ```
 claude-mini-hud/
-├── README.md           # 本文件 (英文)
-├── README.zh.md        # 简体中文 README
+├── README.md           # 本文件 (中文)
+├── README.en.md        # 英文 README
 ├── LICENSE             # MIT
 ├── package.json        # npm 元数据 + scripts
-├── tsconfig.json       # TypeScript 配置
+├── tsconfig.json       # TypeScript 配置 (编译 src/ → dist/)
+├── tsconfig.test.json  # TypeScript 测试配置 (仅类型检查)
+├── CLAUDE.md           # Claude Code 项目指引
 ├── .gitignore
 ├── .claude-plugin/
 │   └── plugin.json     # Claude Code 插件描述
 ├── commands/
 │   └── setup.md        # /claude-mini-hud:setup 入口
 ├── src/
-│   └── index.ts        # 核心 (单文件 ~25KB)
+│   ├── index.ts        # 入口 + stdin 读取 + main()
+│   ├── types.ts        # 共享类型定义
+│   ├── i18n.ts         # 国际化 (zh/en/minimal)
+│   ├── colors.ts       # ANSI 颜色 (零依赖)
+│   ├── render.ts       # 所有渲染函数
+│   ├── transcript.ts   # Transcript JSONL 解析
+│   └── usage.ts        # 多平台用量/余额查询
 └── tests/
-    └── stdin.test.ts   # 13 个测试用例
+    ├── stdin.test.ts   # 状态栏渲染测试 (13 用例)
+    └── usage.test.ts   # 多平台用量查询测试 (16 用例)
 ```
 
 ---
@@ -681,7 +691,7 @@ Medium-term (v0.3):
 
 | 项目 | 风格 | 适合谁 |
 |------|------|--------|
-| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (本项目) | 轻量, 最多 6 行 | 喜欢清爽, 只要核心指标 |
+| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (本项目) | 轻量, 最多 7 行 | 喜欢清爽, 只要核心指标 |
 | [**claude-hud**](https://github.com/jarrodwatts/claude-hud) | 全功能,10+ 行 | 想要 git 状态 / agents / 工具统计 |
 | [**tweakcc**](https://github.com/adamelliotfields/tweakcc) | 配置 / prompt 级 | 想改 Claude Code 本身行为 |
 
@@ -705,8 +715,6 @@ MIT © 2026 Zander Zhang — 详见 [LICENSE](./LICENSE)
 
 如果这个项目帮到你,给个 ⭐ 让更多人看到!
 
-## Star History
-
 <a href="https://www.star-history.com/?repos=zander-zyx%2Fclaude-mini-hud">
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zander-zyx/claude-mini-hud&type=date&theme=dark&legend=top-left" />
@@ -720,9 +728,3 @@ MIT © 2026 Zander Zhang — 详见 [LICENSE](./LICENSE)
 ## English
 
 See [README.en.md](./README.en.md).
-
----
-
-## 简体中文
-
-中文用户请看 [README.zh.md](./README.zh.md)

@@ -13,7 +13,7 @@
 
 ## What is this?
 
-**claude-mini-hud** is a [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine plugin that continuously displays key session metrics below your input field. **Up to 6 lines**, high information density — a lighter alternative to [claude-hud](https://github.com/jarrodwatts/claude-hud).
+**claude-mini-hud** is a [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine plugin that continuously displays key session metrics below your input field. **Up to 7 lines**, high information density — a lighter alternative to [claude-hud](https://github.com/jarrodwatts/claude-hud).
 
 ### Preview
 
@@ -55,11 +55,11 @@
 Switch with: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (see [Configuration](#configuration))
 
 **Key Features**:
-- ⚡ **Zero Dependencies**: Single-file TypeScript, compiled output ~15KB
+- ⚡ **Zero Dependencies**: Multi-module TypeScript architecture, lightweight compiled output
 - 🌍 **Three Languages**: Chinese / English / Minimal (hybrid)
 - 🔧 **Tool Activity**: Real-time file reads/writes, searches, command execution (◐ running / ✓ completed ×N)
 - 🤖 **Agent Tracking**: Shows active sub-agents and their duration
-- ⚡ **Token Speed**: Real-time decoding speed (tok/s)
+- 🔥 **Token Speed**: Real-time decoding speed (tok/s)
 - 📊 **Token Modes**: Session cumulative / context snapshot / both — three switchable modes
 - 🚀 **~10ms Startup**: Won't slow down Claude Code
 - 🔌 **Plug & Play**: Just run `/claude-mini-hud:setup`
@@ -575,7 +575,7 @@ npm run build      # tsc compile src/index.ts → dist/index.js
 
 ```bash
 npm install
-npm test            # build + typecheck + run 13 tests (using tsx to run ts tests directly)
+npm test            # build + typecheck + run 29 tests (using tsx to run ts tests directly)
 npm run test:stdin  # manually test a single stdin input
 npm run typecheck   # type-check only, no emit
 ```
@@ -588,7 +588,7 @@ npm run dev   # tsc --watch, auto-recompile
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### Test Coverage (13 test cases)
+### Test Coverage (29 test cases)
 
 | # | Case | Verification |
 |---|------|-------------|
@@ -605,25 +605,35 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` defaults to Chinese | Chinese label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` shows English | no Chinese markers |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` no emoji + hybrid | hybrid output verification |
+| 14–29 | Multi-platform usage queries | see `tests/usage.test.ts` |
 
 ### Project Structure
 
 ```
 claude-mini-hud/
-├── README.md           # This file (English)
-├── README.zh.md        # Simplified Chinese README
+├── README.md           # Chinese README
+├── README.en.md        # This file (English)
 ├── LICENSE             # MIT
 ├── package.json        # npm metadata + scripts
-├── tsconfig.json       # TypeScript config
+├── tsconfig.json       # TypeScript config (compiles src/ → dist/)
+├── tsconfig.test.json  # TypeScript test config (type-check only)
+├── CLAUDE.md           # Claude Code project guide
 ├── .gitignore
 ├── .claude-plugin/
 │   └── plugin.json     # Claude Code plugin descriptor
 ├── commands/
 │   └── setup.md        # /claude-mini-hud:setup entry
 ├── src/
-│   └── index.ts        # Core (single file ~25KB)
+│   ├── index.ts        # Entry point + stdin reader + main()
+│   ├── types.ts        # Shared type definitions
+│   ├── i18n.ts         # Internationalization (zh/en/minimal)
+│   ├── colors.ts       # ANSI colors (zero-dependency)
+│   ├── render.ts       # All render functions
+│   ├── transcript.ts   # Transcript JSONL parser
+│   └── usage.ts        # Multi-platform usage/balance queries
 └── tests/
-    └── stdin.test.ts   # 13 test cases
+    ├── stdin.test.ts   # Statusline render tests (13 cases)
+    └── usage.test.ts   # Multi-platform usage query tests (16 cases)
 ```
 
 ---
@@ -680,7 +690,7 @@ Medium-term (v0.3):
 
 | Project | Style | Best For |
 |---------|-------|----------|
-| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (this project) | Lightweight, up to 6 lines | Prefer clean display with core metrics only |
+| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (this project) | Lightweight, up to 7 lines | Prefer clean display with core metrics only |
 | [**claude-hud**](https://github.com/jarrodwatts/claude-hud) | Full-featured, 10+ lines | Want git status / agents / tool statistics |
 | [**tweakcc**](https://github.com/adamelliotfields/tweakcc) | Config / prompt level | Want to change Claude Code's own behavior |
 
@@ -709,11 +719,5 @@ If this project helps you, give it a ⭐ so more people can find it!
 ---
 
 ## 简体中文
-
-请参阅 [README.zh.md](./README.zh.md)。
-
----
-
-## English
 
 See [README.md](./README.md).

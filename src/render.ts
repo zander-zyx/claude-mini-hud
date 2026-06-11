@@ -1,0 +1,500 @@
+/**
+ * claude-mini-hud — 渲染函数 + 格式化工具
+ *
+ * 所有 UI 输出的渲染逻辑
+ */
+
+import type { StdinData, TranscriptData, TodoItem, ToolActivity, AgentActivity, TokenBreakdown } from './types.js';
+import type { UsageData } from './usage.js';
+import { c } from './colors.js';
+import { t, MINIMAL } from './i18n.js';
+import { truncate } from './transcript.js';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+
+// ─── 格式化工具 ───────────────────────────────────────────────────────────
+
+export function formatTokenCount(n: number, decimals: number = 1): string {
+  // 整数值去掉多余的 ".0" (如 "1.0M" → "1M"), 非整数保留小数
+  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(decimals));
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000;
+    return v >= 10 ? `${Math.round(v)}M` : `${fmt(v)}M`;
+  }
+  if (n >= 1_000) {
+    const v = n / 1_000;
+    return v >= 10 ? `${Math.round(v)}k` : `${fmt(v)}k`;
+  }
+  return String(n);
+}
+
+/** 将 unix 秒时间戳转为倒计时字符串 (如 "1h14m", "4d19h") */
+export function formatCountdown(resetAtSec: number): string | null {
+  const nowSec = Math.floor(Date.now() / 1000);
+  let diff = resetAtSec - nowSec;
+  if (diff <= 0) return null;
+
+  const days = Math.floor(diff / 86400);
+  diff %= 86400;
+  const hours = Math.floor(diff / 3600);
+  diff %= 3600;
+  const mins = Math.floor(diff / 60);
+
+  if (days > 0) return `${days}d${hours}h`;
+  if (hours > 0) return `${hours}h${mins}m`;
+  return `${mins}m`;
+}
+
+/** 将毫秒差格式化成人类可读的耗时字符串 */
+export function formatElapsed(ms: number): string {
+  if (ms < 1000) return '<1s';
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+  const mins = Math.floor(ms / 60_000);
+  const secs = Math.floor((ms % 60_000) / 1000);
+  if (mins < 60) return `${mins}m ${secs}s`;
+  const hrs = Math.floor(mins / 60);
+  const rm = mins % 60;
+  return `${hrs}h ${rm}m`;
+}
+
+function progressBar(percent: number, width: number = 20): string {
+  const filled = Math.round((percent / 100) * width);
+  const empty = width - filled;
+  const block = '█';
+  const blank = '░';
+  // 颜色按百分比: 绿 < 60, 黄 60-80, 红 > 80
+  const color = percent > 80 ? c.red : percent > 60 ? c.yellow : c.green;
+  return color(block.repeat(filled) + blank.repeat(empty));
+}
+
+function simpleHash(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; }
+  return Math.abs(h).toString(36);
+}
+
+// ─── 上下文行 ─────────────────────────────────────────────────────────────
+
+function getTotalTokens(stdin: StdinData): number {
+  const usage = stdin.context_window?.current_usage;
+  return (
+    (usage?.input_tokens ?? 0) +
+    (usage?.cache_creation_input_tokens ?? 0) +
+    (usage?.cache_read_input_tokens ?? 0)
+  );
+}
+
+// 上下文窗口大小: 直接信任 Claude Code 上报值 (与 claude-hud 一致)
+function resolveContextSize(stdin: StdinData): number {
+  return stdin.context_window?.context_window_size ?? 0;
+}
+
+function getContextPercent(stdin: StdinData): number {
+  // 优先用 Claude Code v2.1.6+ 的原生百分比
+  const native = stdin.context_window?.used_percentage;
+  if (typeof native === 'number' && !Number.isNaN(native) && native > 0) {
+    return Math.min(100, Math.max(0, Math.round(native)));
+  }
+
+  const size = resolveContextSize(stdin);
+  if (!size || size <= 0) return 0;
+
+  return Math.min(100, Math.round((getTotalTokens(stdin) / size) * 100));
+}
+
+export function renderContextLine(stdin: StdinData, usage: UsageData | null): string {
+  const pct = getContextPercent(stdin);
+  const size = resolveContextSize(stdin);
+  const tokens = getTotalTokens(stdin);
+  const remaining = Math.max(0, size - tokens);
+  const bar = progressBar(pct);
+  const pctStr = pct >= 80 ? c.red(c.bold(`${pct}%`))
+               : pct >= 60 ? c.yellow(c.bold(`${pct}%`))
+               : c.green(c.bold(`${pct}%`));
+
+  // 余额标签: 非套餐平台 (DeepSeek/Kimi 等) 在 "剩余" 后显示余额
+  const balanceTag = buildBalanceTag(usage);
+
+  let detail = '';
+  if (size > 0) {
+    detail = c.dim(`${formatTokenCount(tokens)} / ${formatTokenCount(size)}  ${t.contextRemaining} ${formatTokenCount(remaining)}`);
+  } else {
+    detail = c.dim(`${formatTokenCount(tokens)}`);
+  }
+  if (balanceTag) detail += `  ${balanceTag}`;
+
+  const label = MINIMAL
+    ? ` ${t.context}`  // minimal: 前置空格, 无 emoji
+    : `${c.gray(`# ${t.context}`)}`;  // zh/en: ASCII 安全 (避免 Windows emoji 宽度重叠)
+  return `${label} ${bar} ${pctStr}  ${detail}`;
+}
+
+/** 构建余额标签: 仅非套餐平台 (余额型) 在 Context 行显示 */
+function buildBalanceTag(usage: UsageData | null): string | null {
+  if (!usage) return null;
+  // 智谱 Coding Plan → 不在这里显示 (有独立的智谱行)
+  if (usage.zhipu) return null;
+  // DeepSeek → 余额
+  if (usage.deepSeek) {
+    return c.cyan(`¥${usage.deepSeek.totalBalance.toFixed(2)}`);
+  }
+  // Kimi → 余额
+  if (usage.kimi) {
+    return c.cyan(`¥${usage.kimi.totalBalance.toFixed(2)}`);
+  }
+  return null;
+}
+
+// ─── 当前任务行 ───────────────────────────────────────────────────────────
+
+export function renderTodoLine(tdata: TranscriptData | null): string | null {
+  if (!tdata?.todos || tdata.todos.length === 0) return null;
+
+  // 优先显示 in_progress 的任务
+  const active = tdata.todos.find((td) => td.status === 'in_progress')
+    ?? tdata.todos.find((td) => td.status === 'pending');
+  if (!active) return null;
+
+  const completed = tdata.todos.filter((td) => td.status === 'completed').length;
+  const total = tdata.todos.length;
+  const label = MINIMAL ? ` ${t.todo}` : c.gray(`> ${t.todo}`);
+  const display = active.activeForm || active.content;
+  const progress = c.dim(`(${completed}/${total})`);
+
+  return `${label} ${display}  ${progress}`;
+}
+
+// ─── 工具活动行 ───────────────────────────────────────────────────────────
+
+export function renderToolActivityLines(tdata: TranscriptData | null): string[] {
+  if (!tdata || tdata.recentTools.length === 0) return [];
+
+  const running = tdata.recentTools.filter((a) => a.status === 'running');
+  const completed = tdata.recentTools.filter((a) => a.status === 'completed' || a.status === 'error');
+  const lines: string[] = [];
+  const prefix = MINIMAL ? ' ' : '  ';  // 子行缩进
+
+  // 运行中的工具: 每个一行, ◐ 前缀
+  for (const act of running.slice(-3)) {
+    const verb = t.toolVerb[act.tool] ?? act.tool;
+    const detail = act.label ? ` ${act.label}` : '';
+    lines.push(`${prefix}${c.yellow('◐')} ${verb}${c.dim(detail)}`);
+  }
+
+  // 已完成的工具: 按名称聚合, 一行展示计数
+  const counts = new Map<string, number>();
+  for (const act of completed) {
+    counts.set(act.tool, (counts.get(act.tool) ?? 0) + 1);
+  }
+  const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+  if (sorted.length > 0) {
+    const items = sorted.slice(0, 5).map(([name, count]) => {
+      const verb = t.toolVerb[name] ?? name;
+      return `${c.green('✓')} ${verb} ${c.dim(`×${count}`)}`;
+    });
+    lines.push(`${prefix}${items.join('  ')}`);
+  }
+
+  // 没有内容时返回空, 有内容时在首行前加标签
+  if (lines.length === 0) return [];
+  const label = MINIMAL ? ` ${t.tools}` : c.gray(`[*] ${t.tools}`);
+  lines[0] = `${label}${lines[0].slice(prefix.length)}`;
+  return lines;
+}
+
+// ─── Agent 追踪行 ─────────────────────────────────────────────────────────
+
+export function renderAgentLines(tdata: TranscriptData | null): string[] {
+  if (!tdata || tdata.activeAgents.length === 0) return [];
+
+  const now = Date.now();
+  const prefix = MINIMAL ? ' ' : '  ';
+  const lines: string[] = [];
+
+  for (const a of tdata.activeAgents) {
+    const desc = truncate(a.description || 'agent', 50);
+    const typeTag = a.subagentType ? c.dim(`[${a.subagentType}] `) : '';
+    const elapsed = a.startTime > 0 ? ` ${c.dim(formatElapsed(now - a.startTime))}` : '';
+    lines.push(`${prefix}${typeTag}${c.yellow('◐')} ${desc}${elapsed}`);
+  }
+
+  if (lines.length === 0) return [];
+  const label = MINIMAL ? ` ${t.agent}` : c.gray(`& ${t.agent}`);
+  lines[0] = `${label}${lines[0].slice(prefix.length)}`;
+  return lines;
+}
+
+// ─── 模型行 ───────────────────────────────────────────────────────────────
+
+export function renderModelLine(stdin: StdinData): string {
+  const name = resolveModelName(stdin);
+
+  // 检测 provider (Bedrock / Vertex / Enterprise)
+  const provider = detectProvider(stdin);
+  const providerBadge = provider ? c.dim(`[${provider}]`) : '';
+
+  const label = MINIMAL
+    ? ` ${t.model}`
+    : c.gray(`> ${t.model}`);
+  return `${label} ${c.cyan(c.bold(name))}  ${providerBadge}`;
+}
+
+// 解析模型名: 优先用 env 显式配置 (第三方代理常用), 再回退到 stdin
+function resolveModelName(stdin: StdinData): string {
+  // 按优先级取第一个非空 env (ANTHROPIC_MODEL → OPUS → SONNET → HAIKU)
+  const envKeys = [
+    'ANTHROPIC_MODEL',
+    'ANTHROPIC_DEFAULT_OPUS_MODEL',
+    'ANTHROPIC_DEFAULT_SONNET_MODEL',
+    'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+  ];
+  for (const key of envKeys) {
+    const v = process.env[key]?.trim();
+    if (v) return stripContextTag(v);
+  }
+
+  // env 都没配 → 用 Claude Code stdin 给的模型
+  const name = stdin.model?.display_name?.trim() || stdin.model?.id?.trim() || 'Unknown';
+  return stripContextTag(name);
+}
+
+/** 去掉模型名里的 [200k] / [1M] 上下文标记 (与 claude-hud 的 stripContextSuffix 一致) */
+function stripContextTag(name: string): string {
+  return name.replace(/\s*\[\d+[kKmM]\]/gi, '').trim();
+}
+
+function detectProvider(stdin: StdinData): string | null {
+  if (process.env.CLAUDE_CODE_USE_BEDROCK === '1') return 'Bedrock';
+  if (process.env.CLAUDE_CODE_USE_VERTEX === '1') return 'Vertex';
+  const id = stdin.model?.id?.toLowerCase();
+  if (id && (id.includes('opusplan') || id.includes('sonnetplan') || id.includes('haikuplan'))) {
+    return 'Enterprise';
+  }
+  // 第三方代理 (ANTHROPIC_BASE_URL 指向非 anthropic.com)
+  if (process.env.ANTHROPIC_BASE_URL && !process.env.ANTHROPIC_BASE_URL.includes('anthropic.com')) {
+    try {
+      const parts = new URL(process.env.ANTHROPIC_BASE_URL).hostname.split('.');
+      // 跳过通用前缀 (api/www/open/gateway/proxy/app/console)
+      const generic = new Set(['api', 'www', 'open', 'gateway', 'proxy', 'app', 'console']);
+      // 优先取真正的品牌段: 跳过 generic 后, 取中间或倒数第二段
+      // "api.minimaxi.com" → ["api","minimaxi","com"] → "minimaxi"
+      // "open.bigmodel.cn" → ["open","bigmodel","cn"] → "bigmodel"
+      // "api.deepseek.com" → ["api","deepseek","com"] → "deepseek"
+      const brand = parts.filter((p) => !generic.has(p));
+      // 取最后两段中的第一段 (品牌名, 排除顶级域)
+      return brand.length >= 2 ? brand[brand.length - 2] : (brand[0] ?? parts[0] ?? null);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+// ─── Token 行 (session 累计 / 上下文快照 / 速率) ──────────────────────
+
+/** 从 stdin + transcript 提取 session 累计 token */
+function getSessionTokens(stdin: StdinData, tdata: TranscriptData | null): TokenBreakdown {
+  const cw = stdin.context_window;
+  const usage = cw?.current_usage;
+
+  // input: 优先 stdin.total_input_tokens → transcript 累加 → current_usage
+  let input = typeof cw?.total_input_tokens === 'number' && cw.total_input_tokens > 0
+    ? cw.total_input_tokens
+    : (tdata?.sessionTokens?.input ?? 0);
+  if (input === 0) input = usage?.input_tokens ?? 0;
+
+  // output: 优先 stdin.total_output_tokens → transcript 累加 → current_usage
+  let output = typeof cw?.total_output_tokens === 'number' && cw.total_output_tokens > 0
+    ? cw.total_output_tokens
+    : (tdata?.sessionTokens?.output ?? 0);
+  if (output === 0) output = usage?.output_tokens ?? 0;
+
+  // cache: transcript 累加 (更全面) → current_usage 快照
+  const txCache = tdata?.sessionTokens?.cache ?? 0;
+  const cuCache = (usage?.cache_creation_input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0);
+  const cache = txCache > 0 ? txCache : cuCache;
+
+  return { input, output, cache, total: input + output + cache };
+}
+
+/** 从 stdin 提取上下文快照 token (仅当前窗口内) */
+function getContextTokens(stdin: StdinData): TokenBreakdown {
+  const usage = stdin.context_window?.current_usage;
+  const input = usage?.input_tokens ?? 0;
+  const output = usage?.output_tokens ?? 0;
+  const cache = (usage?.cache_creation_input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0);
+  return { input, output, cache, total: input + output + cache };
+}
+
+function formatTokenParts(b: TokenBreakdown, speed: number | null): string {
+  const parts = [
+    `${c.gray(t.in)} ${formatTokenCount(b.input)}`,
+    `${c.gray(t.out)} ${formatTokenCount(b.output)}`,
+  ];
+  if (b.cache > 0) parts.push(`${c.gray(t.cache)} ${formatTokenCount(b.cache)}`);
+  if (speed) parts.push(`${speed} t/s`);
+  return c.dim('(' + parts.join(' · ') + ')');
+}
+
+/** 获取输出速率 (tok/s), 无有效数据返回 null */
+function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
+  const outputTokens = stdin.context_window?.current_usage?.output_tokens;
+  if (typeof outputTokens !== 'number' || !Number.isFinite(outputTokens) || outputTokens <= 0) return null;
+  const tp = stdin.transcript_path;
+  if (!tp) return null;
+
+  try {
+    const cacheFile = join(cacheDir, `speed-${simpleHash(tp)}.json`);
+    const now = Date.now();
+
+    let prev: { n: number; ts: number } | null = null;
+    try { prev = JSON.parse(readFileSync(cacheFile, 'utf8')); } catch { /* first run */ }
+
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(cacheFile, JSON.stringify({ n: outputTokens, ts: now }));
+
+    if (!prev || outputTokens <= prev.n) return null;
+    const dt = (now - prev.ts) / 1000;
+    if (dt < 0.5 || dt > 5) return null;  // 太短不准, 太长说明已停止
+    const speed = Math.round((outputTokens - prev.n) / dt);
+    return speed > 0 ? speed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function renderTokenLine(stdin: StdinData, tdata: TranscriptData | null, tokenMode: string, cacheDir: string): string[] {
+  const lines: string[] = [];
+  const label = MINIMAL ? ` ${t.token}` : `${c.gray(`$ ${t.token}`)}`;
+
+  // 计算输出速率
+  const speed = cacheDir ? getOutputSpeed(stdin, cacheDir) : null;
+
+  if (tokenMode === 'session' || tokenMode === 'both') {
+    const b = getSessionTokens(stdin, tdata);
+    if (b.total > 0) {
+      lines.push(`${label} ${c.bold(formatTokenCount(b.total))} ${formatTokenParts(b, speed)}`);
+    }
+  }
+
+  if (tokenMode === 'context' || tokenMode === 'both') {
+    const b = getContextTokens(stdin);
+    if (b.total > 0) {
+      const ctxLabel = tokenMode === 'both'
+        ? c.dim(`  ${t.context} ${t.token}`)
+        : label;
+      lines.push(`${ctxLabel} ${c.bold(formatTokenCount(b.total))} ${formatTokenParts(b, null)}`);
+    }
+  }
+
+  return lines;
+}
+
+// ─── 用量/余额行 ──────────────────────────────────────────────────────────
+
+export function renderUsageLine(usage: UsageData | null): string | null {
+  if (!usage) return null;
+
+  if (usage.claude) {
+    const { fiveHour, sevenDay } = usage.claude;
+    const parts: string[] = [];
+    if (fiveHour !== null) {
+      const color = fiveHour >= 80 ? c.red : fiveHour >= 60 ? c.yellow : c.green;
+      parts.push(`5h ${color(`${fiveHour}%`)}`);
+    }
+    if (sevenDay !== null) {
+      const color = sevenDay >= 80 ? c.red : sevenDay >= 60 ? c.yellow : c.green;
+      parts.push(`7d ${color(`${sevenDay}%`)}`);
+    }
+    if (parts.length === 0) return null;
+    return `${c.gray('[B] API')} ${parts.join('  ')}`;
+  }
+
+  if (usage.miniMax) {
+    const m = usage.miniMax;
+    const parts: string[] = [];
+    // 5小时窗口剩余百分比
+    if (m.intervalRemainingPercent !== undefined) {
+      const used = 100 - m.intervalRemainingPercent;
+      const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
+      let seg = c.bold(`${color(`${used}%`)}`);
+      if (m.intervalResetAt) {
+        const countdown = formatCountdown(m.intervalResetAt);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
+    }
+    // 周窗口剩余百分比
+    if (m.weeklyRemainingPercent !== undefined) {
+      const used = 100 - m.weeklyRemainingPercent;
+      const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
+      parts.push(color(`${used}%`));
+    }
+    if (parts.length === 0) return null;
+    const modelTag = m.modelName ? c.dim(` [${m.modelName}]`) : '';
+    const prefix = MINIMAL ? 'MiniMax' : c.gray('[B] MiniMax');
+    return `${prefix}${modelTag} ${parts.join(c.dim(' · '))}`;
+  }
+
+  if (usage.deepSeek) {
+    const d = usage.deepSeek;
+    const total = d.totalBalance.toFixed(2);
+    return `${c.gray('[B] DeepSeek')} ${c.cyan(c.bold(`¥${total}`))}${d.grantedBalance > 0 ? c.dim(` (赠送 ¥${d.grantedBalance.toFixed(2)})`) : ''}`;
+  }
+
+  if (usage.newApi) {
+    const q = usage.newApi;
+    const pct = q.quota + q.usedQuota > 0
+      ? ` ${Math.round((q.usedQuota / (q.quota + q.usedQuota)) * 100)}%`
+      : '';
+    return `${c.gray(`[B] ${t.usage}`)} ${c.bold(formatTokenCount(q.quota))}${c.dim(` (${t.used} ${formatTokenCount(q.usedQuota)}${pct})`)}`;
+  }
+
+  if (usage.kimi) {
+    const total = usage.kimi.totalBalance.toFixed(2);
+    const grant = usage.kimi.grantedBalance && usage.kimi.grantedBalance > 0
+      ? c.dim(` (赠送 ¥${usage.kimi.grantedBalance.toFixed(2)})`)
+      : '';
+    return `${c.gray('[B] Kimi')} ${c.cyan(c.bold(`¥${total}`))}${grant}`;
+  }
+
+  if (usage.zhipu) {
+    const z = usage.zhipu;
+    const parts: string[] = [];
+
+    // 5小时窗口 Token 用量 + 刷新倒计时
+    if (z.usedPercent !== undefined) {
+      const color = z.usedPercent >= 80 ? c.red : z.usedPercent >= 60 ? c.yellow : c.green;
+      let seg = c.bold(`${color(`${z.usedPercent}%`)}`);
+      if (z.resetAt) {
+        const countdown = formatCountdown(z.resetAt);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
+    }
+
+    // 周限额
+    if (z.weeklyPercent !== undefined) {
+      const color = z.weeklyPercent >= 80 ? c.red : z.weeklyPercent >= 60 ? c.yellow : c.green;
+      parts.push(color(`${z.weeklyPercent}%`));
+    }
+
+    // MCP 工具用量 — 简短格式: M 已用/总数
+    if (z.mcpPercent !== undefined) {
+      const detail = (z.mcpUsed !== undefined && z.mcpTotal !== undefined)
+        ? `M${z.mcpUsed}/${z.mcpTotal}`
+        : `M${z.mcpPercent}%`;
+      const color = z.mcpPercent >= 80 ? c.red : z.mcpPercent >= 60 ? c.yellow : c.green;
+      parts.push(color(detail));
+    }
+
+    if (parts.length === 0) return null;
+
+    const levelTag = z.level ? c.dim(` [${z.level}]`) : '';
+    const prefix = MINIMAL ? '智谱' : c.gray('[B] 智谱');
+    return `${prefix}${levelTag} ${parts.join(c.dim(' · '))}`;
+  }
+
+  return null;
+}

@@ -152,3 +152,56 @@ test('端到端: Claude rate_limits 从 stdin 直接输出', async () => {
   assert.equal(result!.claude!.sevenDay, 80);
   assert.equal(result!.claude!.fiveHourResetAt, 1718123456);
 });
+
+test('pickMiniMaxModel: 精确匹配当前模型 (MiniMax-M3)', async () => {
+  const { pickMiniMaxModel } = await import('../src/usage.js');
+  const list = [
+    { model_name: 'general', current_interval_remaining_percent: 80 },
+    { model_name: 'MiniMax-M3', current_interval_remaining_percent: 91 },
+    { model_name: 'M1', current_interval_remaining_percent: 100 },
+  ];
+  const result = pickMiniMaxModel(list, 'MiniMax-M3');
+  assert.equal(result.model_name, 'MiniMax-M3', '应精确匹配 MiniMax-M3');
+});
+
+test('pickMiniMaxModel: 大小写/分隔符无关匹配 (minimax-m3 vs MiniMax_M3)', async () => {
+  const { pickMiniMaxModel } = await import('../src/usage.js');
+  const list = [
+    { model_name: 'general', current_interval_remaining_percent: 80 },
+    { model_name: 'MiniMax_M3', current_interval_remaining_percent: 91 },
+  ];
+  // env 是 "minimax-m3", API 是 "MiniMax_M3" → 标准化后都是 "minimaxm3" → 匹配
+  const result = pickMiniMaxModel(list, 'minimax-m3');
+  assert.equal(result.model_name, 'MiniMax_M3');
+});
+
+test('pickMiniMaxModel: 短名匹配长名 (M3 vs MiniMax-M3)', async () => {
+  const { pickMiniMaxModel } = await import('../src/usage.js');
+  const list = [
+    { model_name: 'MiniMax-M3', current_interval_remaining_percent: 91 },
+    { model_name: 'general', current_interval_remaining_percent: 80 },
+  ];
+  // env 是 "M3", API 是 "MiniMax-M3" → 双向子串匹配
+  const result = pickMiniMaxModel(list, 'M3');
+  assert.equal(result.model_name, 'MiniMax-M3');
+});
+
+test('pickMiniMaxModel: 无当前模型时回退到 general', async () => {
+  const { pickMiniMaxModel } = await import('../src/usage.js');
+  const list = [
+    { model_name: 'MiniMax-M3', current_interval_remaining_percent: 91 },
+    { model_name: 'general', current_interval_remaining_percent: 80 },
+  ];
+  const result = pickMiniMaxModel(list, null);
+  assert.equal(result.model_name, 'general', '无当前模型时回退到 general');
+});
+
+test('pickMiniMaxModel: 匹配失败时跳过 general, 取第一条', async () => {
+  const { pickMiniMaxModel } = await import('../src/usage.js');
+  const list = [
+    { model_name: 'MiniMax-M3', current_interval_remaining_percent: 91 },
+  ];
+  // 当前模型是 unknown-xyz → 双向都不匹配 → 没有 general → 取第一条
+  const result = pickMiniMaxModel(list, 'unknown-xyz');
+  assert.equal(result.model_name, 'MiniMax-M3');
+});
