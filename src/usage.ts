@@ -22,8 +22,11 @@ import { get as httpsGetImpl } from 'node:https';
 // ─── 类型 ─────────────────────────────────────────────────────────────────
 
 export interface MiniMaxUsage {
-  remainingTokens: number;
-  totalTokens?: number;
+  intervalRemainingPercent?: number;   // 当前 5小时窗口剩余百分比 (0-100)
+  weeklyRemainingPercent?: number;     // 周窗口剩余百分比 (0-100)
+  intervalResetAt?: number;            // 5小时窗口重置时间 (unix 秒)
+  weeklyResetAt?: number;              // 周窗口重置时间 (unix 秒)
+  modelName?: string;                  // 主模型名 (如 "general")
 }
 
 export interface DeepSeekBalance {
@@ -204,13 +207,25 @@ async function queryMiniMax(apiKey: string): Promise<UsageData | null> {
   try {
     const body = await httpGet(MINIMAX_API, apiKey);
     const json = JSON.parse(body);
-    const remaining = json.remaining_tokens ?? json.remainingTokens ?? json.remain;
-    if (typeof remaining !== 'number' || !Number.isFinite(remaining)) return null;
+    const list = json.model_remains;
+    if (!Array.isArray(list) || list.length === 0) return null;
+
+    // 优先取 "general" (Coding Plan 主力模型), 否则取第一条
+    const main = list.find((m: any) => m.model_name === 'general') ?? list[0];
+    if (!main) return null;
+
+    const intervalPct = typeof main.current_interval_remaining_percent === 'number' ? main.current_interval_remaining_percent : undefined;
+    const weeklyPct = typeof main.current_weekly_remaining_percent === 'number' ? main.current_weekly_remaining_percent : undefined;
+    if (intervalPct === undefined && weeklyPct === undefined) return null;
+
     return {
       provider: 'minimax',
       miniMax: {
-        remainingTokens: Math.round(remaining),
-        totalTokens: typeof json.total_tokens === 'number' ? Math.round(json.total_tokens) : undefined,
+        intervalRemainingPercent: intervalPct !== undefined ? Math.round(intervalPct) : undefined,
+        weeklyRemainingPercent: weeklyPct !== undefined ? Math.round(weeklyPct) : undefined,
+        intervalResetAt: typeof main.end_time === 'number' ? Math.round(main.end_time / 1000) : undefined,
+        weeklyResetAt: typeof main.weekly_end_time === 'number' ? Math.round(main.weekly_end_time / 1000) : undefined,
+        modelName: typeof main.model_name === 'string' ? main.model_name : undefined,
       },
       updatedAt: Date.now(),
     };

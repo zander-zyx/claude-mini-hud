@@ -965,10 +965,31 @@ function renderUsageLine(usage: import('./usage.js').UsageData | null): string |
   }
 
   if (usage.miniMax) {
-    const rem = formatTokenCount(usage.miniMax.remainingTokens);
-    const total = usage.miniMax.totalTokens;
-    const detail = total ? ` / ${formatTokenCount(total)}` : '';
-    return `${c.gray('🔋 MiniMax')} ${c.bold(rem)}${c.dim(detail)}`;
+    const m = usage.miniMax;
+    const parts: string[] = [];
+    // 5小时窗口剩余百分比
+    if (m.intervalRemainingPercent !== undefined) {
+      const used = 100 - m.intervalRemainingPercent;
+      const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
+      const icon = MINIMAL ? '' : '🪙 ';
+      let seg = c.bold(`${icon}${color(`${used}%`)}`);
+      if (m.intervalResetAt) {
+        const countdown = formatCountdown(m.intervalResetAt);
+        if (countdown) seg += c.dim(` ⏱${countdown}`);
+      }
+      parts.push(seg);
+    }
+    // 周窗口剩余百分比
+    if (m.weeklyRemainingPercent !== undefined) {
+      const used = 100 - m.weeklyRemainingPercent;
+      const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
+      const icon = MINIMAL ? '' : '🗓️';
+      parts.push((MINIMAL ? '' : c.dim(icon)) + color(`${used}%`));
+    }
+    if (parts.length === 0) return null;
+    const modelTag = m.modelName ? c.dim(` [${m.modelName}]`) : '';
+    const prefix = MINIMAL ? 'MiniMax' : c.gray('🔋 MiniMax');
+    return `${prefix}${modelTag} ${parts.join(c.dim(' · '))}`;
   }
 
   if (usage.deepSeek) {

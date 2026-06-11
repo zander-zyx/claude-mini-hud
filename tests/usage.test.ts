@@ -90,7 +90,7 @@ test('writeCache + readCache 读写', async () => {
   // 写入有效缓存
   const data = {
     provider: 'test-platform',
-    miniMax: { remainingTokens: 850000, totalTokens: 1000000 },
+    miniMax: { intervalRemainingPercent: 85, weeklyRemainingPercent: 90, modelName: 'general' },
     updatedAt: Date.now(),
   };
   writeFileSync(cacheFile, JSON.stringify(data));
@@ -100,7 +100,8 @@ test('writeCache + readCache 读写', async () => {
   const cached = readCache('test-platform');
   assert.ok(cached !== null, `应成功读取缓存, 文件路径: ${cacheFile}`);
   assert.equal(cached!.provider, 'test-platform');
-  assert.equal(cached!.miniMax!.remainingTokens, 850000);
+  assert.equal(cached!.miniMax!.intervalRemainingPercent, 85);
+  assert.equal(cached!.miniMax!.weeklyRemainingPercent, 90);
 
   // 清理
   rmSync(cacheFile, { force: true });
