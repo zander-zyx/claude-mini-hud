@@ -42,6 +42,17 @@
 🤖 Model deepseek-v4-pro  [deepseek]
 ```
 
+**Minimal (minimal)** — 英中混搭 + 无 emoji:
+```
+ Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+ Token 4.8M (in 3.5M · out 1.2M · cache 103k · ⚡ 45 tok/s)
+ 当前任务 ▸ 正在写 skill  (1/4)
+  ◐ reading index.ts
+  ◐ writing utils.ts
+  ✓ searching ×3  ✓ running ×1
+  [Explore] ◐ Searching code 2m 15s
+```
+
 切换: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (见 [配置](#配置))
 
 **核心特性**:
