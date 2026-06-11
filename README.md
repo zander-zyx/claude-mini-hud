@@ -8,7 +8,7 @@
 ![Language: TS](https://img.shields.io/badge/TypeScript-ES2022-blue)
 ![StatusLine](https://img.shields.io/badge/Claude_Code-StatusLine-blueviolet)
 
-[English](#english) · [简体中文](#简体中文) · [安装](#安装) · [FAQ](#faq) · [贡献](#贡献)
+[简体中文](#) · [English](./README.en.md) · [安装](#安装) · [FAQ](#faq) · [贡献](#贡献)
 
 ---
 
@@ -65,20 +65,20 @@
 - 🚀 **~10ms 启动**: 不拖慢 Claude Code
 - 🔌 **即插即用**: `/claude-mini-hud:setup` 一条命令
 
-### Multi-Platform Usage / Balance Query
+### 多平台用量/余额查询
 
-Auto-detects your platform via `ANTHROPIC_BASE_URL` and displays usage/balance in real-time:
+根据你的 `ANTHROPIC_BASE_URL` 自动检测平台，实时显示用量/余额：
 
-| Platform | Detection | Display |
-|----------|-----------|---------|
-| **Claude Native** | `rate_limits` present | 5h / 7d usage percentage |
-| **MiniMax** | URL contains `minimaxi.com` | Coding Plan remaining tokens |
-| **DeepSeek** | URL contains `deepseek.com` | Account balance (¥ CNY) |
-| **Kimi** | URL contains `moonshot.cn` | Balance (¥ CNY) + granted balance |
-| **Zhipu (GLM)** | URL contains `bigmodel.cn` | Coding Plan usage% + weekly limit% + MCP tools + countdown |
-| **New API** | Other non-Anthropic URLs | Open-source gateway quota + used |
+| 平台 | 检测条件 | 显示内容 |
+|------|---------|---------|
+| **Claude 原生** | `rate_limits` 有数据 | 5小时 / 7天用量百分比 |
+| **MiniMax** | URL 含 `minimaxi.com` | Coding Plan 剩余 token |
+| **DeepSeek** | URL 含 `deepseek.com` | 账户余额 (¥ CNY) |
+| **Kimi** | URL 含 `moonshot.cn` | 余额 (¥ CNY) + 赠送余额 |
+| **智谱 (GLM)** | URL 含 `bigmodel.cn` | Coding Plan 用量% + 周限额% + MCP工具 + 倒计时 |
+| **New API** | 其他非 Anthropic URL | 开源网关配额 + 已用量 |
 
-> 💡 **Zero config** — just set `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN`, the plugin auto-detects and queries.
+> 💡 **无需额外配置** — 只要设了 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_AUTH_TOKEN`，插件自动识别平台并查询。
 
 **与 `claude-hud` 的定位**
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)。本项目的目标是在**信息密度和简洁之间取得平衡** ——比 claude-hud 轻量,比原版 statusLine 功能丰富。对标了 claude-hud 的工具活动、Agent 追踪、Task 解析等核心功能。
@@ -711,7 +711,7 @@ MIT © 2026 Zander Zhang — 详见 [LICENSE](./LICENSE)
 
 ## English
 
-See [README.md](./README.md) (this file).
+See [README.en.md](./README.en.md).
 
 ---
 
