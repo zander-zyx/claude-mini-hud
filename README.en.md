@@ -1,6 +1,6 @@
 # 📊 claude-mini-hud
 
-> Claude Code statusline — context / token / todos / tool activity / agent tracking (lightweight claude-hud alternative)
+> Claude Code statusline — context / token / todos / tools / agents + deep multi-provider usage (lightweight claude-hud alternative)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
@@ -68,19 +68,38 @@ Switch with: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (see [Configuration](#configur
 
 Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usage/balance in real time:
 
-| Platform | Detection | Display |
-|----------|-----------|---------|
-| **Claude Native** | `rate_limits` has data | 5h / 7d usage percentage |
-| **MiniMax** | URL contains `minimaxi.com` | Coding Plan remaining tokens |
-| **DeepSeek** | URL contains `deepseek.com` | Account balance (¥ CNY) |
-| **Kimi** | URL contains `moonshot.cn` | Balance (¥ CNY) + granted balance |
-| **Zhipu (GLM)** | URL contains `bigmodel.cn` | Coding Plan usage% + weekly limit% + MCP tools + countdown |
-| **New API** | Other non-Anthropic URLs | Open-source gateway quota + used |
+| Platform | Detection | Display Format |
+|----------|-----------|----------------|
+| **Claude Native** | `rate_limits` has data | `5h:45% (1h30m) 7d:12%` |
+| **MiniMax** | URL contains `minimaxi.com` | `5h:55% 7d:74% m:50% (26d)` |
+| **Zhipu (GLM)** | URL contains `bigmodel.cn` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
+| **Xiaomi (MiMo)** | URL contains `xiaomimimo` | `50M/100M m:45% (26d)` |
+| **Alibaba (DashScope)** | URL contains `dashscope` | Platform detection only (no public usage API) |
+| **Volcengine (Ark)** | URL contains `volces.com` | Platform detection only (no public usage API) |
+| **DeepSeek** | URL contains `deepseek.com` | `¥123.45` (account balance) |
+| **Kimi** | URL contains `moonshot.cn` | `¥42.50 (granted ¥10.00)` |
+| **New API** | Other non-Anthropic URLs | `500k (used 123k 25%)` |
+
+#### Usage Display Format Reference
+
+| Tag | Meaning | Example |
+|-----|---------|---------|
+| `5h:` | 5-hour window usage | `5h:19% (1h54m)` — 19% used, resets in 1h54m |
+| `7d:` | 7-day (weekly) usage | `7d:26% (5d7h)` — 26% used, resets in 5d7h |
+| `m:` | Monthly usage | `m:30% (26d)` — 30% used, resets in 26 days (days only) |
+| `mcp:` | MCP tool calls | `mcp:20/1000` — 20 calls used / 1000 limit |
+| Fixed quota | TOKEN PLAN used/total | `50M/100M` — auto M/k unit for large numbers |
 
 > 💡 **No extra configuration needed** — as long as `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` are set, the plugin automatically detects the platform and queries it.
+>
+> 🍪 **Xiaomi (MiMo)** requires an additional `XIAOMI_COOKIE` environment variable (extract Cookie from browser DevTools), as the Xiaomi usage API uses Cookie authentication instead of API Key.
 
 **Positioning vs. `claude-hud`**
-[`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) is a full-featured statusline (10+ lines). This project aims to **strike a balance between information density and simplicity** — lighter than claude-hud, more feature-rich than the default statusLine. It ports claude-hud's core features: tool activity, agent tracking, task parsing, and more.
+
+[`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) is a full-featured statusline (10+ lines), primarily for Anthropic Claude native users. **This project** balances information density with simplicity, with two core goals:
+
+1. **Matching claude-hud core features** — tool activity, agent tracking, task parsing — all present, but kept within 7 lines, lighter than claude-hud
+2. **Deep multi-provider support** — built-in usage queries for Zhipu GLM, MiniMax, Xiaomi MiMo, Alibaba DashScope, Volcengine Ark, DeepSeek, Kimi and more Coding Plan / Token Plan platforms, so third-party proxy users can also see their quota in real time
 
 ---
 
@@ -575,7 +594,7 @@ npm run build      # tsc compile src/index.ts → dist/index.js
 
 ```bash
 npm install
-npm test            # build + typecheck + run 29 tests (using tsx to run ts tests directly)
+npm test            # build + typecheck + run 32 tests (using tsx to run ts tests directly)
 npm run test:stdin  # manually test a single stdin input
 npm run typecheck   # type-check only, no emit
 ```
@@ -588,7 +607,7 @@ npm run dev   # tsc --watch, auto-recompile
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### Test Coverage (29 test cases)
+### Test Coverage (32 test cases)
 
 | # | Case | Verification |
 |---|------|-------------|
@@ -605,7 +624,8 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` defaults to Chinese | Chinese label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` shows English | no Chinese markers |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` no emoji + hybrid | hybrid output verification |
-| 14–29 | Multi-platform usage queries | see `tests/usage.test.ts` |
+| 14–22 | Multi-platform detection (claude/deepseek/minimax/null/kimi/zhipu/xiaomi/alibaba/volcengine) | URL matching |
+| 23–32 | Cache read/write + E2E + MiniMax model matching | see `tests/usage.test.ts` |
 
 ### Project Structure
 
