@@ -705,7 +705,15 @@ MIT © 2026 Zander Zhang — 详见 [LICENSE](./LICENSE)
 
 如果这个项目帮到你,给个 ⭐ 让更多人看到!
 
-[![Star History Chart](https://api.star-history.com/svg?repos=zander-zyx/claude-mini-hud&type=Date)](https://star-history.com/#zander-zyx/claude-mini-hud)
+## Star History
+
+<a href="https://www.star-history.com/?repos=zander-zyx%2Fclaude-mini-hud">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zander-zyx/claude-mini-hud&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zander-zyx/claude-mini-hud&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zander-zyx/claude-mini-hud&type=date&legend=top-left" />
+ </picture>
+</a>
 
 ---
 
