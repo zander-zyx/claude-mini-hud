@@ -528,12 +528,13 @@ export function renderUsageLine(usage: UsageData | null): string | null {
       parts.push(seg);
     }
 
-    // MCP 工具用量 — 简短格式: mcp 已用/总数
+    // MCP 工具用量 — 简短格式: mcp 已用/总数 (数值按阈值着色)
     if (z.mcpPercent !== undefined) {
+      const color = z.mcpPercent >= 80 ? c.red : z.mcpPercent >= 60 ? c.yellow : c.green;
       const detail = (z.mcpUsed !== undefined && z.mcpTotal !== undefined)
-        ? `mcp:${z.mcpUsed}/${z.mcpTotal}`
-        : `mcp:${z.mcpPercent}%`;
-      parts.push(c.dim(detail));
+        ? `mcp:${color(`${z.mcpUsed}/${z.mcpTotal}`)}`
+        : `mcp:${color(`${z.mcpPercent}%`)}`;
+      parts.push(detail);
     }
 
     if (parts.length === 0) return null;
