@@ -71,13 +71,13 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 | Platform | Detection | Display Format |
 |----------|-----------|----------------|
 | **Claude Native** | `rate_limits` has data | `5h:45% (1h30m) 7d:12%` |
-| **MiniMax** | URL contains `minimaxi.com` | `5h:55% 7d:74% m:50% (26d)` |
-| **Zhipu (GLM)** | URL contains `bigmodel.cn` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
+| **MiniMax** | URL contains `minimaxi.com` / `minimax.io` | `5h:55% 7d:74% m:50% (26d)` |
+| **Zhipu (GLM)** | URL contains `bigmodel.cn` / `z.ai` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
 | **Xiaomi (MiMo)** | URL contains `xiaomimimo` | `50M/100M m:45% (26d)` |
 | **Alibaba (DashScope)** | URL contains `dashscope` | Platform detection only (no public usage API) |
 | **Volcengine (Ark)** | URL contains `volces.com` | Platform detection only (no public usage API) |
 | **DeepSeek** | URL contains `deepseek.com` | `¥123.45` (account balance) |
-| **Kimi** | URL contains `moonshot.cn` | `¥42.50 (granted ¥10.00)` |
+| **Kimi** | URL contains `moonshot.cn` / `moonshot.ai` | `¥42.50 (granted ¥10.00)` |
 
 #### Usage Display Format Reference
 

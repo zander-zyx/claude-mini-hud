@@ -72,13 +72,13 @@ $ Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
 | 平台 | 检测条件 | 显示格式 |
 |------|---------|---------|
 | **Claude 原生** | `rate_limits` 有数据 | `5h:45% (1h30m) 7d:12%` |
-| **MiniMax** | URL 含 `minimaxi.com` | `5h:55% 7d:74% m:50% (26d)` |
-| **智谱 (GLM)** | URL 含 `bigmodel.cn` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
+| **MiniMax** | URL 含 `minimaxi.com` / `minimax.io` | `5h:55% 7d:74% m:50% (26d)` |
+| **智谱 (GLM)** | URL 含 `bigmodel.cn` / `z.ai` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
 | **小米 (MiMo)** | URL 含 `xiaomimimo` | `50M/100M m:45% (26d)` |
 | **阿里 (DashScope)** | URL 含 `dashscope` | 平台识别 (暂无公开用量 API) |
 | **火山引擎 (Ark)** | URL 含 `volces.com` | 平台识别 (暂无公开用量 API) |
 | **DeepSeek** | URL 含 `deepseek.com` | `¥123.45` (账户余额) |
-| **Kimi** | URL 含 `moonshot.cn` | `¥42.50 (赠送 ¥10.00)` |
+| **Kimi** | URL 含 `moonshot.cn` / `moonshot.ai` | `¥42.50 (赠送 ¥10.00)` |
 
 #### 用量显示格式说明
 

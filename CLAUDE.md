@@ -39,13 +39,13 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 | Platform | Detection | Query Method |
 |----------|-----------|--------------|
 | Claude native | `rate_limits` in stdin | stdin (no HTTP) |
-| MiniMax | URL contains `minimaxi.com` | HTTP API |
-| 智谱 (GLM) | URL contains `bigmodel.cn` | HTTP API |
+| MiniMax | URL contains `minimaxi.com` / `minimax.io` | HTTP API |
+| 智谱 (GLM) | URL contains `bigmodel.cn` / `z.ai` | HTTP API |
 | 小米 (MiMo) | URL contains `xiaomimimo` | HTTP + Cookie |
 | 阿里 (DashScope) | URL contains `dashscope` | No public API |
 | 火山引擎 (Ark) | URL contains `volces.com` | No public API |
 | DeepSeek | URL contains `deepseek.com` | HTTP API |
-| Kimi | URL contains `moonshot.cn` | HTTP API |
+| Kimi | URL contains `moonshot.cn` / `moonshot.ai` | HTTP API |
 
 ## Key Design Constraints
 

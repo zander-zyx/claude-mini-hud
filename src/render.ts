@@ -11,7 +11,7 @@
 import type { StdinData, TranscriptData, TodoItem, ToolActivity, AgentActivity, TokenBreakdown } from './types.js';
 import type { UsageData } from './usage.js';
 import { c } from './colors.js';
-import { t, MINIMAL, lbl } from './i18n.js';
+import { t, MINIMAL, LANG, lbl } from './i18n.js';
 import { truncate } from './transcript.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -305,6 +305,8 @@ function detectProvider(stdin: StdinData): string | null {
       // "open.bigmodel.cn" → ["open","bigmodel","cn"] → "bigmodel"
       // "api.deepseek.com" → ["api","deepseek","com"] → "deepseek"
       const brand = parts.filter((p) => !generic.has(p));
+      // 特殊映射: api.z.ai → "Z.AI" (单字母品牌名 + ai 域名)
+      if (brand.length === 2 && brand[0] === 'z' && brand[1] === 'ai') return 'Z.AI';
       // 取最后两段中的第一段 (品牌名, 排除顶级域)
       return brand.length >= 2 ? brand[brand.length - 2] : (brand[0] ?? parts[0] ?? null);
     } catch {
@@ -563,7 +565,9 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     if (parts.length === 0) return null;
 
     const levelTag = z.level ? c.dim(` [${z.level}]`) : '';
-    const prefix = lbl('usage', '智谱', '[B]');
+    const baseUrl = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
+    const zhipuName = baseUrl.includes('z.ai') ? 'GLM' : (LANG === 'en' ? 'Zhipu' : '智谱');
+    const prefix = lbl('usage', zhipuName, '[B]');
     return `${prefix}${levelTag} ${parts.join(' ')}`;
   }
 

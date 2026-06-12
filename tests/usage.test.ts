@@ -49,6 +49,15 @@ test('detectPlatform: minimax (by base URL)', async () => {
   delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('detectPlatform: minimax 国际站 minimax.io', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.minimax.io/anthropic';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'minimax');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
 test('detectPlatform: null (unknown provider)', async () => {
   const { detectPlatform } = await import('../src/usage.js');
   process.env.ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
@@ -67,9 +76,27 @@ test('detectPlatform: kimi (by base URL)', async () => {
   delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('detectPlatform: kimi 国际站 moonshot.ai', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.moonshot.ai/v1/anthropic';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'kimi');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
 test('detectPlatform: zhipu (by base URL)', async () => {
   const { detectPlatform } = await import('../src/usage.js');
   process.env.ANTHROPIC_BASE_URL = 'https://open.bigmodel.cn/anthropic';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'zhipu');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: zhipu 国际站 z.ai', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.z.ai/api/paas/v4/anthropic';
   const stdin = { model: { display_name: 'test' }, context_window: {} };
   const result = detectPlatform(stdin);
   assert.equal(result, 'zhipu');

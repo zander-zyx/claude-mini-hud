@@ -95,10 +95,26 @@ export interface UsageData {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const HTTP_TIMEOUT_MS = 10_000;
 
-const MINIMAX_API = 'https://www.minimaxi.com/v1/api/openplatform/coding_plan/remains';
 const DEEPSEEK_API = 'https://api.deepseek.com/user/balance';
-const KIMI_API = 'https://api.moonshot.cn/v1/users/me/balance';
 const ZHIPU_QUOTA_ENDPOINT = '/monitor/usage/quota/limit';
+
+/** MiniMax 用量 API: 国内站 minimaxi.com, 国际站 minimax.io */
+function getMiniMaxApiUrl(): string {
+  const url = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
+  if (url.includes('minimax.io')) {
+    return 'https://api.minimax.io/v1/api/openplatform/coding_plan/remains';
+  }
+  return 'https://www.minimaxi.com/v1/api/openplatform/coding_plan/remains';
+}
+
+/** Kimi 余额 API: 国内站 moonshot.cn, 国际站 moonshot.ai */
+function getKimiApiUrl(): string {
+  const url = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
+  if (url.includes('moonshot.ai')) {
+    return 'https://api.moonshot.ai/v1/users/me/balance';
+  }
+  return 'https://api.moonshot.cn/v1/users/me/balance';
+}
 
 // ─── 平台检测 ─────────────────────────────────────────────────────────────
 
@@ -120,8 +136,8 @@ export function detectPlatform(stdin: StdinData): string | null {
   // 4) Kimi / Moonshot
   if (url.includes('moonshot.cn') || url.includes('moonshot.ai') || url.includes('kimi')) return 'kimi';
 
-  // 5) 智谱 / GLM
-  if (url.includes('bigmodel.cn') || url.includes('zhipu') || url.includes('glm')) return 'zhipu';
+  // 5) 智谱 / GLM / Z.AI (国际站)
+  if (url.includes('bigmodel.cn') || url.includes('zhipu') || url.includes('glm') || url.includes('z.ai')) return 'zhipu';
 
   // 6) 小米 / MiMo
   if (url.includes('xiaomimimo') || url.includes('xiaomi') || url.includes('mimo.xiaomi')) return 'xiaomi';
@@ -261,7 +277,7 @@ function httpGet(url: string, apiKey: string): Promise<string> {
 
 async function queryMiniMax(apiKey: string, stdin: StdinData): Promise<UsageData | null> {
   try {
-    const body = await httpGet(MINIMAX_API, apiKey);
+    const body = await httpGet(getMiniMaxApiUrl(), apiKey);
     const json = JSON.parse(body);
     const list = json.model_remains;
     if (!Array.isArray(list) || list.length === 0) return null;
@@ -316,7 +332,7 @@ async function queryDeepSeek(apiKey: string): Promise<UsageData | null> {
 
 async function queryKimi(apiKey: string): Promise<UsageData | null> {
   try {
-    const body = await httpGet(KIMI_API, apiKey);
+    const body = await httpGet(getKimiApiUrl(), apiKey);
     const json = JSON.parse(body);
     // Kimi 响应: { "data": { "available_balance": 42.50, "granted_balance": 10.00 } }
     const d = json.data ?? json;
