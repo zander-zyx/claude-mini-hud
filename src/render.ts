@@ -12,7 +12,7 @@ import type { StdinData, TranscriptData, TodoItem, ToolActivity, AgentActivity, 
 import type { UsageData } from './usage.js';
 import { c } from './colors.js';
 import { t, MINIMAL, LANG, lbl } from './i18n.js';
-import { THEME, THEME_NAME } from './themes.js';
+import { THEME, THEME_NAME, MARKS } from './themes.js';
 import { truncate } from './transcript.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -253,11 +253,11 @@ export function renderToolActivityLines(tdata: TranscriptData | null): string[] 
   const lines: string[] = [];
   const prefix = MINIMAL ? ' ' : '  ';  // 子行缩进
 
-  // 运行中的工具: 每个一行, ◐ 前缀
+  // 运行中的工具: 每个一行, 使用主题标记
   for (const act of running.slice(-3)) {
     const verb = t.toolVerb[act.tool] ?? act.tool;
     const detail = act.label ? ` ${act.label}` : '';
-    lines.push(`${prefix}${c.yellow('◐')} ${verb}${c.dim(detail)}`);
+    lines.push(`${prefix}${c.yellow(MARKS.runningMark)} ${verb}${c.dim(detail)}`);
   }
 
   // 已完成的工具: 按名称聚合, 一行展示计数
@@ -269,7 +269,7 @@ export function renderToolActivityLines(tdata: TranscriptData | null): string[] 
   if (sorted.length > 0) {
     const items = sorted.slice(0, 5).map(([name, count]) => {
       const verb = t.toolVerb[name] ?? name;
-      return `${c.green('✓')} ${verb} ${c.dim(`×${count}`)}`;
+      return `${c.green(MARKS.completedMark)} ${verb} ${c.dim(`×${count}`)}`;
     });
     lines.push(`${prefix}${items.join('  ')}`);
   }
@@ -294,7 +294,7 @@ export function renderAgentLines(tdata: TranscriptData | null): string[] {
     const desc = truncate(a.description || 'agent', 50);
     const typeTag = a.subagentType ? c.dim(`[${a.subagentType}] `) : '';
     const elapsed = a.startTime > 0 ? ` ${c.dim(formatElapsed(now - a.startTime))}` : '';
-    lines.push(`${prefix}${typeTag}${c.yellow('◐')} ${desc}${elapsed}`);
+    lines.push(`${prefix}${typeTag}${c.yellow(MARKS.runningMark)} ${desc}${elapsed}`);
   }
 
   if (lines.length === 0) return [];

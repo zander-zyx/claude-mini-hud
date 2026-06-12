@@ -37,6 +37,10 @@ export interface ThemeConfig {
   minimalIcon: string;
   /** 分隔符 (超简约主题用于分隔百分比和详情) */
   separator: string;
+  /** 运行中标记 (工具/Agent 行前缀) */
+  runningMark: string;
+  /** 已完成标记 (工具行前缀) */
+  completedMark: string;
 }
 
 // ─── 主题定义 ─────────────────────────────────────────────────────────────
@@ -55,6 +59,8 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
+    runningMark: '◐',
+    completedMark: '✓',
   },
 
   /**
@@ -64,12 +70,14 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
   neon: {
     filled: ['▓'],
     empty: '░',
-    leftBorder: '',    // 边框由 renderContextLine 自行控制
+    leftBorder: '',
     rightBorder: '',
     width: 20,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
+    runningMark: '◈',
+    completedMark: '✦',
   },
 
   /**
@@ -85,6 +93,8 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
+    runningMark: '⣷',
+    completedMark: '⣿',
   },
 
   /**
@@ -94,12 +104,14 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
   hardcore: {
     filled: ['■'],
     empty: '□',
-    leftBorder: '[',   // 进度条自带方括号边框
+    leftBorder: '[',
     rightBorder: ']',
     width: 20,
     isMinimal: false,
     minimalIcon: '',
     separator: ' │ ',
+    runningMark: '●',
+    completedMark: '■',
   },
 
   /**
@@ -115,6 +127,8 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     isMinimal: true,
     minimalIcon: '◈',
     separator: ' ┃ ',
+    runningMark: '·',
+    completedMark: '·',
   },
 
   /**
@@ -130,6 +144,8 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
+    runningMark: '▣',
+    completedMark: '■',
   },
 
   /**
@@ -145,6 +161,8 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
+    runningMark: '◈',
+    completedMark: '◆',
   },
 
   /**
@@ -160,6 +178,8 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
+    runningMark: '▸',
+    completedMark: '✓',
   },
 };
 
@@ -169,16 +189,30 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
 export const THEME_NAMES: ThemeName[] = ['default', 'neon', 'braille', 'hardcore', 'minimal', 'pixel', 'diamond', 'arrow'];
 
 /** 从环境变量解析主题名 (无效值回退到 default) */
-function resolveThemeName(): ThemeName {
-  const env = process.env.CLAUDE_MINI_HUD_THEME?.trim().toLowerCase();
+function resolveName(envKey: string): ThemeName {
+  const env = process.env[envKey]?.trim().toLowerCase();
   if (env && (THEME_NAMES as readonly string[]).includes(env)) {
     return env as ThemeName;
   }
   return 'default';
 }
 
-/** 当前生效的主题名 */
-export const THEME_NAME: ThemeName = resolveThemeName();
+// ─── 进度条主题 (CLAUDE_MINI_HUD_THEME) ────────────────────────────────────
 
-/** 当前生效的主题配置 */
+/** 当前生效的进度条主题名 */
+export const THEME_NAME: ThemeName = resolveName('CLAUDE_MINI_HUD_THEME');
+
+/** 当前生效的进度条主题配置 */
 export const THEME: ThemeConfig = THEMES[THEME_NAME];
+
+// ─── 标记图标主题 (CLAUDE_MINI_HUD_MARKS) ─────────────────────────────────
+//
+// 独立于进度条主题, 控制 Tools / Agent 行的运行中/已完成图标
+// 不设则跟随 CLAUDE_MINI_HUD_THEME, 都不设则默认经典 (◐ ✓)
+//
+
+/** 当前生效的标记主题名 */
+export const MARKS_NAME: ThemeName = resolveName('CLAUDE_MINI_HUD_MARKS');
+
+/** 当前生效的标记主题配置 (runningMark / completedMark) */
+export const MARKS: ThemeConfig = THEMES[MARKS_NAME];

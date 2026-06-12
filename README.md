@@ -314,7 +314,8 @@ TMPDIR=~/.cache/tmp claude
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji) |
-| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | 进度条主题 (见下方主题预览) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | 进度条风格 (见下方主题预览) |
+| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
 
@@ -332,16 +333,18 @@ TMPDIR=~/.cache/tmp claude
 
 #### 进度条主题预览 (72% 时)
 
-| 主题 | 环境变量值 | 效果 |
-|------|-----------|------|
-| 经典 | `default` | `# Context ██████████████░░░░░░ 72%` |
-| 霓虹矩阵 | `neon` | `⟦ CTX: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░ 72% ⟧` |
-| Braille 点阵 | `braille` | `# Context ⣿⣷⣯⣟⡿⣯⣟⣿⣷⣯⣟⡿⣯⣟░░░░░░ 72%` |
-| 硬核 | `hardcore` | `[■■■■■■■■■■■■■■□□□□□□] 72% CTX │` |
-| 超简约 | `minimal` | `◈ 72% ┃ 125k / 200k  left 75k` |
-| 像素 | `pixel` | `# Context ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣀⣀⣀⣀⣀⣀ 72%` |
-| 钻石 | `diamond` | `# Context ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◇◇◇◇◇◇ 72%` |
-| 箭头 | `arrow` | `# Context ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▹▹▹▹▹▹ 72%` |
+| 主题 | 环境变量值 | 进度条效果 | 工具标记 |
+|------|-----------|-----------|---------|
+| 经典 | `default` | `# Context ██████████████░░░░░░ 72%` | `◐ 运行中` `✓ 已完成` |
+| 霓虹矩阵 | `neon` | `⟦ CTX: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░ 72% ⟧` | `◈ 运行中` `✦ 已完成` |
+| Braille 点阵 | `braille` | `# Context ⣿⣷⣯⣟⡿⣯⣟⣿⣷⣯⣟⡿⣯⣟░░░░░░ 72%` | `⣷ 运行中` `⣿ 已完成` |
+| 硬核 | `hardcore` | `[■■■■■■■■■■■■■■□□□□□□] 72% CTX │` | `● 运行中` `■ 已完成` |
+| 超简约 | `minimal` | `◈ 72% ┃ 125k / 200k  left 75k` | `· 运行中` `· 已完成` |
+| 像素 | `pixel` | `# Context ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣀⣀⣀⣀⣀⣀ 72%` | `▣ 运行中` `■ 已完成` |
+| 钻石 | `diamond` | `# Context ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◇◇◇◇◇◇ 72%` | `◈ 运行中` `◆ 已完成` |
+| 箭头 | `arrow` | `# Context ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▹▹▹▹▹▹ 72%` | `▸ 运行中` `✓ 已完成` |
+
+> 💡 **自由组合**: `CLAUDE_MINI_HUD_THEME` 控制进度条, `CLAUDE_MINI_HUD_MARKS` 控制工具/Agent 标记, 两者独立可混搭。例如 `THEME=hardcore MARKS=diamond`。
 
 > 💡 **为什么用 env 而非配置文件?**
 > 零依赖哲学的延伸 — 不创建任何配置文件,不污染用户项目目录,跟 Claude Code 自身的 env 配置 (`ANTHROPIC_BASE_URL` 等)风格一致。

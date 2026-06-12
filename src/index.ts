@@ -42,7 +42,9 @@ const TOKEN_MODE = (['session', 'context', 'both'] as const)
   : 'session';
 
 // 进度条主题: default(默认) | neon | braille | hardcore | minimal | pixel | diamond | arrow
-// (由 themes.ts 模块自行解析 CLAUDE_MINI_HUD_THEME 环境变量)
+// 标记图标:   default(默认) | neon | braille | hardcore | minimal | pixel | diamond | arrow
+// (由 themes.ts 模块自行解析 CLAUDE_MINI_HUD_THEME / CLAUDE_MINI_HUD_MARKS 环境变量)
+// 两者独立, 可自由组合 (如 THEME=hardcore + MARKS=diamond)
 
 // 预计算速度缓存目录
 const SPEED_CACHE_DIR = join(homedir(), '.claude-mini-hud');

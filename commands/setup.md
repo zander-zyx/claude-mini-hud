@@ -52,6 +52,57 @@ $ Token 23k (in 22k · out 342 · cache 768)
  当前任务 调研充电行业政策  (2/5)
 ```
 
+## Step 1.5: 选择主题风格 (可选)
+
+**调用 AskUserQuestion 弹出主题选择菜单**:
+
+```
+Use AskUserQuestion:
+  header: "Theme"
+  question: "选择进度条风格 / Select progress bar theme"
+  options:
+    - label: "经典 Classic (默认)"
+      description: "███░░░░░░░░  经典实心方块"
+    - label: "霓虹 Neon"
+      description: "⟦ CTX: ▓▓▓▓░░░░ ⟧  霓虹矩阵风"
+    - label: "点阵 Braille"
+      description: "⣿⣷⣯⣟░░░░  Braille 点阵"
+    - label: "硬核 Hardcore"
+      description: "[■■■□□□□□] CTX │  硬核风"
+```
+
+**再调用 AskUserQuestion 弹出标记选择菜单**:
+
+```
+Use AskUserQuestion:
+  header: "Marks"
+  question: "选择工具标记风格 / Select tool indicator marks"
+  options:
+    - label: "经典 Classic (默认)"
+      description: "◐ 运行中  ✓ 已完成"
+    - label: "硬核 Hardcore"
+      description: "● 运行中  ■ 已完成"
+    - label: "钻石 Diamond"
+      description: "◈ 运行中  ◆ 已完成"
+    - label: "箭头 Arrow"
+      description: "▸ 运行中  ✓ 已完成"
+```
+
+把选择存到 `{THEME}` 和 `{MARKS}` 变量 (默认都是 `default`)。
+
+**主题风格预览**:
+
+| 主题 | THEME 值 | 进度条 | MARKS 值 | 运行/完成 |
+|------|---------|--------|---------|----------|
+| 经典 | `default` | `██████░░░░` | `default` | `◐ ✓` |
+| 霓虹 | `neon` | `⟦▓▓▓▓░░⟧` | `neon` | `◈ ✦` |
+| 点阵 | `braille` | `⣿⣷⣯░░` | `braille` | `⣷ ⣿` |
+| 硬核 | `hardcore` | `[■■□□] CTX │` | `hardcore` | `● ■` |
+| 简约 | `minimal` | `◈ % ┃` | `minimal` | `· ·` |
+| 像素 | `pixel` | `⣿⣿⣀⣀` | `pixel` | `▣ ■` |
+| 钻石 | `diamond` | `◆◆◇◇` | `diamond` | `◈ ◆` |
+| 箭头 | `arrow` | `▸▸▹▹` | `arrow` | `▸ ✓` |
+
 ## Step 2: 检测环境
 
 **macOS/Linux**:
@@ -136,8 +187,13 @@ if [ -n "$EXISTING" ]; then
   jq '.statusLine' "$CLAUDE_DIR/settings.json" > "$CLAUDE_DIR/statusLine.bak.$TS.json"
 fi
 
-# 3) 写入新配置 (包含语言环境变量)
-jq --arg cmd "CLAUDE_MINI_HUD_LANG=$LANG node '$RUNTIME_PATH'" \
+# 3) 拼接环境变量
+ENV_VARS="CLAUDE_MINI_HUD_LANG=$LANG"
+if [ "$THEME" != "default" ]; then ENV_VARS="$ENV_VARS CLAUDE_MINI_HUD_THEME=$THEME"; fi
+if [ "$MARKS" != "default" ]; then ENV_VARS="$ENV_VARS CLAUDE_MINI_HUD_MARKS=$MARKS"; fi
+
+# 4) 写入新配置
+jq --arg cmd "$ENV_VARS node '$RUNTIME_PATH'" \
    '.statusLine = {"type": "command", "command": $cmd}' \
    "$CLAUDE_DIR/settings.json" > "$CLAUDE_DIR/settings.json.tmp"
 mv "$CLAUDE_DIR/settings.json.tmp" "$CLAUDE_DIR/settings.json"
@@ -156,9 +212,14 @@ if ($settings.statusLine) {
   $settings.statusLine | ConvertTo-Json -Depth 10 | Set-Content $backupPath
 }
 
+# 拼接环境变量
+$envVars = "CLAUDE_MINI_HUD_LANG=$lang"
+if ($theme -ne "default") { $envVars += " CLAUDE_MINI_HUD_THEME=$theme" }
+if ($marks -ne "default") { $envVars += " CLAUDE_MINI_HUD_MARKS=$marks" }
+
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "CLAUDE_MINI_HUD_LANG=$lang node '$runtimePath'"
+  command = "$envVars node '$runtimePath'"
 } -Force
 $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath
 ```
@@ -182,11 +243,11 @@ $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath
 
 (不支持 emoji 的终端会显示 # $ > 等 ASCII 符号)
 
-可选: 想显示模型行? 把 statusLine.command 改成:
-  CLAUDE_MINI_HUD_SHOW_MODEL=1 node {RUNTIME_PATH}
-
-强制关闭 emoji:
-  CLAUDE_MINI_HUD_NO_EMOJI=1 CLAUDE_MINI_HUD_LANG=zh node {RUNTIME_PATH}
+可选配置:
+  显示模型行:   CLAUDE_MINI_HUD_SHOW_MODEL=1
+  强制关闭 emoji: CLAUDE_MINI_HUD_NO_EMOJI=1
+  切换进度条:   CLAUDE_MINI_HUD_THEME=neon|braille|hardcore|pixel|diamond|arrow
+  切换标记:     CLAUDE_MINI_HUD_MARKS=hardcore|diamond|arrow|...
 
 如果只看到 1 行 "claude-mini-hud — 渲染失败":
   - 检查 ~/.claude/settings.json 里的 statusLine.command 路径
@@ -211,11 +272,11 @@ Next steps:
 
 (Terminals without emoji support will show # $ > ASCII symbols instead)
 
-Optional: Want the model line too? Change statusLine.command to:
-  CLAUDE_MINI_HUD_SHOW_MODEL=1 node {RUNTIME_PATH}
-
-Force disable emoji:
-  CLAUDE_MINI_HUD_NO_EMOJI=1 CLAUDE_MINI_HUD_LANG=en node {RUNTIME_PATH}
+Optional settings:
+  Show model:     CLAUDE_MINI_HUD_SHOW_MODEL=1
+  Disable emoji:  CLAUDE_MINI_HUD_NO_EMOJI=1
+  Change bar:     CLAUDE_MINI_HUD_THEME=neon|braille|hardcore|pixel|diamond|arrow
+  Change marks:   CLAUDE_MINI_HUD_MARKS=hardcore|diamond|arrow|...
 
 If you only see "claude-mini-hud — render failed":
   - Check the statusLine.command path in ~/.claude/settings.json
@@ -223,6 +284,17 @@ If you only see "claude-mini-hud — render failed":
   - Should output "🪙 Token 10B" and 1-2 more lines
 
 Uninstall: Set the statusLine field in settings.json to null
+```
+
+### 简约 (LANG=minimal)
+
+```
+✅ claude-mini-hud 配置完成! (minimal 模式)
+
+ Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+ Token 23k (in 22k · out 342 · cache 768)
+
+可选: THEME=neon MARKS=hardcore 等, 同上
 ```
 
 ## 卸载 / Uninstall

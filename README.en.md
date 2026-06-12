@@ -311,7 +311,8 @@ The statusline automatically refreshes at these moments:
 | Variable | Default | Options | Description |
 |----------|---------|---------|-------------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` | UI language (minimal = English-Chinese hybrid + no emoji) |
-| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | Progress bar theme |
+| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | Progress bar style |
+| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | Tool/Agent indicator icons (independent from THEME, mix freely) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (unset) | `1` | When set to `1`, shows the model line |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token line mode: session=cumulative / context=snapshot / both=two lines |
 
