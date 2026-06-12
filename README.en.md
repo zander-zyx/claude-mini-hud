@@ -19,26 +19,26 @@
 
 **Chinese (zh, default)** — full Chinese + emoji:
 ```
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
-> 当前任务 正在写 skill  (1/4)
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-> 模型 deepseek-v4-pro  [deepseek]
+🧠 模型 deepseek-v4-pro  [deepseek]
 ```
 
 **English (en)**:
 ```
-# Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-$ Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
-> Todos Writing skill  (1/4)
+📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+🪙 Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
+▶ Todos Writing skill  (1/4)
   ◐ reading index.ts
   ◐ writing utils.ts
   ✓ searching ×3  ✓ running ×1
   [Explore] ◐ Searching code 2m 15s
-> Model deepseek-v4-pro  [deepseek]
+🧠 Model deepseek-v4-pro  [deepseek]
 ```
 
 **Minimal (minimal)** — English-Chinese hybrid + no emoji:
@@ -159,8 +159,8 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 **Expected output** (with ANSI colors):
 
 ```
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
-$ Token 23.1k (in 22.0k · out 342 · cache 768 )
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
+🪙 Token 23.1k (入 22.0k · 出 342 · 缓存 768 )
 ```
 
 See those two lines? Everything works. Next step: [Install into Claude Code](#installation).
@@ -276,21 +276,21 @@ This is a [Claude Code platform limitation](https://github.com/anthropics/claude
 
 **All features enabled** (Chinese + model + tool activity + agent tracking):
 ```
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
-> 当前任务 正在写 skill  (1/4)
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-> 模型 deepseek-v4-pro  [deepseek]
+🧠 模型 deepseek-v4-pro  [deepseek]
 ```
 
-**Compact mode** (tool activity and agent lines are automatically hidden when not present):
+**No tools/agents** (those lines auto-hide, only 3 lines):
 ```
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
-> 当前任务 调研充电行业政策  (2/5)
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
+▶ 当前任务 调研充电行业政策  (2/5)
 ```
 
 ### When It Updates
@@ -472,7 +472,7 @@ ls -la ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
 
 # 2. Test manually, check if stdout has content
 echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
-# Should output: # 上下文 ... $ Token ...
+# Should output: 📊 上下文 ... 🪙 Token ...
 
 # 3. If manual run works but Claude Code doesn't show it, check settings.json
 cat ~/.claude/settings.json | grep -A2 statusLine
@@ -596,7 +596,7 @@ npm run build      # tsc compile src/ → dist/
 
 ```bash
 npm install
-npm test            # build + typecheck + run 32 tests (using tsx to run ts tests directly)
+npm test            # build + typecheck + run 35 tests (using tsx to run ts tests directly)
 npm run test:stdin  # manually test a single stdin input
 npm run typecheck   # type-check only, no emit
 ```
@@ -609,7 +609,7 @@ npm run dev   # tsc --watch, auto-recompile
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### Test Coverage (32 test cases)
+### Test Coverage (35 test cases)
 
 | # | Case | Verification |
 |---|------|-------------|
@@ -626,8 +626,8 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` defaults to Chinese | Chinese label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` shows English | no Chinese markers |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` no emoji + hybrid | hybrid output verification |
-| 14–22 | Multi-platform detection (claude/deepseek/minimax/null/kimi/zhipu/xiaomi/alibaba/volcengine) | URL matching |
-| 23–32 | Cache read/write + E2E + MiniMax model matching | see `tests/usage.test.ts` |
+| 14–25 | Multi-platform detection (claude/deepseek/minimax/minimax.io/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL matching (incl. international) |
+| 26–35 | Cache read/write + E2E + MiniMax model matching | see `tests/usage.test.ts` |
 
 ### Project Structure
 

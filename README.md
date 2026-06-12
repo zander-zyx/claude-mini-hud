@@ -20,26 +20,28 @@
 
 **中文 (zh, 默认)** — 完整中文 + emoji:
 ```
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
-> 当前任务 正在写 skill  (1/4)
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-> 模型 deepseek-v4-pro  [deepseek]
+🧠 模型 deepseek-v4-pro  [deepseek]
 ```
+
+*不支持 emoji 的终端会降级为 ASCII 符号 (`# $ >`)*:
 
 **English (en)**:
 ```
-# Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-$ Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
-> Todos Writing skill  (1/4)
+📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+🪙 Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
+▶ Todos Writing skill  (1/4)
   ◐ reading index.ts
   ◐ writing utils.ts
   ✓ searching ×3  ✓ running ×1
   [Explore] ◐ Searching code 2m 15s
-> Model deepseek-v4-pro  [deepseek]
+🧠 Model deepseek-v4-pro  [deepseek]
 ```
 
 **Minimal (minimal)** — 英中混搭 + 无 emoji:
@@ -160,8 +162,8 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 **预期输出** (含 ANSI 颜色):
 
 ```
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
-$ Token 23.1k (in 22.0k · out 342 · cache 768 )
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
+🪙 Token 23.1k (入 22.0k · 出 342 · 缓存 768 )
 ```
 
 看到这两行?说明一切正常。下一步:[安装到 Claude Code](#安装)。
@@ -277,21 +279,21 @@ TMPDIR=~/.cache/tmp claude
 
 **全部启用** (中文 + 模型 + 工具活动 + Agent 追踪):
 ```
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
-> 当前任务 正在写 skill  (1/4)
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-> 模型 deepseek-v4-pro  [deepseek]
+🧠 模型 deepseek-v4-pro  [deepseek]
 ```
 
-**简洁模式** (没有工具活动和 Agent 时, 自动隐藏对应行):
+**无工具/Agent 时** (自动隐藏对应行, 仅 3 行):
 ```
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
-> 当前任务 调研充电行业政策  (2/5)
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
+▶ 当前任务 调研充电行业政策  (2/5)
 ```
 
 ### 显示时机
@@ -473,7 +475,7 @@ ls -la ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
 
 # 2. 手动测试,看 stdout 有没有内容
 echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
-# 应该输出: # 上下文 ... $ Token ...
+# 应该输出: 📊 上下文 ... 🪙 Token ...
 
 # 3. 如果手动跑 OK 但 Claude Code 里没显示,检查 settings.json
 cat ~/.claude/settings.json | grep -A2 statusLine
@@ -597,7 +599,7 @@ npm run build      # tsc 编译 src/ → dist/
 
 ```bash
 npm install
-npm test            # build + typecheck + 跑 32 个测试 (用 tsx 直接跑 ts 测试)
+npm test            # build + typecheck + 跑 35 个测试 (用 tsx 直接跑 ts 测试)
 npm run test:stdin  # 手测单个 stdin 输入
 npm run typecheck   # 只做类型检查, 不 emit
 ```
@@ -610,7 +612,7 @@ npm run dev   # tsc --watch, 自动重新编译
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### 测试覆盖 (32 个用例)
+### 测试覆盖 (35 个用例)
 
 | # | 用例 | 验证 |
 |---|------|------|
@@ -627,8 +629,8 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` 默认中文 | 中文 label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` 显示英文 | 无中文 marker |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` 无 emoji + 英中混搭 | 混合输出验证 |
-| 14–22 | 多平台检测 (claude/deepseek/minimax/null/kimi/zhipu/xiaomi/alibaba/volcengine) | URL 匹配 |
-| 23–32 | 缓存读写 + 端到端 + MiniMax 模型匹配 | 见 `tests/usage.test.ts` |
+| 14–25 | 多平台检测 (claude/deepseek/minimax/minimax.io/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL 匹配 (含国际站) |
+| 26–35 | 缓存读写 + 端到端 + MiniMax 模型匹配 | 见 `tests/usage.test.ts` |
 
 ### 项目结构
 
