@@ -20,8 +20,8 @@
 
 **中文 (zh, 默认)** — 完整中文 + emoji:
 ```
-📊 上下文 ██████░░░░░░░░░░░░░░ 32%  65k / 200k  剩余 135k
-🪙 Token 68k (入 50k · 出 3k · 缓存 15k ) 12 tok/s
+📊 上下文 ██████████░░░░░░░░░░ 52%  104k / 200k  剩余 96k
+🪙 Token 118k (入 89k · 出 4k · 缓存 25k ) 12 tok/s
 💳 智谱 [pro] 5h:21% (1h54m) 7d:26% (5d7h) mcp:20/1000
 ▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
@@ -35,8 +35,8 @@
 
 **English (en)**:
 ```
-📊 Context ██████░░░░░░░░░░░░░░ 32%  65k / 200k  left 135k
-🪙 Token 68k (in 50k · out 3k · cache 15k ) 12 tok/s
+📊 Context ██████████░░░░░░░░░░ 52%  104k / 200k  left 96k
+🪙 Token 118k (in 89k · out 4k · cache 25k ) 12 tok/s
 💳 Zhipu [pro] 5h:21% (1h54m) 7d:26% (5d7h) mcp:20/1000
 ▶ Todos Writing skill  (1/4)
   ◐ reading index.ts
@@ -48,8 +48,8 @@
 
 **Minimal (minimal)** — 英中混搭 + 无 emoji:
 ```
- Context ██████░░░░░░░░░░░░░░ 32%  65k / 200k  剩余 135k
- Token 68k (in 50k · out 3k · cache 15k ) 12 tok/s
+ Context ██████████░░░░░░░░░░ 52%  104k / 200k  剩余 96k
+ Token 118k (in 89k · out 4k · cache 25k ) 12 tok/s
  [B] 智谱 [pro] 5h:21% (1h54m) 7d:26% (5d7h) mcp:20/1000
  当前任务 ▸ 正在写 skill  (1/4)
   ◐ reading index.ts
