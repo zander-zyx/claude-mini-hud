@@ -166,16 +166,8 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
 /** 构建余额标签: 仅非套餐平台 (余额型) 在 Context 行显示 */
 function buildBalanceTag(usage: UsageData | null): string | null {
   if (!usage) return null;
-  // 智谱 / 小米 / 阿里 / 火山引擎 → 不在这里显示 (有独立行)
-  if (usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine) return null;
-  // DeepSeek → 余额
-  if (usage.deepSeek) {
-    return c.cyan(`¥${usage.deepSeek.totalBalance.toFixed(2)}`);
-  }
-  // Kimi → 余额
-  if (usage.kimi) {
-    return c.cyan(`¥${usage.kimi.totalBalance.toFixed(2)}`);
-  }
+  // 所有有独立 Usage 行的平台都不在 Context 行显示余额 (避免重复)
+  if (usage.deepSeek || usage.kimi || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine) return null;
   return null;
 }
 
