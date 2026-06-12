@@ -224,7 +224,7 @@ export function renderToolActivityLines(tdata: TranscriptData | null): string[] 
   // 没有内容时返回空, 有内容时在首行前加标签
   if (lines.length === 0) return [];
   const label = lbl('tools', t.tools, '[*]');
-  lines[0] = `${label}${lines[0].slice(prefix.length)}`;
+  lines[0] = `${label} ${lines[0].slice(prefix.length)}`;
   return lines;
 }
 
@@ -246,7 +246,7 @@ export function renderAgentLines(tdata: TranscriptData | null): string[] {
 
   if (lines.length === 0) return [];
   const label = lbl('agent', t.agent, '&');
-  lines[0] = `${label}${lines[0].slice(prefix.length)}`;
+  lines[0] = `${label} ${lines[0].slice(prefix.length)}`;
   return lines;
 }
 
