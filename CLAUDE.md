@@ -28,7 +28,7 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 4. **colors.ts** — ANSI color helpers (zero-dependency)
 5. **render.ts** — All render functions (context, token, model, todo, usage)
 6. **transcript.ts** — Transcript JSONL parser
-7. **usage.ts** — Multi-platform usage/quota query (9 providers)
+7. **usage.ts** — Multi-platform usage/quota query (8 providers)
 
 **Plugin integration** via `.claude-plugin/plugin.json` (registers the setup command) and `commands/setup.md` (interactive setup skill).
 
@@ -46,11 +46,10 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 | 火山引擎 (Ark) | URL contains `volces.com` | No public API |
 | DeepSeek | URL contains `deepseek.com` | HTTP API |
 | Kimi | URL contains `moonshot.cn` | HTTP API |
-| New API | Fallback for non-Anthropic URLs | HTTP API |
 
 ## Key Design Constraints
 
 - **Zero runtime dependencies** — only Node.js built-ins
 - **Never crash Claude Code** — all errors caught, fallback message printed
 - **Compiled output is lightweight** — `dist/` contains multi-module JS files, must stay small
-- **Environment variables control behavior**: `CLAUDE_MINI_HUD_LANG` (zh/en/minimal), `CLAUDE_MINI_HUD_SHOW_MODEL` (1 to show model line)
+- **Environment variables control behavior**: `CLAUDE_MINI_HUD_LANG` (zh/en/minimal), `CLAUDE_MINI_HUD_SHOW_MODEL` (1 to show model line), `CLAUDE_MINI_HUD_TOKEN_MODE` (session/context/both)

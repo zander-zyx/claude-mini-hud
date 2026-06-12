@@ -147,6 +147,21 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
         }
       }
 
+      // --- tool_result: 在 user entry 里 (Claude Code 把工具结果写成 user 消息) ---
+      if (entry.type === 'user') {
+        const msg = (entry as unknown as TranscriptEntry).message;
+        const blocks = Array.isArray(msg?.content) ? msg!.content! : [];
+        for (const block of blocks) {
+          if (block.type === 'tool_result' && block.tool_use_id) {
+            agentResults.add(block.tool_use_id);
+            const tool = toolMap.get(block.tool_use_id);
+            if (tool) {
+              tool.status = (block as { is_error?: boolean }).is_error ? 'error' : 'completed';
+            }
+          }
+        }
+      }
+
       // --- assistant entry: 累加 usage + 解析 tool_use 块 ---
       if (entry.type === 'assistant') {
         // 累加 session token: output 是每轮增量需要累加, input 是累计上下文取最后一轮

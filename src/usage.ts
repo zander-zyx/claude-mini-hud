@@ -16,7 +16,6 @@
  *   - 小米          : MiMo Token Plan 固定额度
  *   - 阿里          : DashScope (暂无公开 API)
  *   - 火山引擎      : Ark (暂无公开 API)
- *   - New API      : 开源网关, /api/user/self (含 OpenAI / Claude / 自建代理)
  */
 
 import type { StdinData } from './types.js';
@@ -49,12 +48,6 @@ export interface ClaudeRateLimit {
   sevenDay: number | null;
   fiveHourResetAt?: number;     // unix 时间戳 (秒)
   sevenDayResetAt?: number;
-}
-
-export interface NewApiQuota {
-  quota: number;
-  usedQuota: number;
-  quotaDisplay?: string;
 }
 
 export interface KimiBalance {
@@ -91,7 +84,6 @@ export interface UsageData {
   kimi?: KimiBalance;
   zhipu?: ZhipuUsage;
   claude?: ClaudeRateLimit;
-  newApi?: NewApiQuota;
   xiaomi?: FixedQuotaUsage;
   alibaba?: FixedQuotaUsage;
   volcengine?: FixedQuotaUsage;
@@ -117,42 +109,28 @@ export function detectPlatform(stdin: StdinData): string | null {
     return 'claude';
   }
 
-  // 2) New API 特征: base URL 含特定路径 或 模型名含 "new-api"
   const url = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
-  const model = (
-    process.env.ANTHROPIC_MODEL ??
-    process.env.ANTHROPIC_DEFAULT_OPUS_MODEL ??
-    ''
-  ).toLowerCase();
 
-  if (url.includes('new-api') || model.includes('new-api')) return 'new-api';
-
-  // 3) MiniMax
+  // 2) MiniMax
   if (url.includes('minimaxi.com') || url.includes('minimax')) return 'minimax';
 
-  // 4) DeepSeek
+  // 3) DeepSeek
   if (url.includes('deepseek.com') || url.includes('deepseek')) return 'deepseek';
 
-  // 5) Kimi / Moonshot
+  // 4) Kimi / Moonshot
   if (url.includes('moonshot.cn') || url.includes('moonshot.ai') || url.includes('kimi')) return 'kimi';
 
-  // 6) 智谱 / GLM
+  // 5) 智谱 / GLM
   if (url.includes('bigmodel.cn') || url.includes('zhipu') || url.includes('glm')) return 'zhipu';
 
-  // 7) 小米 / MiMo
+  // 6) 小米 / MiMo
   if (url.includes('xiaomimimo') || url.includes('xiaomi') || url.includes('mimo.xiaomi')) return 'xiaomi';
 
-  // 8) 阿里 / DashScope / 百炼 / Qwen
+  // 7) 阿里 / DashScope / 百炼 / Qwen
   if (url.includes('dashscope') || url.includes('aliyun') || url.includes('qwen') || url.includes('bailian')) return 'alibaba';
 
-  // 9) 火山引擎 / Ark
+  // 8) 火山引擎 / Ark
   if (url.includes('volces.com') || url.includes('volcengine') || url.includes('ark.cn')) return 'volcengine';
-
-  // 10) 通用 New API 检测: base URL 非标准 Anthropic/OpenAI
-  if (url && !url.includes('anthropic.com') && !url.includes('openai.com')) {
-    // 尝试通过 /api/user/self 判断是否为 New API (在异步查询中验证)
-    return 'new-api';
-  }
 
   return null;
 }
@@ -328,37 +306,6 @@ async function queryDeepSeek(apiKey: string): Promise<UsageData | null> {
         totalBalance: parseFloat(info.total_balance ?? '0'),
         toppedUpBalance: parseFloat(info.topped_up_balance ?? '0'),
         grantedBalance: parseFloat(info.granted_balance ?? '0'),
-      },
-      updatedAt: Date.now(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function queryNewApi(apiKey: string): Promise<UsageData | null> {
-  try {
-    // 从 ANTHROPIC_BASE_URL 提取 New API 实例地址
-    const baseUrl = (process.env.ANTHROPIC_BASE_URL ?? '').replace(/\/anthropic\/?$/, '').replace(/\/$/, '');
-    if (!baseUrl) return null;
-
-    const apiUrl = `${baseUrl}/api/user/self`;
-    const body = await httpGet(apiUrl, apiKey);
-    const json = JSON.parse(body);
-
-    // New API 响应: { "success": true, "data": { "quota": 500000, "used_quota": 123456 } }
-    const data = json.data ?? json;
-    const quota = data.quota;
-    const usedQuota = data.used_quota ?? data.used ?? 0;
-
-    if (typeof quota !== 'number' || !Number.isFinite(quota)) return null;
-
-    return {
-      provider: 'new-api',
-      newApi: {
-        quota: Math.round(quota),
-        usedQuota: Math.round(usedQuota),
-        quotaDisplay: data.quota_display ?? undefined,
       },
       updatedAt: Date.now(),
     };
@@ -587,7 +534,7 @@ function getApiKeyForPlatform(platform: string): string | null {
         || authToken
         || null;
     default:
-      // minimax / new-api 都走代理模式, 统一用 ANTHROPIC_AUTH_TOKEN
+      // minimax 走代理模式, 统一用 ANTHROPIC_AUTH_TOKEN
       return authToken || null;
   }
 }
@@ -605,9 +552,6 @@ async function refreshCache(platform: string, apiKey: string, stdin: StdinData):
       break;
     case 'deepseek':
       data = await queryDeepSeek(apiKey);
-      break;
-    case 'new-api':
-      data = await queryNewApi(apiKey);
       break;
     case 'kimi':
       data = await queryKimi(apiKey);

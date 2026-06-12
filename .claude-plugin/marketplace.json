@@ -12,7 +12,7 @@
     {
       "name": "claude-mini-hud",
       "source": "./",
-      "description": "Minimal statusline showing context progress, token usage (in/out/cache), and current todo. 3 required lines + 1 optional model line. Zero dependencies, single TS file.",
+      "description": "Minimal statusline showing context progress, token usage (in/out/cache), and current todo. 3 required lines + 1 optional model line. Zero dependencies, multi-module TypeScript.",
       "category": "monitoring",
       "tags": [
         "hud",

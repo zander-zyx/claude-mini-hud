@@ -17,7 +17,7 @@ export const c = {
   blue:   (s: string) => `\x1b[34m${s}${RESET}`,
   magenta:(s: string) => `\x1b[35m${s}${RESET}`,
   cyan:   (s: string) => `\x1b[36m${s}${RESET}`,
-  gray:   (s: string) => `\x1b[37m${DIM}${s}${RESET}`,  // 亮白+dim → 暗黑/亮色模式都可见
+  gray:   (s: string) => `${DIM}${s}${RESET}`,  // 只用 dim, 作用于终端默认前景色 → 亮/暗主题都可读
   bold:   (s: string) => `${BOLD}${s}${RESET}`,
-  dim:    (s: string) => `\x1b[37m${DIM}${s}${RESET}`,   // 亮白+dim → 兼容暗黑模式
+  dim:    (s: string) => `${DIM}${s}${RESET}`,  // 不能加 \x1b[37m 白色: 白底终端上 白+dim 几乎不可见
 };

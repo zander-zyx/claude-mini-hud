@@ -22,8 +22,6 @@ export interface I18nStrings {
   agent: string;
   fallback: string;
   renderFailed: string;
-  usage: string;
-  used: string;
   toolVerb: Record<string, string>;
 }
 
@@ -41,8 +39,6 @@ const STRINGS: Record<Lang, I18nStrings> = {
     agent: 'Agent',
     fallback: '等待数据',
     renderFailed: '渲染失败',
-    usage: '用量',
-    used: '已用',
     toolVerb: {
       Read: '读',
       Write: '写',
@@ -71,8 +67,6 @@ const STRINGS: Record<Lang, I18nStrings> = {
     agent: 'Agent',
     fallback: 'waiting',
     renderFailed: 'render failed',
-    usage: 'Usage',
-    used: 'used',
     toolVerb: {
       Read: 'read',
       Write: 'write',
@@ -101,8 +95,6 @@ const STRINGS: Record<Lang, I18nStrings> = {
     agent: 'Agent',
     fallback: '—',
     renderFailed: 'err',
-    usage: 'Usage',
-    used: 'used',
     toolVerb: {
       Read: 'R',
       Write: 'W',

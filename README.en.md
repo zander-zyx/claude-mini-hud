@@ -19,32 +19,32 @@
 
 **Chinese (zh, default)** — full Chinese + emoji:
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k · ⚡ 45 tok/s)
-▶️  当前任务 ▸ 正在写 skill  (1/4)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+> 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-🤖 模型 deepseek-v4-pro  [deepseek]
+> 模型 deepseek-v4-pro  [deepseek]
 ```
 
 **English (en)**:
 ```
-📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-🪙 Token 4.8M (in 3.5M · out 1.2M · cache 103k · ⚡ 45 tok/s)
-▶️ Todos   ▸ Writing skill  (1/4)
+# Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+$ Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
+> Todos Writing skill  (1/4)
   ◐ reading index.ts
   ◐ writing utils.ts
   ✓ searching ×3  ✓ running ×1
   [Explore] ◐ Searching code 2m 15s
-🤖 Model deepseek-v4-pro  [deepseek]
+> Model deepseek-v4-pro  [deepseek]
 ```
 
 **Minimal (minimal)** — English-Chinese hybrid + no emoji:
 ```
  Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
- Token 4.8M (in 3.5M · out 1.2M · cache 103k · ⚡ 45 tok/s)
+ Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
  当前任务 ▸ 正在写 skill  (1/4)
   ◐ reading index.ts
   ◐ writing utils.ts
@@ -78,7 +78,6 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 | **Volcengine (Ark)** | URL contains `volces.com` | Platform detection only (no public usage API) |
 | **DeepSeek** | URL contains `deepseek.com` | `¥123.45` (account balance) |
 | **Kimi** | URL contains `moonshot.cn` | `¥42.50 (granted ¥10.00)` |
-| **New API** | Other non-Anthropic URLs | `500k (used 123k 25%)` |
 
 #### Usage Display Format Reference
 
@@ -160,8 +159,8 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 **Expected output** (with ANSI colors):
 
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
-🪙 Token 23.1k (in 22.0k · out 342 · cache 768)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
+$ Token 23.1k (in 22.0k · out 342 · cache 768 )
 ```
 
 See those two lines? Everything works. Next step: [Install into Claude Code](#installation).
@@ -277,21 +276,21 @@ This is a [Claude Code platform limitation](https://github.com/anthropics/claude
 
 **All features enabled** (Chinese + model + tool activity + agent tracking):
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k · ⚡ 45 tok/s)
-▶️  当前任务 ▸ 正在写 skill  (1/4)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+> 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-🤖 模型 deepseek-v4-pro  [deepseek]
+> 模型 deepseek-v4-pro  [deepseek]
 ```
 
 **Compact mode** (tool activity and agent lines are automatically hidden when not present):
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k)
-▶️  当前任务 ▸ 调研充电行业政策  (2/5)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
+> 当前任务 调研充电行业政策  (2/5)
 ```
 
 ### When It Updates
@@ -334,24 +333,24 @@ The statusline automatically refreshes at these moments:
 
 | Line | Content | Trigger | Render Function |
 |------|---------|---------|-----------------|
-| **📊 Context** | Progress bar + % + `used / total` + remaining | ✅ Always shown | `renderContextLine` |
-| **🪙 Token** | Cumulative in/out/cache + ⚡ speed | ✅ Always shown | `renderTokenLine` |
-| **💰 Usage/Balance** | Multi-platform usage % / balance | When usage data exists | `renderUsageLine` |
-| **▶️ Current Task** | In-progress todo + completion count | When todos exist | `renderTodoLine` |
-| **🔧 Tools** | ◐ running / ✓ completed ×N | When tool activity exists | `renderToolActivityLines` |
-| **🤖 Agent** | ◐ description + duration | When active agents exist | `renderAgentLines` |
-| **🤖 Model** | Model name + provider label | `SHOW_MODEL=1` | `renderModelLine` |
+| **# Context** | Progress bar + % + `used / total` + remaining | ✅ Always shown | `renderContextLine` |
+| **$ Token** | Cumulative in/out/cache + ⚡ speed | ✅ Always shown | `renderTokenLine` |
+| **[B] Usage/Balance** | Multi-platform usage % / balance | When usage data exists | `renderUsageLine` |
+| **> Current Task** | In-progress todo + completion count | When todos exist | `renderTodoLine` |
+| **[*] Tools** | ◐ running / ✓ completed ×N | When tool activity exists | `renderToolActivityLines` |
+| **& Agent** | ◐ description + duration | When active agents exist | `renderAgentLines` |
+| **> Model** | Model name + provider label | `SHOW_MODEL=1` | `renderModelLine` |
 
 #### Token Line Fields Explained
 
-`🪙 Token 4.8M (in 3.5M · out 1.2M · cache 103k)` — what each part means:
+`$ Token 4.8M (in 3.5M · out 1.2M · cache 103k )` — what each part means:
 
 | Field | Source | Purpose |
 |-------|--------|---------|
 | **in** | `total_input_tokens` (stdin) or transcript accumulation | Cumulative input tokens for this session |
 | **out** | `total_output_tokens` (stdin) or transcript accumulation | Cumulative output tokens for this session |
 | **cache** | `cache_creation_input_tokens` + `cache_read_input_tokens` | Prompt cache hits |
-| **⚡ tok/s** | Delta of `output_tokens` between two StatusLine refreshes | Real-time decoding speed |
+| **tok/s** | Delta of `output_tokens` between two StatusLine refreshes | Real-time decoding speed |
 
 > 📌 **Token source priority**:
 > 1. stdin `total_input_tokens` / `total_output_tokens` (session cumulative reported by Claude Code)
@@ -473,7 +472,7 @@ ls -la ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
 
 # 2. Test manually, check if stdout has content
 echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
-# Should output: 📊 上下文 ... 🪙 Token ...
+# Should output: # 上下文 ... $ Token ...
 
 # 3. If manual run works but Claude Code doesn't show it, check settings.json
 cat ~/.claude/settings.json | grep -A2 statusLine

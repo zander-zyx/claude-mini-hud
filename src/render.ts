@@ -363,15 +363,15 @@ function getContextTokens(stdin: StdinData): TokenBreakdown {
 }
 
 function formatTokenParts(b: TokenBreakdown, speed: number | null): string {
-  // 括号内: in · out · cache (cache 条件隐藏)
+  // 括号内: in · out · cache (cache 条件隐藏); 闭括号前留一格, 视觉上与开括号间距对称
   const parts = [
     `${c.gray(t.in)} ${formatTokenCount(b.input)}`,
     `${c.gray(t.out)} ${formatTokenCount(b.output)}`,
   ];
   if (b.cache > 0) parts.push(`${c.gray(t.cache)} ${formatTokenCount(b.cache)}`);
-  const inner = c.dim('(' + parts.join(' · ') + ')');
-  // speed 放括号外面, 条件隐藏
-  if (speed) return `${inner} ${speed}tok/s`;
+  const inner = c.dim('(' + parts.join(' · ') + ' )');
+  // speed 放括号外, 条件隐藏; >=1000 自动换 k/M 单位 (如 4.8k tok/s)
+  if (speed) return `${inner} ${formatTokenCount(speed)} tok/s`;
   return inner;
 }
 
@@ -393,12 +393,19 @@ function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
     let prev: { n: number; ts: number } | null = null;
     try { prev = JSON.parse(readFileSync(cacheFile, 'utf8')); } catch { /* first run */ }
 
-    mkdirSync(cacheDir, { recursive: true });
-    writeFileSync(cacheFile, JSON.stringify({ n: outputTokens, ts: now }));
+    const writeBaseline = () => {
+      mkdirSync(cacheDir, { recursive: true });
+      writeFileSync(cacheFile, JSON.stringify({ n: outputTokens, ts: now }));
+    };
 
-    if (!prev || outputTokens <= prev.n) return null;
+    // 无基线 / token 回退 (新会话) / 无新输出 / 基线过旧 → 重建基线
+    if (!prev || outputTokens <= prev.n) { writeBaseline(); return null; }
     const dt = (now - prev.ts) / 1000;
-    if (dt < 0.5 || dt > 300) return null;  // 放宽到 5 分钟 (StatusLine 刷新间隔通常 >5s)
+    if (dt > 300) { writeBaseline(); return null; }
+    // 间隔太短 (StatusLine 刷新可达 300ms): 保留旧基线, 等累计到足够窗口再算
+    if (dt < 0.5) return null;
+
+    writeBaseline();
     const speed = Math.round((outputTokens - prev.n) / dt);
     return speed > 0 ? speed : null;
   } catch {
@@ -509,14 +516,6 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     const d = usage.deepSeek;
     const total = d.totalBalance.toFixed(2);
     return `${c.gray('[B] DeepSeek')} ${c.cyan(c.bold(`¥${total}`))}${d.grantedBalance > 0 ? c.dim(` (赠送 ¥${d.grantedBalance.toFixed(2)})`) : ''}`;
-  }
-
-  if (usage.newApi) {
-    const q = usage.newApi;
-    const pct = q.quota > 0
-      ? ` ${Math.round((q.usedQuota / q.quota) * 100)}%`
-      : '';
-    return `${c.gray(`[B] ${t.usage}`)} ${c.bold(formatTokenCount(q.quota))}${c.dim(` (${t.used} ${formatTokenCount(q.usedQuota)}${pct})`)}`;
   }
 
   if (usage.kimi) {

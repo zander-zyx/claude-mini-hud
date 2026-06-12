@@ -17,9 +17,9 @@ Use AskUserQuestion:
   question: "请选择显示模式 / Select display mode"
   options:
     - label: "中文 (Chinese)"
-      description: "📊 上下文 + 🪙 Token + ▶️ 当前任务 全部中文 + emoji"
+      description: "# 上下文 + $ Token + ▶️ 当前任务 全部中文 + emoji"
     - label: "English"
-      description: "📊 Context + 🪙 Token + ▶️ Todos 全部英文 + emoji"
+      description: "# Context + $ Token + ▶️ Todos 全部英文 + emoji"
     - label: "English minimal"
       description: "英中混搭 + 无 emoji: Context/剩余/Token/当前任务"
 ```
@@ -32,18 +32,18 @@ Use AskUserQuestion:
 
 ```
 # 中文 (zh)
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 23k (in 22k · out 342 · cache 768)
-▶️  当前任务 ▸ 调研充电行业政策  (2/5)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+$ Token 23k (in 22k · out 342 · cache 768 )
+> 当前任务 调研充电行业政策  (2/5)
 
 # English (en)
-📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-🪙 Token 23k (in 22k · out 342 · cache 768)
-▶️ Todos   ▸ Research charging industry policy  (2/5)
+# Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+$ Token 23k (in 22k · out 342 · cache 768 )
+> Todos Research charging industry policy  (2/5)
 
 # English minimal (新!)
 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
- Token 23k (in 22k · out 342 · cache 768)
+ Token 23k (in 22k · out 342 · cache 768 )
 当前任务 ▸ 调研充电行业政策  (2/5)
 ```
 
@@ -171,9 +171,9 @@ $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath
 1. 重启 Claude Code (Ctrl+C 退出后重新打开)
 2. 输入框下方应显示 3 行 (默认无模型行):
 
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 23k (in 22k · out 342 · cache 768)
-▶️  当前任务 ▸ (进行中的 todo, 有则显示)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+$ Token 23k (in 22k · out 342 · cache 768 )
+> 当前任务 (进行中的 todo, 有则显示)
 
 可选: 想显示模型行? 把 statusLine.command 改成:
   CLAUDE_MINI_HUD_SHOW_MODEL=1 node {RUNTIME_PATH}
@@ -181,7 +181,7 @@ $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath
 如果只看到 1 行 "claude-mini-hud — 渲染失败":
   - 检查 ~/.claude/settings.json 里的 statusLine.command 路径
   - 跑: node {RUNTIME_PATH} <<< '{"model":{"display_name":"test"}}'
-  - 应该输出 "🪙 Token 10B" 等 2-3 行
+  - 应该输出 "$ Token 10B" 等 2-3 行
 
 卸载: 把 settings.json 的 statusLine 字段改为 null
 ```
@@ -195,9 +195,9 @@ Next steps:
 1. Restart Claude Code (Ctrl+C, then reopen)
 2. The statusline should show 3 lines below your input (model hidden by default):
 
-📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-🪙 Token 23k (in 22k · out 342 · cache 768)
-▶️ Todos   ▸ (in-progress todo, if any)
+# Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+$ Token 23k (in 22k · out 342 · cache 768 )
+> Todos (in-progress todo, if any)
 
 Optional: Want the model line too? Change statusLine.command to:
   CLAUDE_MINI_HUD_SHOW_MODEL=1 node {RUNTIME_PATH}
@@ -205,7 +205,7 @@ Optional: Want the model line too? Change statusLine.command to:
 If you only see "claude-mini-hud — 渲染失败":
   - Check the statusLine.command path in ~/.claude/settings.json
   - Run: node {RUNTIME_PATH} <<< '{"model":{"display_name":"test"}}'
-  - Should output "🪙 Token 10B" and 1-2 more lines
+  - Should output "$ Token 10B" and 1-2 more lines
 
 Uninstall: Set the statusLine field in settings.json to null
 ```

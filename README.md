@@ -20,32 +20,32 @@
 
 **中文 (zh, 默认)** — 完整中文 + emoji:
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k · ⚡ 45 tok/s)
-▶️  当前任务 ▸ 正在写 skill  (1/4)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+> 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-🤖 模型 deepseek-v4-pro  [deepseek]
+> 模型 deepseek-v4-pro  [deepseek]
 ```
 
 **English (en)**:
 ```
-📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-🪙 Token 4.8M (in 3.5M · out 1.2M · cache 103k · ⚡ 45 tok/s)
-▶️ Todos   ▸ Writing skill  (1/4)
+# Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+$ Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
+> Todos Writing skill  (1/4)
   ◐ reading index.ts
   ◐ writing utils.ts
   ✓ searching ×3  ✓ running ×1
   [Explore] ◐ Searching code 2m 15s
-🤖 Model deepseek-v4-pro  [deepseek]
+> Model deepseek-v4-pro  [deepseek]
 ```
 
 **Minimal (minimal)** — 英中混搭 + 无 emoji:
 ```
  Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
- Token 4.8M (in 3.5M · out 1.2M · cache 103k · ⚡ 45 tok/s)
+ Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
  当前任务 ▸ 正在写 skill  (1/4)
   ◐ reading index.ts
   ◐ writing utils.ts
@@ -79,7 +79,6 @@
 | **火山引擎 (Ark)** | URL 含 `volces.com` | 平台识别 (暂无公开用量 API) |
 | **DeepSeek** | URL 含 `deepseek.com` | `¥123.45` (账户余额) |
 | **Kimi** | URL 含 `moonshot.cn` | `¥42.50 (赠送 ¥10.00)` |
-| **New API** | 其他非 Anthropic URL | `500k (已用 123k 25%)` |
 
 #### 用量显示格式说明
 
@@ -161,8 +160,8 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 **预期输出** (含 ANSI 颜色):
 
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
-🪙 Token 23.1k (in 22.0k · out 342 · cache 768)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
+$ Token 23.1k (in 22.0k · out 342 · cache 768 )
 ```
 
 看到这两行?说明一切正常。下一步:[安装到 Claude Code](#安装)。
@@ -278,21 +277,21 @@ TMPDIR=~/.cache/tmp claude
 
 **全部启用** (中文 + 模型 + 工具活动 + Agent 追踪):
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k · ⚡ 45 tok/s)
-▶️  当前任务 ▸ 正在写 skill  (1/4)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+> 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-🤖 模型 deepseek-v4-pro  [deepseek]
+> 模型 deepseek-v4-pro  [deepseek]
 ```
 
 **简洁模式** (没有工具活动和 Agent 时, 自动隐藏对应行):
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k)
-▶️  当前任务 ▸ 调研充电行业政策  (2/5)
+# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
+> 当前任务 调研充电行业政策  (2/5)
 ```
 
 ### 显示时机
@@ -335,24 +334,24 @@ TMPDIR=~/.cache/tmp claude
 
 | 行 | 内容 | 触发条件 | 渲染函数 |
 |----|------|---------|---------|
-| **📊 上下文** | 进度条 + % + `used / total` + 剩余 | ✅ 必显 | `renderContextLine` |
-| **🪙 Token** | 累计 in/out/cache + ⚡速率 | ✅ 必显 | `renderTokenLine` |
-| **💰 用量/余额** | 多平台用量百分比 / 余额 | 有用量数据时 | `renderUsageLine` |
-| **▶️ 当前任务** | in-progress todo + 完成度 | 有 todo 时 | `renderTodoLine` |
-| **🔧 工具** | ◐ 运行中 / ✓ 已完成×N | 有工具活动时 | `renderToolActivityLines` |
-| **🤖 Agent** | ◐ 描述 + 耗时 | 有活跃 Agent 时 | `renderAgentLines` |
-| **🤖 模型** | 模型名 + provider 标签 | `SHOW_MODEL=1` | `renderModelLine` |
+| **# 上下文** | 进度条 + % + `used / total` + 剩余 | ✅ 必显 | `renderContextLine` |
+| **$ Token** | 累计 in/out/cache + ⚡速率 | ✅ 必显 | `renderTokenLine` |
+| **[B] 用量/余额** | 多平台用量百分比 / 余额 | 有用量数据时 | `renderUsageLine` |
+| **> 当前任务** | in-progress todo + 完成度 | 有 todo 时 | `renderTodoLine` |
+| **[*] 工具** | ◐ 运行中 / ✓ 已完成×N | 有工具活动时 | `renderToolActivityLines` |
+| **& Agent** | ◐ 描述 + 耗时 | 有活跃 Agent 时 | `renderAgentLines` |
+| **> 模型** | 模型名 + provider 标签 | `SHOW_MODEL=1` | `renderModelLine` |
 
 #### Token 行字段详解
 
-`🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k)` 各部分含义:
+`$ Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )` 各部分含义:
 
 | 字段 | 来源 | 用途 |
 |------|------|------|
 | **入 / in** | `total_input_tokens` (stdin) 或 transcript 累加 | 本次会话累计输入 token |
 | **出 / out** | `total_output_tokens` (stdin) 或 transcript 累加 | 本次会话累计输出 token |
 | **缓存 / cache** | `cache_creation_input_tokens` + `cache_read_input_tokens` | prompt cache 命中 |
-| **⚡ tok/s** | 两次 StatusLine 刷新的 `output_tokens` 差值 | 实时解码速度 |
+| **tok/s** | 两次 StatusLine 刷新的 `output_tokens` 差值 | 实时解码速度 |
 
 > 📌 **Token 来源优先级**:
 > 1. stdin `total_input_tokens` / `total_output_tokens` (Claude Code 上报的 session 累计)
@@ -474,7 +473,7 @@ ls -la ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
 
 # 2. 手动测试,看 stdout 有没有内容
 echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
-# 应该输出: 📊 上下文 ... 🪙 Token ...
+# 应该输出: # 上下文 ... $ Token ...
 
 # 3. 如果手动跑 OK 但 Claude Code 里没显示,检查 settings.json
 cat ~/.claude/settings.json | grep -A2 statusLine
