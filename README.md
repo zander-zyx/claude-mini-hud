@@ -20,8 +20,9 @@
 
 **中文 (zh, 默认)** — 完整中文 + emoji:
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+📊 上下文 ██████░░░░░░░░░░░░░░ 32%  65k / 200k  剩余 135k
+🪙 Token 68k (入 50k · 出 3k · 缓存 15k ) 12 tok/s
+💳 智谱 [pro] 5h:21% (1h54m) 7d:26% (5d7h) mcp:20/1000
 ▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
@@ -34,8 +35,9 @@
 
 **English (en)**:
 ```
-📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-🪙 Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
+📊 Context ██████░░░░░░░░░░░░░░ 32%  65k / 200k  left 135k
+🪙 Token 68k (in 50k · out 3k · cache 15k ) 12 tok/s
+💳 Zhipu [pro] 5h:21% (1h54m) 7d:26% (5d7h) mcp:20/1000
 ▶ Todos Writing skill  (1/4)
   ◐ reading index.ts
   ◐ writing utils.ts
@@ -46,8 +48,9 @@
 
 **Minimal (minimal)** — 英中混搭 + 无 emoji:
 ```
- Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
- Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
+ Context ██████░░░░░░░░░░░░░░ 32%  65k / 200k  剩余 135k
+ Token 68k (in 50k · out 3k · cache 15k ) 12 tok/s
+ [B] 智谱 [pro] 5h:21% (1h54m) 7d:26% (5d7h) mcp:20/1000
  当前任务 ▸ 正在写 skill  (1/4)
   ◐ reading index.ts
   ◐ writing utils.ts
