@@ -160,16 +160,20 @@ async function main(): Promise<void> {
   // ─── Context 百分比防闪烁 ───
   // 当前 stdin 的 context 数据可能退化 (全零/缺失), 用缓存的上次有效百分比兜底
   // 关键: 只在**同一会话**内兜底 (通过 transcript_path 匹配), 避免新会话残留旧值
+  // 新会话 /clear → transcript_path 变化 → 缓存不命中 → 自然归零
   const tp = stdin.transcript_path;
   const pct = getContextPercent(stdin);
   if (pct > 0) {
+    // 有有效百分比: 写缓存 (覆盖旧值)
     writeCtxPctCache(pct, tp);
   } else {
+    // pct=0: stdin 数据退化, 尝试用缓存兜底 (不写缓存, 避免用 0 覆盖有效值)
     const cachedPct = readCtxPctCache(tp);
     if (cachedPct > 0) {
       if (!stdin.context_window) stdin.context_window = {};
       stdin.context_window.used_percentage = cachedPct;
     }
+    // 缓存也没有 → pct=0 是真实的 (新会话/clear), 不做处理
   }
 
   // 先读 transcript (一次 I/O, 供 todos / 工具 / Agent / Token fallback 共用)
