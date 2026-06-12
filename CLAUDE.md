@@ -26,9 +26,10 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 2. **types.ts** — Shared type definitions (`StdinData`, `TodoItem`, etc.)
 3. **i18n.ts** — `STRINGS` object with `zh`/`en`/`minimal` keys, selected by `CLAUDE_MINI_HUD_LANG`
 4. **colors.ts** — ANSI color helpers (zero-dependency)
-5. **render.ts** — All render functions (context, token, model, todo, usage)
-6. **transcript.ts** — Transcript JSONL parser
-7. **usage.ts** — Multi-platform usage/quota query (8 providers)
+5. **themes.ts** — Progress bar theme system (`ThemeConfig`), selected by `CLAUDE_MINI_HUD_THEME`
+6. **render.ts** — All render functions (context, token, model, todo, usage)
+7. **transcript.ts** — Transcript JSONL parser
+8. **usage.ts** — Multi-platform usage/quota query (8 providers)
 
 **Plugin integration** via `.claude-plugin/plugin.json` (registers the setup command) and `commands/setup.md` (interactive setup skill).
 
@@ -52,4 +53,4 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 - **Zero runtime dependencies** — only Node.js built-ins
 - **Never crash Claude Code** — all errors caught, fallback message printed
 - **Compiled output is lightweight** — `dist/` contains multi-module JS files, must stay small
-- **Environment variables control behavior**: `CLAUDE_MINI_HUD_LANG` (zh/en/minimal), `CLAUDE_MINI_HUD_SHOW_MODEL` (1 to show model line), `CLAUDE_MINI_HUD_TOKEN_MODE` (session/context/both)
+- **Environment variables control behavior**: `CLAUDE_MINI_HUD_LANG` (zh/en/minimal), `CLAUDE_MINI_HUD_SHOW_MODEL` (1 to show model line), `CLAUDE_MINI_HUD_TOKEN_MODE` (session/context/both), `CLAUDE_MINI_HUD_THEME` (default/neon/braille/hardcore/minimal/pixel/diamond/arrow)

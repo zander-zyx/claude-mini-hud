@@ -12,6 +12,7 @@ import type { StdinData, TranscriptData, TodoItem, ToolActivity, AgentActivity, 
 import type { UsageData } from './usage.js';
 import { c } from './colors.js';
 import { t, MINIMAL, LANG, lbl } from './i18n.js';
+import { THEME, THEME_NAME } from './themes.js';
 import { truncate } from './transcript.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -67,14 +68,39 @@ export function formatElapsed(ms: number): string {
   return `${hrs}h ${rm}m`;
 }
 
-function progressBar(percent: number, width: number = 20): string {
-  const filled = Math.round((percent / 100) * width);
-  const empty = width - filled;
-  const block = '█';
-  const blank = '░';
+/** 根据当前主题渲染进度条 */
+function progressBar(percent: number, _width?: number): string {
+  const theme = THEME;
+
+  // 超简约模式: 不画进度条, 由 renderContextLine 用图标+百分比
+  if (theme.isMinimal) return '';
+
+  const width = _width ?? theme.width;
+  const totalSlots = width;
+  const fillCount = Math.round((percent / 100) * totalSlots);
+  const emptyCount = totalSlots - fillCount;
+
   // 颜色按百分比: 绿 < 60, 黄 60-80, 红 > 80
   const color = percent > 80 ? c.red : percent > 60 ? c.yellow : c.green;
-  return color(block.repeat(filled) + blank.repeat(empty));
+
+  // 填充部分
+  let filledStr = '';
+  if (theme.filled.length === 1) {
+    filledStr = theme.filled[0].repeat(fillCount);
+  } else {
+    // 多字符循环填充 (如 braille 风格)
+    for (let i = 0; i < fillCount; i++) {
+      filledStr += theme.filled[i % theme.filled.length];
+    }
+  }
+
+  const emptyStr = theme.empty.repeat(emptyCount);
+  const bar = color(filledStr + emptyStr);
+
+  // 拼接边框
+  const left = theme.leftBorder ? c.dim(theme.leftBorder) : '';
+  const right = theme.rightBorder ? c.dim(theme.rightBorder) : '';
+  return `${left}${bar}${right}`;
 }
 
 function simpleHash(s: string): string {
@@ -143,22 +169,49 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
   }
   const remaining = Math.max(0, size - displayTokens);
 
-  const bar = progressBar(pct);
-  const pctStr = pct >= 80 ? c.red(c.bold(`${pct}%`))
-               : pct >= 60 ? c.yellow(c.bold(`${pct}%`))
-               : c.green(c.bold(`${pct}%`));
+  // ─── 公共逻辑 (所有主题共用) ────────────────────────────────────────────
 
-  // 余额标签: 非套餐平台 (DeepSeek/Kimi 等) 在 "剩余" 后显示余额
-  const balanceTag = buildBalanceTag(usage);
+  // 百分比着色
+  const pctColorFn = pct >= 80 ? c.red : pct >= 60 ? c.yellow : c.green;
 
+  // 详情文本 (token 数 / 剩余 / 余额)
   let detail = '';
   if (size > 0) {
     detail = c.dim(`${formatTokenCount(displayTokens)} / ${formatTokenCount(size)}  ${t.contextRemaining} ${formatTokenCount(remaining)}`);
   } else {
     detail = c.dim(`${formatTokenCount(displayTokens)}`);
   }
+  const balanceTag = buildBalanceTag(usage);
   if (balanceTag) detail += `  ${balanceTag}`;
 
+  const theme = THEME;
+
+  // ─── 超简约主题: ◈ 42% ┃ 12.4K/200K ┃ ...
+  if (theme.isMinimal) {
+    const icon = theme.minimalIcon;
+    const pctStr = pctColorFn(c.bold(`${icon} ${pct}%`));
+    return `${pctStr}${theme.separator}${detail}`;
+  }
+
+  // 通用进度条 + 百分比 (非 minimal 主题共用)
+  const bar = progressBar(pct);
+  const pctStr = pctColorFn(c.bold(`${pct}%`));
+
+  // ─── 霓虹矩阵主题: ⟦ CTX: ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░ 42% ⟧
+  if (THEME_NAME === 'neon') {
+    const neonPrefix = c.cyan('⟦');
+    const neonSuffix = c.cyan('⟧');
+    const ctxTag = c.magenta('CTX:');
+    return `${neonPrefix} ${ctxTag} ${bar} ${pctStr} ${neonSuffix}  ${detail}`;
+  }
+
+  // ─── 硬核主题: [■■■■■■■□□□□□□□□□□□□□] 42% CTX │ ...
+  if (THEME_NAME === 'hardcore') {
+    const sep = c.dim('│');
+    return `${bar} ${pctStr} ${c.cyan('CTX')} ${sep} ${detail}`;
+  }
+
+  // ─── 经典 / Braille / Pixel / Diamond / Arrow 默认布局
   const label = lbl('context', t.context, '#');
   return `${label} ${bar} ${pctStr}  ${detail}`;
 }

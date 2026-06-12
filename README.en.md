@@ -311,6 +311,7 @@ The statusline automatically refreshes at these moments:
 | Variable | Default | Options | Description |
 |----------|---------|---------|-------------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` | UI language (minimal = English-Chinese hybrid + no emoji) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | Progress bar theme |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (unset) | `1` | When set to `1`, shows the model line |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token line mode: session=cumulative / context=snapshot / both=two lines |
 
@@ -321,7 +322,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
   }
 }
 ```
@@ -650,6 +651,7 @@ claude-mini-hud/
 │   ├── types.ts        # Shared type definitions
 │   ├── i18n.ts         # Internationalization (zh/en/minimal)
 │   ├── colors.ts       # ANSI colors (zero-dependency)
+│   ├── themes.ts       # Progress bar theme system (8 themes)
 │   ├── render.ts       # All render functions
 │   ├── transcript.ts   # Transcript JSONL parser
 │   └── usage.ts        # Multi-platform usage/balance queries
@@ -702,7 +704,7 @@ Short-term (v0.2):
 - [ ] Read color thresholds from environment variables
 
 Medium-term (v0.3):
-- [ ] Theme switching (light / dark / custom)
+- [x] Progress bar theme system (8 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow)
 - [ ] Mouse hover tooltips (subject to Claude Code TUI limits)
 - [ ] Clickable statusline links (jump to current transcript)
 

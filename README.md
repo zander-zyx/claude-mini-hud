@@ -314,6 +314,7 @@ TMPDIR=~/.cache/tmp claude
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | 进度条主题 (见下方主题预览) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
 
@@ -324,10 +325,23 @@ TMPDIR=~/.cache/tmp claude
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
   }
 }
 ```
+
+#### 进度条主题预览 (72% 时)
+
+| 主题 | 环境变量值 | 效果 |
+|------|-----------|------|
+| 经典 | `default` | `# Context ██████████████░░░░░░ 72%` |
+| 霓虹矩阵 | `neon` | `⟦ CTX: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░ 72% ⟧` |
+| Braille 点阵 | `braille` | `# Context ⣿⣷⣯⣟⡿⣯⣟⣿⣷⣯⣟⡿⣯⣟░░░░░░ 72%` |
+| 硬核 | `hardcore` | `[■■■■■■■■■■■■■■□□□□□□] 72% CTX │` |
+| 超简约 | `minimal` | `◈ 72% ┃ 125k / 200k  left 75k` |
+| 像素 | `pixel` | `# Context ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣀⣀⣀⣀⣀⣀ 72%` |
+| 钻石 | `diamond` | `# Context ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◇◇◇◇◇◇ 72%` |
+| 箭头 | `arrow` | `# Context ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▹▹▹▹▹▹ 72%` |
 
 > 💡 **为什么用 env 而非配置文件?**
 > 零依赖哲学的延伸 — 不创建任何配置文件,不污染用户项目目录,跟 Claude Code 自身的 env 配置 (`ANTHROPIC_BASE_URL` 等)风格一致。
@@ -409,6 +423,27 @@ npm run build   # 重新编译
 # 重启 Claude Code
 ```
 
+### 改进度条风格
+
+通过环境变量切换 (无需改代码):
+
+```bash
+CLAUDE_MINI_HUD_THEME=arrow  # 可选: default/neon/braille/hardcore/minimal/pixel/diamond/arrow
+```
+
+或自定义主题,修改 `src/themes.ts` 中的 `ThemeConfig`:
+
+```ts
+export interface ThemeConfig {
+  filled: string[];    // 填充字符 (如 ['█'], ['◆'], ['▸'])
+  empty: string;       // 空白字符 (如 '░', '◇', '▹')
+  leftBorder: string;  // 左边框 (如 '[', '⟦', '')
+  rightBorder: string; // 右边框 (如 ']', '⟧', '')
+  width: number;       // 进度条宽度 (默认 20)
+  // ...
+}
+```
+
 ### 改进度条颜色阈值
 
 `progressBar` 函数:
@@ -418,12 +453,6 @@ function progressBar(percent: number, width: number = 20) {
   const color = percent > 80 ? c.red : percent > 60 ? c.yellow : c.green;
   // 改成你想要的值,例如:
   // const color = percent > 90 ? c.red : percent > 70 ? c.yellow : c.green;
-```
-
-### 改进度条宽度
-
-```ts
-function progressBar(percent: number, width: number = 30) {  // 30 格更宽
 ```
 
 ### 改 Token 行格式
@@ -653,6 +682,7 @@ claude-mini-hud/
 │   ├── types.ts        # 共享类型定义
 │   ├── i18n.ts         # 国际化 (zh/en/minimal)
 │   ├── colors.ts       # ANSI 颜色 (零依赖)
+│   ├── themes.ts       # 进度条主题系统 (8 种可选)
 │   ├── render.ts       # 所有渲染函数
 │   ├── transcript.ts   # Transcript JSONL 解析
 │   └── usage.ts        # 多平台用量/余额查询
@@ -700,12 +730,13 @@ claude-mini-hud/
 ### Roadmap
 
 近期 (v0.2):
+- [x] 进度条主题系统 (8 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头)
 - [ ] Session 费用显示 (需要 Claude Code 暴露 `cost` 字段)
 - [ ] 多窗口切换时更平滑的刷新
 - [ ] 从环境变量读取颜色阈值
 
 中期 (v0.3):
-- [ ] 主题切换 (亮色 / 暗色 / 自定义)
+- [ ] 亮色/暗色主题适配
 - [ ] 鼠标悬停提示 (受 Claude Code TUI 限制)
 - [ ] 可点击的状态栏链接 (跳转到当前 transcript)
 

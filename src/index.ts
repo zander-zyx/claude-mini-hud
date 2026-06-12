@@ -41,6 +41,9 @@ const TOKEN_MODE = (['session', 'context', 'both'] as const)
   ? (process.env.CLAUDE_MINI_HUD_TOKEN_MODE as 'session' | 'context' | 'both')
   : 'session';
 
+// 进度条主题: default(默认) | neon | braille | hardcore | minimal | pixel | diamond | arrow
+// (由 themes.ts 模块自行解析 CLAUDE_MINI_HUD_THEME 环境变量)
+
 // 预计算速度缓存目录
 const SPEED_CACHE_DIR = join(homedir(), '.claude-mini-hud');
 
