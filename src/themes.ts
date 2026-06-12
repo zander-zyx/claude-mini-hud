@@ -48,11 +48,11 @@ export interface ThemeConfig {
 const THEMES: Record<ThemeName, ThemeConfig> = {
   /**
    * 经典风格 (默认)
-   * Context ██████────────────── 30%
+   * Context ███░░░░░░░░░░░░░░░░░ 15%
    */
   default: {
     filled: ['█'],
-    empty: '─',
+    empty: '░',
     leftBorder: '',
     rightBorder: '',
     width: 20,
@@ -69,7 +69,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
    */
   neon: {
     filled: ['▓'],
-    empty: '─',
+    empty: '░',
     leftBorder: '',
     rightBorder: '',
     width: 20,
@@ -86,7 +86,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
    */
   braille: {
     filled: ['⣿', '⣷', '⣯', '⣟', '⡿', '⣯', '⣟'],
-    empty: '─',
+    empty: '░',
     leftBorder: '',
     rightBorder: '',
     width: 20,
