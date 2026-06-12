@@ -112,19 +112,22 @@ function readLastStdinCache(): StdinData | null {
 
 const CTX_PCT_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'ctx-pct-cache.json');
 
-function readCtxPctCache(): number {
+/** 读取 Context 百分比缓存 (仅同一会话有效) */
+function readCtxPctCache(transcriptPath?: string): number {
   try {
-    const { pct, ts } = JSON.parse(readFileSync(CTX_PCT_CACHE_PATH, 'utf8'));
+    const { pct, ts, tp } = JSON.parse(readFileSync(CTX_PCT_CACHE_PATH, 'utf8'));
+    // 不同会话 (transcript_path 不匹配) → 缓存无效
+    if (!transcriptPath || !tp || transcriptPath !== tp) return 0;
     // 5 分钟内的缓存才有效 (避免 /clear 后残留旧值)
     if (typeof pct === 'number' && pct > 0 && Date.now() - ts < 300_000) return pct;
   } catch { /* ignore */ }
   return 0;
 }
 
-function writeCtxPctCache(pct: number): void {
+function writeCtxPctCache(pct: number, transcriptPath?: string): void {
   try {
     mkdirSync(dirname(CTX_PCT_CACHE_PATH), { recursive: true });
-    writeFileSync(CTX_PCT_CACHE_PATH, JSON.stringify({ pct, ts: Date.now() }));
+    writeFileSync(CTX_PCT_CACHE_PATH, JSON.stringify({ pct, ts: Date.now(), tp: transcriptPath ?? null }));
   } catch { /* silent */ }
 }
 
@@ -151,11 +154,13 @@ async function main(): Promise<void> {
 
   // ─── Context 百分比防闪烁 ───
   // 当前 stdin 的 context 数据可能退化 (全零/缺失), 用缓存的上次有效百分比兜底
+  // 关键: 只在**同一会话**内兜底 (通过 transcript_path 匹配), 避免新会话残留旧值
+  const tp = stdin.transcript_path;
   const pct = getContextPercent(stdin);
   if (pct > 0) {
-    writeCtxPctCache(pct);
+    writeCtxPctCache(pct, tp);
   } else {
-    const cachedPct = readCtxPctCache();
+    const cachedPct = readCtxPctCache(tp);
     if (cachedPct > 0) {
       if (!stdin.context_window) stdin.context_window = {};
       stdin.context_window.used_percentage = cachedPct;
