@@ -290,6 +290,8 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
     // (否则 tail 里 TaskUpdate 的 taskId 会因 tMap 缺失而解析失败)
     // 同时去重: 只添加 tail 中尚未存在的 task (避免重复导致计数虚高)
     const tailTaskContents = new Set((todos ?? []).map(td => td.content));
+    // 追踪 head scan 新增的 task 索引 (仅对这些 task 应用 head 的 TaskUpdate, 避免覆盖 tail 结果)
+    const headAddedIndices = new Set<number>();
     if (fileSize > TAIL_BYTES) {
       const headSize = TAIL_BYTES;
       try {
@@ -324,18 +326,30 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
                   if (!todos) todos = [];
                   if (!tailTaskContents.has(taskContent)) {
                     todos.push({ content: taskContent, status: 'pending', activeForm: typeof inp.activeForm === 'string' ? inp.activeForm : undefined });
-                    taskIdToIndex.set(tid, todos.length - 1);
+                    const newIdx = todos.length - 1;
+                    taskIdToIndex.set(tid, newIdx);
+                    headAddedIndices.add(newIdx);
                   } else {
                     // 已存在: 仅建立 taskIdToIndex 映射 (让 tail 的 TaskUpdate 能找到)
                     const existingIdx = todos.findIndex(td => td.content === taskContent);
                     if (existingIdx >= 0) taskIdToIndex.set(tid, existingIdx);
                   }
                 }
-                // 注意: head scan 不处理 TaskUpdate!
-                // 原因: head scan 在 tail scan 之后运行, 如果在重叠区域处理 TaskUpdate,
-                // 会用旧值 (head) 覆盖新值 (tail), 导致 todo 计数不更新/状态回退
-                // head scan 的职责: 仅补齐早期 TaskCreate, 建立 taskIdToIndex 映射,
-                // 让 tail scan 里的 TaskUpdate 能正确找到对应 todo
+                // Head scan 也处理 TaskUpdate: 仅对 head 新增的 task 应用
+                // (避免用 head 的旧值覆盖 tail 已处理的新值)
+                if (b.name === 'TaskUpdate' && todos) {
+                  const inp = b.input ?? {};
+                  const idx = resolveTaskIndex(String(inp.taskId ?? ''), taskIdToIndex, todos);
+                  if (idx !== null && headAddedIndices.has(idx)) {
+                    const newStatus = normalizeTaskStatus(inp.status);
+                    if (newStatus) todos[idx].status = newStatus;
+                    const subject = typeof inp.subject === 'string' ? inp.subject : '';
+                    if (subject) todos[idx].content = subject;
+                    if (typeof inp.activeForm === 'string' && inp.activeForm) {
+                      todos[idx].activeForm = inp.activeForm;
+                    }
+                  }
+                }
               }
             }
           }

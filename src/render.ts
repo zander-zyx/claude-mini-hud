@@ -16,6 +16,7 @@ import { THEME, THEME_NAME, MARKS } from './themes.js';
 import { truncate } from './transcript.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 
 // ─── 格式化工具 ───────────────────────────────────────────────────────────
 
@@ -127,6 +128,8 @@ function resolveContextSize(stdin: StdinData): number {
 
 export function getContextPercent(stdin: StdinData): number {
   // 优先用 Claude Code v2.1.6+ 的原生百分比
+  // 注意: native=0 时不直接返回, 而是走 fallback (用 current_usage token 算)
+  // 这样即使 Claude Code 临时发 used_percentage=0, 也能通过 token 数据防闪烁
   const native = stdin.context_window?.used_percentage;
   if (typeof native === 'number' && !Number.isNaN(native) && native > 0) {
     return Math.min(100, Math.max(0, Math.round(native)));
@@ -369,9 +372,31 @@ function detectProvider(stdin: StdinData): string | null {
   return null;
 }
 
+// ─── Token 峰值缓存 (/compact 后 Claude Code 重置 session token 计数, 用峰值兜底) ──
+
+const TOKEN_PEAK_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'token-peak-cache.json');
+
+function readTokenPeakCache(transcriptPath?: string): TokenBreakdown | null {
+  try {
+    const raw = readFileSync(TOKEN_PEAK_CACHE_PATH, 'utf8');
+    const data = JSON.parse(raw) as { tp: string; input: number; output: number; cache: number; total: number };
+    if (!transcriptPath || !data.tp || transcriptPath !== data.tp) return null;
+    return { input: data.input, output: data.output, cache: data.cache, total: data.total };
+  } catch { return null; }
+}
+
+function writeTokenPeakCache(b: TokenBreakdown, transcriptPath?: string): void {
+  try {
+    mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
+    writeFileSync(TOKEN_PEAK_CACHE_PATH, JSON.stringify({
+      tp: transcriptPath ?? null, input: b.input, output: b.output, cache: b.cache, total: b.total,
+    }));
+  } catch { /* silent */ }
+}
+
 // ─── Token 行 (session 累计 / 上下文快照 / 速率) ──────────────────────
 
-/** 从 stdin + transcript 提取 session 累计 token */
+/** 从 stdin + transcript 提取 session 累计 token (含峰值缓存, /compact 后不缩减) */
 function getSessionTokens(stdin: StdinData, tdata: TranscriptData | null): TokenBreakdown {
   const cw = stdin.context_window;
   const usage = cw?.current_usage;
@@ -393,7 +418,21 @@ function getSessionTokens(stdin: StdinData, tdata: TranscriptData | null): Token
   const cuCache = (usage?.cache_creation_input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0);
   const cache = txCache > 0 ? txCache : cuCache;
 
-  return { input, output, cache, total: input + output + cache };
+  const current: TokenBreakdown = { input, output, cache, total: input + output + cache };
+
+  // 峰值缓存: /compact 后 session token 计数会缩减, 用峰值保持累计值
+  const tp = stdin.transcript_path;
+  const peak = readTokenPeakCache(tp);
+  if (peak && peak.total > current.total) {
+    // 当前值比峰值低 → 用峰值 (说明发生了 /compact)
+    return peak;
+  }
+  // 当前值 >= 峰值 → 更新缓存
+  if (current.total > 0) {
+    writeTokenPeakCache(current, tp);
+  }
+
+  return current;
 }
 
 /** 从 stdin 提取上下文快照 token (仅当前窗口内) */

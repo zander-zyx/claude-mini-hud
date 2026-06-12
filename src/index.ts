@@ -123,8 +123,8 @@ function readCtxPctCache(transcriptPath?: string): number {
     const { pct, ts, tp } = JSON.parse(readFileSync(CTX_PCT_CACHE_PATH, 'utf8'));
     // 不同会话 (transcript_path 不匹配) → 缓存无效
     if (!transcriptPath || !tp || transcriptPath !== tp) return 0;
-    // 5 分钟内的缓存才有效 (避免 /clear 后残留旧值)
-    if (typeof pct === 'number' && pct > 0 && Date.now() - ts < 300_000) return pct;
+    // 60 秒内的缓存才有效 (平衡防闪烁 + /compact 后快速恢复)
+    if (typeof pct === 'number' && pct > 0 && Date.now() - ts < 60_000) return pct;
   } catch { /* ignore */ }
   return 0;
 }
@@ -158,22 +158,19 @@ async function main(): Promise<void> {
   writeLastStdinCache(stdin);
 
   // ─── Context 百分比防闪烁 ───
-  // 当前 stdin 的 context 数据可能退化 (全零/缺失), 用缓存的上次有效百分比兜底
-  // 关键: 只在**同一会话**内兜底 (通过 transcript_path 匹配), 避免新会话残留旧值
-  // 新会话 /clear → transcript_path 变化 → 缓存不命中 → 自然归零
+  // getContextPercent 内部已有 fallback 链: native > 0 → tokens/size → totalInput/size
+  // 正常情况 fallback 已能防止跳 0 (current_usage 有 token 时)
+  // 仅当所有 fallback 都返回 0 (数据完全退化) 时, 用缓存兜底
   const tp = stdin.transcript_path;
   const pct = getContextPercent(stdin);
   if (pct > 0) {
-    // 有有效百分比: 写缓存 (覆盖旧值)
     writeCtxPctCache(pct, tp);
   } else {
-    // pct=0: stdin 数据退化, 尝试用缓存兜底 (不写缓存, 避免用 0 覆盖有效值)
     const cachedPct = readCtxPctCache(tp);
     if (cachedPct > 0) {
       if (!stdin.context_window) stdin.context_window = {};
       stdin.context_window.used_percentage = cachedPct;
     }
-    // 缓存也没有 → pct=0 是真实的 (新会话/clear), 不做处理
   }
 
   // 先读 transcript (一次 I/O, 供 todos / 工具 / Agent / Token fallback 共用)
