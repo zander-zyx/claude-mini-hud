@@ -11,7 +11,7 @@
 import type { StdinData, TranscriptData, TodoItem, ToolActivity, AgentActivity, TokenBreakdown } from './types.js';
 import type { UsageData } from './usage.js';
 import { c } from './colors.js';
-import { t, MINIMAL } from './i18n.js';
+import { t, MINIMAL, lbl } from './i18n.js';
 import { truncate } from './transcript.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -159,9 +159,7 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
   }
   if (balanceTag) detail += `  ${balanceTag}`;
 
-  const label = MINIMAL
-    ? ` ${t.context}`  // minimal: 前置空格, 无 emoji
-    : `${c.gray(`# ${t.context}`)}`;  // zh/en: ASCII 安全 (避免 Windows emoji 宽度重叠)
+  const label = lbl('context', t.context, '#');
   return `${label} ${bar} ${pctStr}  ${detail}`;
 }
 
@@ -193,7 +191,7 @@ export function renderTodoLine(tdata: TranscriptData | null): string | null {
 
   const completed = tdata.todos.filter((td) => td.status === 'completed').length;
   const total = tdata.todos.length;
-  const label = MINIMAL ? ` ${t.todo}` : c.gray(`> ${t.todo}`);
+  const label = lbl('todo', t.todo, '>');
   const display = active.activeForm || active.content;
   const progress = c.dim(`(${completed}/${total})`);
 
@@ -233,7 +231,7 @@ export function renderToolActivityLines(tdata: TranscriptData | null): string[] 
 
   // 没有内容时返回空, 有内容时在首行前加标签
   if (lines.length === 0) return [];
-  const label = MINIMAL ? ` ${t.tools}` : c.gray(`[*] ${t.tools}`);
+  const label = lbl('tools', t.tools, '[*]');
   lines[0] = `${label}${lines[0].slice(prefix.length)}`;
   return lines;
 }
@@ -255,7 +253,7 @@ export function renderAgentLines(tdata: TranscriptData | null): string[] {
   }
 
   if (lines.length === 0) return [];
-  const label = MINIMAL ? ` ${t.agent}` : c.gray(`& ${t.agent}`);
+  const label = lbl('agent', t.agent, '&');
   lines[0] = `${label}${lines[0].slice(prefix.length)}`;
   return lines;
 }
@@ -269,9 +267,7 @@ export function renderModelLine(stdin: StdinData): string {
   const provider = detectProvider(stdin);
   const providerBadge = provider ? c.dim(`[${provider}]`) : '';
 
-  const label = MINIMAL
-    ? ` ${t.model}`
-    : c.gray(`> ${t.model}`);
+  const label = lbl('model', t.model, '>');
   return `${label} ${c.cyan(c.bold(name))}  ${providerBadge}`;
 }
 
@@ -363,13 +359,13 @@ function getContextTokens(stdin: StdinData): TokenBreakdown {
 }
 
 function formatTokenParts(b: TokenBreakdown, speed: number | null): string {
-  // 括号内: in · out · cache (cache 条件隐藏); 闭括号前留一格, 视觉上与开括号间距对称
+  // 括号内: in · out · cache (cache 条件隐藏)
   const parts = [
     `${c.gray(t.in)} ${formatTokenCount(b.input)}`,
     `${c.gray(t.out)} ${formatTokenCount(b.output)}`,
   ];
   if (b.cache > 0) parts.push(`${c.gray(t.cache)} ${formatTokenCount(b.cache)}`);
-  const inner = c.dim('(' + parts.join(' · ') + ' )');
+  const inner = c.dim('(' + parts.join(' · ') + ')');
   // speed 放括号外, 条件隐藏; >=1000 自动换 k/M 单位 (如 4.8k tok/s)
   if (speed) return `${inner} ${formatTokenCount(speed)} tok/s`;
   return inner;
@@ -415,7 +411,7 @@ function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
 
 export function renderTokenLine(stdin: StdinData, tdata: TranscriptData | null, tokenMode: string, cacheDir: string): string[] {
   const lines: string[] = [];
-  const label = MINIMAL ? ` ${t.token}` : `${c.gray(`$ ${t.token}`)}`;
+  const label = lbl('token', t.token, '$');
 
   // 计算输出速率
   const speed = cacheDir ? getOutputSpeed(stdin, cacheDir) : null;
@@ -467,7 +463,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
       parts.push(seg);
     }
     if (parts.length === 0) return null;
-    return `${c.gray('[B] API')} ${parts.join(' ')}`;
+    return `${lbl('usage', 'API', '[B]')} ${parts.join(' ')}`;
   }
 
   if (usage.miniMax) {
@@ -508,14 +504,14 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     }
     if (parts.length === 0) return null;
     const modelTag = m.modelName ? c.dim(` [${m.modelName}]`) : '';
-    const prefix = MINIMAL ? 'MiniMax' : c.gray('[B] MiniMax');
+    const prefix = lbl('usage', 'MiniMax', '[B]');
     return `${prefix}${modelTag} ${parts.join(' ')}`;
   }
 
   if (usage.deepSeek) {
     const d = usage.deepSeek;
     const total = d.totalBalance.toFixed(2);
-    return `${c.gray('[B] DeepSeek')} ${c.cyan(c.bold(`¥${total}`))}${d.grantedBalance > 0 ? c.dim(` (赠送 ¥${d.grantedBalance.toFixed(2)})`) : ''}`;
+    return `${lbl('usage', 'DeepSeek', '[B]')} ${c.cyan(c.bold(`¥${total}`))}${d.grantedBalance > 0 ? c.dim(` (赠送 ¥${d.grantedBalance.toFixed(2)})`) : ''}`;
   }
 
   if (usage.kimi) {
@@ -523,7 +519,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     const grant = usage.kimi.grantedBalance && usage.kimi.grantedBalance > 0
       ? c.dim(` (赠送 ¥${usage.kimi.grantedBalance.toFixed(2)})`)
       : '';
-    return `${c.gray('[B] Kimi')} ${c.cyan(c.bold(`¥${total}`))}${grant}`;
+    return `${lbl('usage', 'Kimi', '[B]')} ${c.cyan(c.bold(`¥${total}`))}${grant}`;
   }
 
   if (usage.zhipu) {
@@ -575,7 +571,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     if (parts.length === 0) return null;
 
     const levelTag = z.level ? c.dim(` [${z.level}]`) : '';
-    const prefix = MINIMAL ? '智谱' : c.gray('[B] 智谱');
+    const prefix = lbl('usage', '智谱', '[B]');
     return `${prefix}${levelTag} ${parts.join(' ')}`;
   }
 
@@ -611,13 +607,13 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     let platformName = '';
     let levelTag = '';
     if (usage.xiaomi) {
-      platformName = MINIMAL ? '小米' : c.gray('[B] 小米');
+      platformName = lbl('usage', '小米', '[B]');
       levelTag = fixedQuota.plan ? c.dim(` [${fixedQuota.plan}]`) : '';
     } else if (usage.alibaba) {
-      platformName = MINIMAL ? '阿里' : c.gray('[B] 阿里');
+      platformName = lbl('usage', '阿里', '[B]');
       levelTag = fixedQuota.plan ? c.dim(` [${fixedQuota.plan}]`) : '';
     } else if (usage.volcengine) {
-      platformName = MINIMAL ? '火山' : c.gray('[B] 火山');
+      platformName = lbl('usage', '火山', '[B]');
       levelTag = fixedQuota.plan ? c.dim(` [${fixedQuota.plan}]`) : '';
     }
 

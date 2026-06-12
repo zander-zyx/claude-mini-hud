@@ -22,7 +22,7 @@
 
 import type { StdinData } from './types.js';
 import { c } from './colors.js';
-import { t, MINIMAL } from './i18n.js';
+import { t, MINIMAL, lbl } from './i18n.js';
 import { readTranscriptData } from './transcript.js';
 import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent } from './render.js';
 import { getUsageData } from './usage.js';
@@ -140,9 +140,7 @@ async function main(): Promise<void> {
       stdin = cached;
     } else {
       // 真的没有任何数据, 输出占位
-      const label = MINIMAL
-        ? ` ${t.context}`
-        : `${c.gray(`# ${t.context}`)}`;
+      const label = lbl('context', t.context, '#');
       console.log(`${label} ${c.dim('—')}  ${c.dim(t.fallback)}`);
       return;
     }

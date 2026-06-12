@@ -17,34 +17,39 @@ Use AskUserQuestion:
   question: "请选择显示模式 / Select display mode"
   options:
     - label: "中文 (Chinese)"
-      description: "# 上下文 + $ Token + ▶️ 当前任务 全部中文 + emoji"
+      description: "上下文 + Token + 当前任务 全部中文"
     - label: "English"
-      description: "# Context + $ Token + ▶️ Todos 全部英文 + emoji"
-    - label: "English minimal"
-      description: "英中混搭 + 无 emoji: Context/剩余/Token/当前任务"
+      description: "Context + Token + Todos 全部英文"
+    - label: "简约 (Minimal)"
+      description: "英中混搭, 无前缀符号, 最紧凑布局"
 ```
 
 把用户选择存到 `{LANG}` 变量 (zh / en / minimal), 后续步骤用它:
 1. 决定 Step 6 输出提示的语种
 2. 写入 `statusLine.command` 的 `CLAUDE_MINI_HUD_LANG={LANG}` 环境变量
 
-**3 种模式输出示例**:
+**3 种模式输出示例** (支持 emoji 的终端会自动显示 emoji 图标, 不支持的终端显示 ASCII 符号):
 
 ```
-# 中文 (zh)
+# 中文 (zh) — emoji 终端
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 23k (in 22k · out 342 · cache 768)
+▶ 当前任务 调研充电行业政策  (2/5)
+
+# 中文 (zh) — 无 emoji 终端
 # 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-$ Token 23k (in 22k · out 342 · cache 768 )
+$ Token 23k (in 22k · out 342 · cache 768)
 > 当前任务 调研充电行业政策  (2/5)
 
-# English (en)
-# Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-$ Token 23k (in 22k · out 342 · cache 768 )
-> Todos Research charging industry policy  (2/5)
+# English (en) — emoji 终端
+📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+🪙 Token 23k (in 22k · out 342 · cache 768)
+▶ Todos Research charging industry policy  (2/5)
 
-# English minimal (新!)
-Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
- Token 23k (in 22k · out 342 · cache 768 )
-当前任务 ▸ 调研充电行业政策  (2/5)
+# 简约 (minimal) — 无 emoji, 无前缀
+ Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+ Token 23k (in 22k · out 342 · cache 768)
+ 当前任务 调研充电行业政策  (2/5)
 ```
 
 ## Step 2: 检测环境
@@ -169,19 +174,24 @@ $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath
 
 下一步:
 1. 重启 Claude Code (Ctrl+C 退出后重新打开)
-2. 输入框下方应显示 3 行 (默认无模型行):
+2. 输入框下方应显示 2-3 行 (默认无模型行):
 
-# 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
-$ Token 23k (in 22k · out 342 · cache 768 )
-> 当前任务 (进行中的 todo, 有则显示)
+📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+🪙 Token 23k (in 22k · out 342 · cache 768)
+▶ 当前任务 (进行中的 todo, 有则显示)
+
+(不支持 emoji 的终端会显示 # $ > 等 ASCII 符号)
 
 可选: 想显示模型行? 把 statusLine.command 改成:
   CLAUDE_MINI_HUD_SHOW_MODEL=1 node {RUNTIME_PATH}
 
+强制关闭 emoji:
+  CLAUDE_MINI_HUD_NO_EMOJI=1 CLAUDE_MINI_HUD_LANG=zh node {RUNTIME_PATH}
+
 如果只看到 1 行 "claude-mini-hud — 渲染失败":
   - 检查 ~/.claude/settings.json 里的 statusLine.command 路径
   - 跑: node {RUNTIME_PATH} <<< '{"model":{"display_name":"test"}}'
-  - 应该输出 "$ Token 10B" 等 2-3 行
+  - 应该输出 "🪙 Token 10B" 等 2-3 行
 
 卸载: 把 settings.json 的 statusLine 字段改为 null
 ```
@@ -193,19 +203,24 @@ $ Token 23k (in 22k · out 342 · cache 768 )
 
 Next steps:
 1. Restart Claude Code (Ctrl+C, then reopen)
-2. The statusline should show 3 lines below your input (model hidden by default):
+2. The statusline should show 2-3 lines below your input (model hidden by default):
 
-# Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
-$ Token 23k (in 22k · out 342 · cache 768 )
-> Todos (in-progress todo, if any)
+📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+🪙 Token 23k (in 22k · out 342 · cache 768)
+▶ Todos (in-progress todo, if any)
+
+(Terminals without emoji support will show # $ > ASCII symbols instead)
 
 Optional: Want the model line too? Change statusLine.command to:
   CLAUDE_MINI_HUD_SHOW_MODEL=1 node {RUNTIME_PATH}
 
-If you only see "claude-mini-hud — 渲染失败":
+Force disable emoji:
+  CLAUDE_MINI_HUD_NO_EMOJI=1 CLAUDE_MINI_HUD_LANG=en node {RUNTIME_PATH}
+
+If you only see "claude-mini-hud — render failed":
   - Check the statusLine.command path in ~/.claude/settings.json
   - Run: node {RUNTIME_PATH} <<< '{"model":{"display_name":"test"}}'
-  - Should output "$ Token 10B" and 1-2 more lines
+  - Should output "🪙 Token 10B" and 1-2 more lines
 
 Uninstall: Set the statusLine field in settings.json to null
 ```
