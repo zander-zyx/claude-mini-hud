@@ -782,6 +782,16 @@ claude-mini-hud/
 
 ---
 
+## 赞助商
+
+> **词元互联** — 企业级 AI 模型中转枢纽
+>
+> 通过统一的 API，即可调用最新纯血 Fable 5、Opus 4.8 及 Pro 池专属的 GPT-5.5、GPT-5.4。同时完美支持 Claude Code 与 Codex 的丝滑接入，告别多平台管理。
+>
+> [👉 立即体验](https://code.aicodeme.cn)
+
+---
+
 ## 相关项目
 
 | 项目 | 风格 | 适合谁 |

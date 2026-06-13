@@ -762,6 +762,16 @@ Medium-term (v1.2):
 
 ---
 
+## Sponsor
+
+> **Ciyuan Interconnect** — Enterprise-grade AI Model Relay Hub
+>
+> Access the latest pure-blood Fable 5, Opus 4.8, and Pro-pool exclusive GPT-5.5, GPT-5.4 through our unified API. Seamlessly supports Claude Code and Codex integration — say goodbye to multi-platform management.
+>
+> [👉 Try it now](https://code.aicodeme.cn)
+
+---
+
 ## Related Projects
 
 | Project | Style | Best For |
