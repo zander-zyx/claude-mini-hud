@@ -18,6 +18,12 @@
 
 ### 显示效果
 
+**Ultra-Minimal (ultra-minimal)** — 只保留 Context + Token 两行,极致精简:
+```
+ Context ██████████░░░░░░░░░░ 52%  104k / 200k  剩余 96k
+ Token 118k (in 89k · out 4k · cache 25k ) 12 tok/s
+```
+
 **中文 (zh, 默认)** — 完整中文 + emoji:
 ```
 📊 上下文 ██████████░░░░░░░░░░ 52%  104k / 200k  剩余 96k
@@ -58,7 +64,7 @@
   [Explore] ◐ Searching code 2m 15s
 ```
 
-切换: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (见 [配置](#配置))
+切换: `CLAUDE_MINI_HUD_LANG=zh|en|minimal|ultra-minimal` (见 [配置](#配置))
 
 **核心特性**:
 - ⚡ **零依赖**: TypeScript 多模块架构,编译产物轻量

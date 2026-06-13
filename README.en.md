@@ -17,6 +17,12 @@
 
 ### Preview
 
+**Ultra-Minimal (ultra-minimal)** — only Context + Token lines, maximum simplicity:
+```
+ Context ██████████░░░░░░░░░░ 52%  104k / 200k  剩余 96k
+ Token 118k (in 89k · out 4k · cache 25k ) 12 tok/s
+```
+
 **Chinese (zh, default)** — full Chinese + emoji:
 ```
 📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
@@ -52,7 +58,7 @@
   [Explore] ◐ Searching code 2m 15s
 ```
 
-Switch with: `CLAUDE_MINI_HUD_LANG=zh|en|minimal` (see [Configuration](#configuration))
+Switch with: `CLAUDE_MINI_HUD_LANG=zh|en|minimal|ultra-minimal` (see [Configuration](#configuration))
 
 **Key Features**:
 - ⚡ **Zero Dependencies**: Multi-module TypeScript architecture, lightweight compiled output
