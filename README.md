@@ -218,10 +218,10 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 ```bash
 # 1. 克隆到 Claude 插件目录 (version 是目录名一部分,改版本时同步改)
 git clone https://github.com/zander-zyx/claude-mini-hud.git \
-  ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0
+  ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
 
 # 2. 进入目录编译
-cd ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
 npm install
 npm run build
 
@@ -230,23 +230,23 @@ npm run build
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
+    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js"
   }
 }
 
 # 4. 重启 Claude Code
 ```
 
-> 💡 **目录命名规范**:Claude Code 期望 `{vendor}/{name}/{version}/` 三级结构。`local` 是 vendor,`claude-mini-hud` 是 name,`0.1.0` 是 version。改代码时**不要改 version**,否则 Claude Code 认为是新插件,会重新跑一次缓存逻辑。
+> 💡 **目录命名规范**:Claude Code 期望 `{vendor}/{name}/{version}/` 三级结构。`local` 是 vendor,`claude-mini-hud` 是 name,`1.0.0` 是 version。改代码时**不要改 version**,否则 Claude Code 认为是新插件,会重新跑一次缓存逻辑。
 
 ### 方式 3: Windows PowerShell
 
 ```powershell
 # 1. 克隆
-git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\0.1.0
+git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0
 
 # 2. 编译
-cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\0.1.0
+cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0
 npm install
 npm run build
 
@@ -254,7 +254,7 @@ npm run build
 $settings = Get-Content $env:USERPROFILE\.claude\settings.json -Raw | ConvertFrom-Json
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\0.1.0\dist\index.js"
+  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0\dist\index.js"
 }
 $settings | ConvertTo-Json -Depth 10 | Set-Content $env:USERPROFILE\.claude\settings.json
 
@@ -338,7 +338,7 @@ TMPDIR=~/.cache/tmp claude
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js"
   }
 }
 ```
@@ -349,7 +349,7 @@ TMPDIR=~/.cache/tmp claude
 {
   "statusLine": {
     "type": "command",
-    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\0.1.0\\dist\\index.js'\""
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.0.0\\dist\\index.js'\""
   }
 }
 ```
@@ -538,10 +538,10 @@ if (branchLine) lines.push(branchLine);
 排查:
 ```bash
 # 1. 检查 dist/index.js 是否存在
-ls -la ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
+ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js
 
 # 2. 手动测试,看 stdout 有没有内容
-echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
+echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js
 # 应该输出: 📊 上下文 ... 🪙 Token ...
 
 # 3. 如果手动跑 OK 但 Claude Code 里没显示,检查 settings.json
@@ -552,7 +552,7 @@ cat ~/.claude/settings.json | grep -A2 statusLine
 
 **A**: 你用的是 [Claude Code v2.1.5 及以下](https://docs.claude.com/en/docs/claude-code/statusline),它不传 `used_percentage` 字段。本插件会回退到手算 token 百分比,如果 token 数据也空就显示 0%。
 
-v0.1.0+ 已加入 **Context 百分比防闪烁**机制:当 Claude Code 发送的某帧数据所有 token 字段为零/缺失时,自动使用 5 分钟内的上次有效百分比缓存,避免进度条闪烁归零。`/clear` 后缓存自动过期,不会残留旧值。
+v1.0.0+ 已加入 **Context 百分比防闪烁**机制:当 Claude Code 发送的某帧数据所有 token 字段为零/缺失时,自动使用 5 分钟内的上次有效百分比缓存,避免进度条闪烁归零。`/clear` 后缓存自动过期,不会残留旧值。
 
 **如果仍然频繁出现 0%**: 升级到最新版 Claude Code:
 ```bash
@@ -601,7 +601,7 @@ async function main() {
 
 **A**:
 ```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
 git pull
 npm install
 npm run build

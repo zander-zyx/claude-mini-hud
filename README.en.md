@@ -213,10 +213,10 @@ See those two lines? Everything works. Next step: [Install into Claude Code](#in
 ```bash
 # 1. Clone into the Claude plugins directory (version is part of the dir name, update it when upgrading)
 git clone https://github.com/zander-zyx/claude-mini-hud.git \
-  ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0
+  ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
 
 # 2. Enter the directory and compile
-cd ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
 npm install
 npm run build
 
@@ -225,23 +225,23 @@ npm run build
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
+    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js"
   }
 }
 
 # 4. Restart Claude Code
 ```
 
-> 💡 **Directory naming convention**: Claude Code expects a `{vendor}/{name}/{version}/` three-level structure. `local` is the vendor, `claude-mini-hud` is the name, `0.1.0` is the version. When modifying code, **don't change the version**, or Claude Code will treat it as a new plugin and re-run the cache logic.
+> 💡 **Directory naming convention**: Claude Code expects a `{vendor}/{name}/{version}/` three-level structure. `local` is the vendor, `claude-mini-hud` is the name, `1.0.0` is the version. When modifying code, **don't change the version**, or Claude Code will treat it as a new plugin and re-run the cache logic.
 
 ### Option 3: Windows PowerShell
 
 ```powershell
 # 1. Clone
-git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\0.1.0
+git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0
 
 # 2. Compile
-cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\0.1.0
+cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0
 npm install
 npm run build
 
@@ -249,7 +249,7 @@ npm run build
 $settings = Get-Content $env:USERPROFILE\.claude\settings.json -Raw | ConvertFrom-Json
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\0.1.0\dist\index.js"
+  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0\dist\index.js"
 }
 $settings | ConvertTo-Json -Depth 10 | Set-Content $env:USERPROFILE\.claude\settings.json
 
@@ -333,7 +333,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js"
   }
 }
 ```
@@ -344,7 +344,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\0.1.0\\dist\\index.js'\""
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.0.0\\dist\\index.js'\""
   }
 }
 ```
@@ -518,10 +518,10 @@ if (branchLine) lines.push(branchLine);
 Troubleshooting:
 ```bash
 # 1. Check if dist/index.js exists
-ls -la ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
+ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js
 
 # 2. Test manually, check if stdout has content
-echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js
+echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js
 # Should output: 📊 上下文 ... 🪙 Token ...
 
 # 3. If manual run works but Claude Code doesn't show it, check settings.json
@@ -532,7 +532,7 @@ cat ~/.claude/settings.json | grep -A2 statusLine
 
 **A**: You're using [Claude Code v2.1.5 or earlier](https://docs.claude.com/en/docs/claude-code/statusline), which doesn't pass the `used_percentage` field. This plugin falls back to calculating token percentage manually — if token data is also empty, it shows 0%.
 
-v0.1.0+ includes a **Context percentage anti-flicker** mechanism: when Claude Code sends a frame where all token fields are zero/missing, the plugin automatically uses the last valid cached percentage (within 5 minutes) to prevent the progress bar from flashing to zero. After `/clear`, the cache expires automatically and won't leave stale values.
+v1.0.0+ includes a **Context percentage anti-flicker** mechanism: when Claude Code sends a frame where all token fields are zero/missing, the plugin automatically uses the last valid cached percentage (within 5 minutes) to prevent the progress bar from flashing to zero. After `/clear`, the cache expires automatically and won't leave stale values.
 
 **If you still see frequent 0%**: Upgrade to the latest Claude Code:
 ```bash
@@ -581,7 +581,7 @@ async function main() {
 
 **A**:
 ```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
 git pull
 npm install
 npm run build
