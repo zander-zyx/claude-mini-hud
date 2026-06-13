@@ -42,7 +42,7 @@
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-🧠 模型 deepseek-v4-pro  [deepseek]
+🧠 模型 glm-5.2  [智谱]
 ```
 
 **English (en)**:
@@ -301,7 +301,7 @@ This is a [Claude Code platform limitation](https://github.com/anthropics/claude
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-🧠 模型 deepseek-v4-pro  [deepseek]
+🧠 模型 glm-5.2  [智谱]
 ```
 
 **No tools/agents** (those lines auto-hide, only 3 lines):
