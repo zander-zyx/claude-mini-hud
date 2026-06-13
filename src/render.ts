@@ -84,8 +84,12 @@ function progressBar(percent: number, _width?: number): string {
   // 颜色按百分比: 绿 < 60, 黄 60-80, 红 > 80
   const color = percent > 80 ? c.red : percent > 60 ? c.yellow : c.green;
 
-  // ─── 渐变主题: 按位置在总宽度中的比例选 ▓/▒/░ ──────────────────────
-  if (THEME_NAME === 'gradient' && fillCount > 0) {
+  // 边框 (所有主题共用, 包括 gradient/retro)
+  const left = theme.leftBorder ? c.dim(theme.leftBorder) : '';
+  const right = theme.rightBorder ? c.dim(theme.rightBorder) : '';
+
+  // ─── 渐变主题: 按位置在总宽度中的比例选 ▓/▒/░ (阈值与颜色区间对齐) ──
+  if (THEME_NAME === 'gradient') {
     let filledStr = '';
     for (let i = 0; i < fillCount; i++) {
       const ratio = i / totalSlots;
@@ -94,25 +98,27 @@ function progressBar(percent: number, _width?: number): string {
       else filledStr += '░';
     }
     const emptyStr = theme.empty.repeat(emptyCount);
-    const bar = color(filledStr + emptyStr);
-    return bar;
+    const bar = color(filledStr) + c.dim(emptyStr);
+    return `${left}${bar}${right}`;
   }
 
   // ─── 复古终端主题: 末位用 ▸ 箭头指示器 ────────────────────────────
-  if (THEME_NAME === 'retro' && fillCount > 0) {
-    const arrowPos = fillCount - 1; // 最后一个填充位放箭头
+  if (THEME_NAME === 'retro') {
     let filledStr = '';
     for (let i = 0; i < fillCount; i++) {
-      filledStr += i === arrowPos ? '▸' : '═';
+      filledStr += (i === fillCount - 1) ? '▸' : '═';
     }
     const emptyStr = theme.empty.repeat(emptyCount);
     const bar = color(filledStr) + c.dim(emptyStr);
-    return bar;
+    return `${left}${bar}${right}`;
   }
 
-  // 填充部分
+  // ─── 通用渲染: 单字符重复 / 多字符循环 ──────────────────────────────
   let filledStr = '';
-  if (theme.filled.length === 1) {
+  if (theme.filled.length === 0) {
+    // 防御: filled 为空时不渲染进度条内容 (仅 minimal 主题会走到这里, 但已提前返回)
+    return '';
+  } else if (theme.filled.length === 1) {
     filledStr = theme.filled[0].repeat(fillCount);
   } else {
     // 多字符循环填充 (如 braille / shades 风格)
@@ -124,9 +130,6 @@ function progressBar(percent: number, _width?: number): string {
   const emptyStr = theme.empty.repeat(emptyCount);
   const bar = color(filledStr + emptyStr);
 
-  // 拼接边框
-  const left = theme.leftBorder ? c.dim(theme.leftBorder) : '';
-  const right = theme.rightBorder ? c.dim(theme.rightBorder) : '';
   return `${left}${bar}${right}`;
 }
 

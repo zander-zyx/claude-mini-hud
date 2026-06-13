@@ -196,7 +196,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
 
   /**
    * 波浪风
-   * ≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋ 72%
+   * ≋≋≋≋≋≋≋≋≋≋≋≋≋≋∿∿∿∿∿∿ 72%
    */
   wave: {
     filled: ['≋'],
@@ -213,7 +213,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
 
   /**
    * 潮汐风
-   * ∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿ 72%
+   * ∿∿∿∿∿∿∿∿∿∿∿∿∿∿╌╌╌╌╌╌ 72%
    */
   tide: {
     filled: ['∿'],
@@ -280,8 +280,8 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
   },
 
   /**
-   * 阴影风 (filled 数组循环: █▓▒░)
-   * ████████████████▓▓▒▒░░ 72%
+   * 阴影风 (filled 数组循环: █▓▒░ 重复)
+   * █▓▒░█▓▒░█▓▒░█▓······ 72%
    */
   shades: {
     filled: ['█', '▓', '▒', '░'],
