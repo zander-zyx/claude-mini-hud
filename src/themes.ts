@@ -63,14 +63,14 @@ export interface ThemeConfig {
 const THEMES: Record<ThemeName, ThemeConfig> = {
   /**
    * 经典风格 (默认)
-   * Context ███░░░░░░░░░░░░░░░░░ 15%
+   * Context ███░░░░░░░ 15%
    */
   default: {
     filled: ['█'],
     empty: '░',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -80,14 +80,14 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
 
   /**
    * 霓虹矩阵风
-   * ⟦ CTX: ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░ 42% ⟧
+   * ⟦ CTX: ▓▓▓▓░░░░░░ 42% ⟧
    */
   neon: {
     filled: ['▓'],
     empty: '░',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -97,14 +97,14 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
 
   /**
    * Braille 点阵风
-   * ⡿⣷⣯⣟⡿⣷⣯⣟░░░░░░░░ 42%
+   * ⡿⣷⣯⣟⡿░░░░░░░░ 42%
    */
   braille: {
     filled: ['⣿', '⣷', '⣯', '⣟', '⡿', '⣯', '⣟'],
     empty: '░',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -121,7 +121,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '□',
     leftBorder: '[',
     rightBorder: ']',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' │ ',
@@ -155,7 +155,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '⣀',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -172,7 +172,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '◇',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -189,7 +189,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '▹',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -206,7 +206,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '∿',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -223,7 +223,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '╌',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -240,7 +240,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '○',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -257,7 +257,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '⊙',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -274,7 +274,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '·',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -291,7 +291,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '·',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -308,7 +308,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '─',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -325,7 +325,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '.',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -342,7 +342,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '╌',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -359,7 +359,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '☆',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
@@ -376,7 +376,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     empty: '✧',
     leftBorder: '',
     rightBorder: '',
-    width: 20,
+    width: 10,
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
