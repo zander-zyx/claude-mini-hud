@@ -90,8 +90,8 @@ Use AskUserQuestion:
       description: "● 运行中  ■ 已完成"
     - label: "钻石 Diamond"
       description: "◈ 运行中  ◆ 已完成"
-    - label: "箭头 Arrow"
-      description: "▸ 运行中  ✓ 已完成"
+    - label: "心形 Heart"
+      description: "♥♥♡♡  心形风 (💗 ♥)"
 ```
 
 把选择存到 `{THEME}` 和 `{MARKS}` 变量 (默认都是 `default`)。
@@ -104,10 +104,22 @@ Use AskUserQuestion:
 | 霓虹 | `neon` | `⟦▓▓▓▓░░⟧` | `neon` | `◈ ✦` |
 | 点阵 | `braille` | `⣿⣷⣯░░` | `braille` | `⣷ ⣿` |
 | 硬核 | `hardcore` | `[■■□□] CTX │` | `hardcore` | `● ■` |
-| 简约 | `minimal` | `◈ % ┃` | `minimal` | `· ·` |
+| 简约 | `minimal` | `◈ % ┃` | `minimal` | `· •` |
 | 像素 | `pixel` | `⣿⣿⣀⣀` | `pixel` | `▣ ■` |
 | 钻石 | `diamond` | `◆◆◇◇` | `diamond` | `◈ ◆` |
 | 箭头 | `arrow` | `▸▸▹▹` | `arrow` | `▸ ✓` |
+| 波浪 | `wave` | `≋≋∿∿` | `wave` | `≋ ≈` |
+| 潮汐 | `tide` | `∿∿╌╌` | `tide` | `∿ ≈` |
+| 圆点 | `dot` | `●●○○` | `dot` | `◉ ●` |
+| 靶心 | `target` | `◎◎⊙⊙` | `target` | `◎ ⊙` |
+| 渐变 | `gradient` | `▓▓▒▒░░` | `gradient` | `▒ ▓` |
+| 阴影 | `shades` | `█▓▒░` | `shades` | `▒ █` |
+| 复古 | `retro` | `══▸──` | `retro` | `► ■` |
+| ASCII | `ascii` | `##..` | `ascii` | `@ #` |
+| 铁轨 | `rail` | `══╌╌` | `rail` | `╌ ═` |
+| 星光 | `star` | `★★☆☆` | `star` | `☆ ★` |
+| 火花 | `spark` | `✦✦✧✧` | `spark` | `✦ ✧` |
+| 心形 | `heart` | `♥♥♡♡` | `heart` | `💗 ♥` |
 
 ## Step 2: 检测环境
 

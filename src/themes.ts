@@ -140,7 +140,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     minimalIcon: '◈',
     separator: ' ┃ ',
     runningMark: '·',
-    completedMark: '·',
+    completedMark: '•',
   },
 
   /**
@@ -360,7 +360,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
-    runningMark: '★',
+    runningMark: '☆',
     completedMark: '★',
   },
 
@@ -394,7 +394,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     isMinimal: false,
     minimalIcon: '',
     separator: ' ',
-    runningMark: '♥',
+    runningMark: '💗',
     completedMark: '♥',
   },
 };

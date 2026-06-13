@@ -1,14 +1,15 @@
 # 📊 claude-mini-hud
 
-> Claude Code 状态栏 — 上下文 / Token / 任务 / 工具活动 / Agent 追踪 + 深度适配国产大模型用量查询 (对标 claude-hud 的轻量版)
-> Claude Code statusline — context / token / todos / tools / agents + deep multi-provider usage (lightweight claude-hud alternative)
+> Claude Code 状态栏 — 上下文 / Token / 任务 / 工具活动 / Agent 追踪 + 深度适配国产大模型用量查询
+> 
+> 20 种进度条主题 · 4 种显示模式 · 零依赖 · 10ms 启动
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
 ![Language: TS](https://img.shields.io/badge/TypeScript-ES2022-blue)
 ![StatusLine](https://img.shields.io/badge/Claude_Code-StatusLine-blueviolet)
 
-[简体中文](#) · [English](./README.en.md) · [安装](#安装) · [FAQ](#faq) · [贡献](#贡献)
+[简体中文](#) · [English](./README.en.md) · [安装](#安装) · [主题预览](#进度条主题预览) · [FAQ](#faq) · [贡献](#贡献)
 
 ---
 
@@ -68,7 +69,7 @@
 
 **核心特性**:
 - ⚡ **零依赖**: TypeScript 多模块架构,编译产物轻量
-- 🌍 **三种语言**: 中文 / English / Minimal (英中混搭)
+- 🌍 **四种显示模式**: 中文 / English / Minimal (英中混搭) / Ultra-Minimal (只显示两行)
 - 🔧 **工具活动**: 实时显示文件读写、搜索、命令执行 (◐ 运行中 / ✓ 已完成×N)
 - 🤖 **Agent 追踪**: 显示活跃子 Agent 及其耗时
 - 🔥 **Token 速率**: 实时解码速度 (tok/s)
@@ -374,9 +375,9 @@ TMPDIR=~/.cache/tmp claude
 | 复古终端 | `retro` | `# Context ═════════════▸────── 72%` | `► 运行中` `■ 已完成` |
 | 纯 ASCII | `ascii` | `# Context ##############...... 72%` | `@ 运行中` `# 已完成` |
 | 铁轨 | `rail` | `# Context ══════════════╌╌╌╌╌╌ 72%` | `╌ 运行中` `═ 已完成` |
-| 星光 | `star` | `# Context ★★★★★★★★★★★★★★☆☆☆☆☆☆ 72%` | `★ 运行中` `★ 已完成` |
+| 星光 | `star` | `# Context ★★★★★★★★★★★★★★☆☆☆☆☆☆ 72%` | `☆ 运行中` `★ 已完成` |
 | 火花 | `spark` | `# Context ✦✦✦✦✦✦✦✦✦✦✦✦✦✦✧✧✧✧✧✧ 72%` | `✦ 运行中` `✧ 已完成` |
-| 心形 | `heart` | `# Context ♥♥♥♥♥♥♥♥♥♥♥♥♥♥♡♡♡♡♡♡ 72%` | `♥ 运行中` `♥ 已完成` |
+| 心形 | `heart` | `# Context ♥♥♥♥♥♥♥♥♥♥♥♥♥♥♡♡♡♡♡♡ 72%` | `💗 运行中` `♥ 已完成` |
 
 > 💡 **自由组合**: `CLAUDE_MINI_HUD_THEME` 控制进度条, `CLAUDE_MINI_HUD_MARKS` 控制工具/Agent 标记, 两者独立可混搭。例如 `THEME=hardcore MARKS=diamond`。
 

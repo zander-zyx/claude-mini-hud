@@ -1,13 +1,15 @@
 # 📊 claude-mini-hud
 
-> Claude Code statusline — context / token / todos / tools / agents + deep multi-provider usage (lightweight claude-hud alternative)
+> Claude Code StatusLine plugin — context / token / todos / tools / agents + deep multi-provider usage
+>
+> 20 progress bar themes · 4 display modes · zero dependencies · 10ms startup
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
 ![Language: TS](https://img.shields.io/badge/TypeScript-ES2022-blue)
 ![StatusLine](https://img.shields.io/badge/Claude_Code-StatusLine-blueviolet)
 
-[简体中文](./README.md) · [English](#) · [Installation](#installation) · [FAQ](#faq) · [Contributing](#contributing)
+[简体中文](./README.md) · [English](#) · [Installation](#installation) · [Theme Preview](#theme-preview) · [FAQ](#faq) · [Contributing](#contributing)
 
 ---
 
@@ -62,7 +64,7 @@ Switch with: `CLAUDE_MINI_HUD_LANG=zh|en|minimal|ultra-minimal` (see [Configurat
 
 **Key Features**:
 - ⚡ **Zero Dependencies**: Multi-module TypeScript architecture, lightweight compiled output
-- 🌍 **Three Languages**: Chinese / English / Minimal (hybrid)
+- 🌍 **Four Display Modes**: Chinese / English / Minimal (hybrid) / Ultra-Minimal (2 lines only)
 - 🔧 **Tool Activity**: Real-time file reads/writes, searches, command execution (◐ running / ✓ completed ×N)
 - 🤖 **Agent Tracking**: Shows active sub-agents and their duration
 - 🔥 **Token Speed**: Real-time decoding speed (tok/s)
@@ -346,6 +348,33 @@ The statusline automatically refreshes at these moments:
   }
 }
 ```
+
+#### Theme Preview (at 72%)
+
+| Theme | Variable | Progress Bar | Tool Marks |
+|-------|----------|--------------|------------|
+| Classic | `default` | `# Context ██████████████░░░░░░ 72%` | `◐ running` `✓ completed` |
+| Neon | `neon` | `⟦ CTX: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░ 72% ⟧` | `◈ running` `✦ completed` |
+| Braille | `braille` | `# Context ⣿⣷⣯⣟⡿⣯⣟⣿⣷⣯⣟⡿⣯⣟░░░░░░ 72%` | `⣷ running` `⣿ completed` |
+| Hardcore | `hardcore` | `[■■■■■■■■■■■■■■□□□□□□] 72% CTX │` | `● running` `■ completed` |
+| Minimal | `minimal` | `◈ 72% ┃ 125k / 200k  left 75k` | `· running` `• completed` |
+| Pixel | `pixel` | `# Context ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣀⣀⣀⣀⣀⣀ 72%` | `▣ running` `■ completed` |
+| Diamond | `diamond` | `# Context ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◇◇◇◇◇◇ 72%` | `◈ running` `◆ completed` |
+| Arrow | `arrow` | `# Context ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▹▹▹▹▹▹ 72%` | `▸ running` `✓ completed` |
+| Wave | `wave` | `# Context ≋≋≋≋≋≋≋≋≋≋≋≋≋≋∿∿∿∿∿∿ 72%` | `≋ running` `≈ completed` |
+| Tide | `tide` | `# Context ∿∿∿∿∿∿∿∿∿∿∿∿∿∿╌╌╌╌╌╌ 72%` | `∿ running` `≈ completed` |
+| Dot | `dot` | `# Context ●●●●●●●●●●●●●●○○○○○○ 72%` | `◉ running` `● completed` |
+| Target | `target` | `# Context ◎◎◎◎◎◎◎◎◎◎◎◎◎◎⊙⊙⊙⊙⊙⊙ 72%` | `◎ running` `⊙ completed` |
+| Gradient | `gradient` | `# Context ▓▓▓▓▓▓▓▓▓▓▓▓▒▒······ 72%` | `▒ running` `▓ completed` |
+| Shades | `shades` | `# Context █▓▒░█▓▒░█▓▒░█▓······ 72%` | `▒ running` `█ completed` |
+| Retro | `retro` | `# Context ═════════════▸────── 72%` | `► running` `■ completed` |
+| ASCII | `ascii` | `# Context ##############...... 72%` | `@ running` `# completed` |
+| Rail | `rail` | `# Context ══════════════╌╌╌╌╌╌ 72%` | `╌ running` `═ completed` |
+| Star | `star` | `# Context ★★★★★★★★★★★★★★☆☆☆☆☆☆ 72%` | `☆ running` `★ completed` |
+| Spark | `spark` | `# Context ✦✦✦✦✦✦✦✦✦✦✦✦✦✦✧✧✧✧✧✧ 72%` | `✦ running` `✧ completed` |
+| Heart | `heart` | `# Context ♥♥♥♥♥♥♥♥♥♥♥♥♥♥♡♡♡♡♡♡ 72%` | `💗 running` `♥ completed` |
+
+> 💡 **Mix & match**: `CLAUDE_MINI_HUD_THEME` controls the progress bar, `CLAUDE_MINI_HUD_MARKS` controls tool/agent icons independently. For example: `THEME=hardcore MARKS=diamond`.
 
 > 💡 **Why env vars instead of a config file?**
 > An extension of the zero-dependency philosophy — no config files created, no pollution of user project directories, consistent with Claude Code's own env configuration style (`ANTHROPIC_BASE_URL`, etc.).
