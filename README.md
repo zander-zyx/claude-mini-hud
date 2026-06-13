@@ -196,7 +196,7 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 # 3. 重载插件缓存
 /reload-plugins
 
-# 4. 跑 setup (会弹出菜单选 1.中文 / 2.English)
+# 4. 跑 setup (依次弹出菜单: 语言 / 进度条主题 / 工具标记)
 /claude-mini-hud:setup
 ```
 
@@ -204,10 +204,11 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 
 **setup 流程会**:
 1. 检测你的操作系统和 Claude 配置目录
-2. 询问语言 (中文 / English)
-3. 检查现有 statusLine 配置,如有冲突会备份
-4. 把 `node <path>/dist/index.js` 写入 `~/.claude/settings.json`
-5. 提示重启 + 验证步骤
+2. 选择语言 (中文 / English / 简约 Minimal / 极简 Ultra-Minimal)
+3. 选择进度条主题 + 工具标记风格 (可选, 21 种主题自由组合, 默认经典)
+4. 检查现有 statusLine 配置,如有冲突会备份
+5. 把 `node <path>/dist/index.js` + 环境变量写入 `~/.claude/settings.json`
+6. 提示重启 + 验证步骤
 
 ### 方式 2: 手动 git clone
 

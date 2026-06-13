@@ -191,7 +191,7 @@ See those two lines? Everything works. Next step: [Install into Claude Code](#in
 # 3. Reload plugin cache
 /reload-plugins
 
-# 4. Run setup (prompts you to choose 1. Chinese / 2. English)
+# 4. Run setup (prompts: language / progress bar theme / tool marks)
 /claude-mini-hud:setup
 ```
 
@@ -199,10 +199,11 @@ See those two lines? Everything works. Next step: [Install into Claude Code](#in
 
 **What setup does**:
 1. Detects your OS and Claude config directory
-2. Asks for language preference (Chinese / English)
-3. Checks existing statusLine config; backs up if there's a conflict
-4. Writes `node <path>/dist/index.js` into `~/.claude/settings.json`
-5. Prompts you to restart + verify
+2. Choose language (Chinese / English / Minimal / Ultra-Minimal)
+3. Choose progress bar theme + tool marks (optional, 21 themes mix freely, default Classic)
+4. Checks existing statusLine config; backs up if there's a conflict
+5. Writes `node <path>/dist/index.js` + env vars into `~/.claude/settings.json`
+6. Prompts you to restart + verify
 
 ### Option 2: Manual git clone
 
