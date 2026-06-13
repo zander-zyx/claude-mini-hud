@@ -91,7 +91,9 @@ Use AskUserQuestion:
     - label: "钻石 Diamond"
       description: "◈ 运行中  ◆ 已完成"
     - label: "心形 Heart"
-      description: "♥♥♡♡  心形风 (💗 ♥)"
+      description: "🖤🖤🤍🤍  心形风 (💗 🖤)"
+    - label: "爱心 Love"
+      description: "❤️❤️🤍🤍  爱心风 (💗 ❤️)"
 ```
 
 把选择存到 `{THEME}` 和 `{MARKS}` 变量 (默认都是 `default`)。
@@ -119,7 +121,8 @@ Use AskUserQuestion:
 | 铁轨 | `rail` | `══╌╌` | `rail` | `╌ ═` |
 | 星光 | `star` | `★★☆☆` | `star` | `☆ ★` |
 | 火花 | `spark` | `✦✦✧✧` | `spark` | `✦ ✧` |
-| 心形 | `heart` | `♥♥♡♡` | `heart` | `💗 ♥` |
+| 心形 | `heart` | `🖤🖤🤍🤍` | `heart` | `💗 🖤` |
+| 爱心 | `love` | `❤️❤️🤍🤍` | `love` | `💗 ❤️` |
 
 ## Step 2: 检测环境
 

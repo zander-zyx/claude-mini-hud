@@ -324,8 +324,8 @@ TMPDIR=~/.cache/tmp claude
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` / `ultra-minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji, ultra-minimal = 只显示 Context + Token 两行) |
-| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `gradient` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` | 进度条风格 (见下方主题预览) |
-| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `gradient` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `gradient` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | 进度条风格 (见下方主题预览) |
+| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `gradient` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (未设) | `1` | 设置为 `1` 时强制禁用 emoji, 使用 ASCII 符号 (# $ > 等) |
@@ -377,7 +377,8 @@ TMPDIR=~/.cache/tmp claude
 | 铁轨 | `rail` | `# Context ══════════════╌╌╌╌╌╌ 72%` | `╌ 运行中` `═ 已完成` |
 | 星光 | `star` | `# Context ★★★★★★★★★★★★★★☆☆☆☆☆☆ 72%` | `☆ 运行中` `★ 已完成` |
 | 火花 | `spark` | `# Context ✦✦✦✦✦✦✦✦✦✦✦✦✦✦✧✧✧✧✧✧ 72%` | `✦ 运行中` `✧ 已完成` |
-| 心形 | `heart` | `# Context ♥♥♥♥♥♥♥♥♥♥♥♥♥♥♡♡♡♡♡♡ 72%` | `💗 运行中` `♥ 已完成` |
+| 心形 | `heart` | `# Context 🖤🖤🖤🖤🖤🖤🖤🤍🤍🤍 72%` | `💗 运行中` `🖤 已完成` |
+| 爱心 | `love` | `# Context ❤️❤️❤️❤️❤️❤️❤️🤍🤍🤍 72%` | `💗 运行中` `❤️ 已完成` |
 
 > 💡 **自由组合**: `CLAUDE_MINI_HUD_THEME` 控制进度条, `CLAUDE_MINI_HUD_MARKS` 控制工具/Agent 标记, 两者独立可混搭。例如 `THEME=hardcore MARKS=diamond`。
 

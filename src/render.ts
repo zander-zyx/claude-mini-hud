@@ -82,7 +82,7 @@ function progressBar(percent: number, _width?: number): string {
   const emptyCount = totalSlots - fillCount;
 
   // 颜色按百分比: 绿 < 60, 黄 60-80, 红 > 80
-  const color = percent > 80 ? c.red : percent > 60 ? c.yellow : c.green;
+  const color = THEME.monochrome ? (s: string) => s : (percent > 80 ? c.red : percent > 60 ? c.yellow : c.green);
 
   // 边框 (所有主题共用, 包括 gradient/retro)
   const left = theme.leftBorder ? c.dim(theme.leftBorder) : '';
@@ -206,7 +206,7 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
   // ─── 公共逻辑 (所有主题共用) ────────────────────────────────────────────
 
   // 百分比着色
-  const pctColorFn = pct >= 80 ? c.red : pct >= 60 ? c.yellow : c.green;
+  const pctColorFn = THEME.monochrome ? (s: string) => s : (pct >= 80 ? c.red : pct >= 60 ? c.yellow : c.green);
 
   // 详情文本 (token 数 / 剩余 / 余额)
   let detail = '';
