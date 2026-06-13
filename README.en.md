@@ -2,7 +2,7 @@
 
 > Claude Code StatusLine plugin — context / token / todos / tools / agents + deep multi-provider usage
 >
-> 20 progress bar themes · 4 display modes · zero dependencies · 10ms startup
+> 21 progress bar themes · 4 display modes · zero dependencies · 10ms startup
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
@@ -701,7 +701,7 @@ claude-mini-hud/
 │   ├── types.ts        # Shared type definitions
 │   ├── i18n.ts         # Internationalization (zh/en/minimal)
 │   ├── colors.ts       # ANSI colors (zero-dependency)
-│   ├── themes.ts       # Progress bar theme system (20 themes)
+│   ├── themes.ts       # Progress bar theme system (21 themes)
 │   ├── render.ts       # All render functions
 │   ├── transcript.ts   # Transcript JSONL parser
 │   └── usage.ts        # Multi-platform usage/balance queries
@@ -748,13 +748,13 @@ PRs are welcome! Here are the contribution guidelines:
 
 ### Roadmap
 
-Short-term (v0.2):
-- [x] Progress bar theme system (20 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart)
+Short-term (v1.1):
+- [x] Progress bar theme system (21 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart/love)
 - [ ] Session cost display (requires Claude Code to expose `cost` field)
 - [ ] Smoother refresh across multi-window switches
 - [ ] Read color thresholds from environment variables
 
-Medium-term (v0.3):
+Medium-term (v1.2):
 - [ ] Light/dark theme adaptation
 - [ ] Mouse hover tooltips (subject to Claude Code TUI limits)
 - [ ] Clickable statusline links (jump to current transcript)

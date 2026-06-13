@@ -2,7 +2,7 @@
 
 > Claude Code 状态栏 — 上下文 / Token / 任务 / 工具活动 / Agent 追踪 + 深度适配国产大模型用量查询
 > 
-> 20 种进度条主题 · 4 种显示模式 · 零依赖 · 10ms 启动
+> 21 种进度条主题 · 4 种显示模式 · 零依赖 · 10ms 启动
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
@@ -721,7 +721,7 @@ claude-mini-hud/
 │   ├── types.ts        # 共享类型定义
 │   ├── i18n.ts         # 国际化 (zh/en/minimal)
 │   ├── colors.ts       # ANSI 颜色 (零依赖)
-│   ├── themes.ts       # 进度条主题系统 (20 种可选)
+│   ├── themes.ts       # 进度条主题系统 (21 种可选)
 │   ├── render.ts       # 所有渲染函数
 │   ├── transcript.ts   # Transcript JSONL 解析
 │   └── usage.ts        # 多平台用量/余额查询
@@ -768,13 +768,13 @@ claude-mini-hud/
 
 ### Roadmap
 
-近期 (v0.2):
-- [x] 进度条主题系统 (20 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头/波浪/潮汐/圆点/靶心/渐变/阴影/复古/ASCII/铁轨/星光/火花/心形)
+近期 (v1.1):
+- [x] 进度条主题系统 (21 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头/波浪/潮汐/圆点/靶心/渐变/阴影/复古/ASCII/铁轨/星光/火花/心形/爱心)
 - [ ] Session 费用显示 (需要 Claude Code 暴露 `cost` 字段)
 - [ ] 多窗口切换时更平滑的刷新
 - [ ] 从环境变量读取颜色阈值
 
-中期 (v0.3):
+中期 (v1.2):
 - [ ] 亮色/暗色主题适配
 - [ ] 鼠标悬停提示 (受 Claude Code TUI 限制)
 - [ ] 可点击的状态栏链接 (跳转到当前 transcript)
