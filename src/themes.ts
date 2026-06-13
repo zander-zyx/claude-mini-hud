@@ -14,11 +14,23 @@
  *   pixel    — 像素风 ⣿⣀
  *   diamond  — 钻石风 ◆◇
  *   arrow    — 箭头风 ▸▹
+ *   wave     — 波浪风 ≋∿
+ *   tide     — 潮汐风 ∿╌
+ *   dot      — 圆点风 ●○
+ *   target   — 靶心风 ◎⊙
+ *   gradient — 渐变风 ▓▒░·
+ *   shades   — 阴影风 █▓▒░·
+ *   retro    — 复古终端风 ═▸─
+ *   ascii    — 纯 ASCII 风 #.
+ *   rail     — 铁轨风 ═╌
+ *   star     — 星光风 ★☆
+ *   spark    — 火花风 ✦✧
+ *   heart    — 心形风 ♥♡
  */
 
 // ─── 主题类型 ─────────────────────────────────────────────────────────────
 
-export type ThemeName = 'default' | 'neon' | 'braille' | 'hardcore' | 'minimal' | 'pixel' | 'diamond' | 'arrow';
+export type ThemeName = 'default' | 'neon' | 'braille' | 'hardcore' | 'minimal' | 'pixel' | 'diamond' | 'arrow' | 'wave' | 'tide' | 'dot' | 'target' | 'gradient' | 'shades' | 'retro' | 'ascii' | 'rail' | 'star' | 'spark' | 'heart';
 
 export interface ThemeConfig {
   /** 进度条填充字符 (从满到空排列) */
@@ -181,12 +193,216 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
     runningMark: '▸',
     completedMark: '✓',
   },
+
+  /**
+   * 波浪风
+   * ≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋ 72%
+   */
+  wave: {
+    filled: ['≋'],
+    empty: '∿',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '≋',
+    completedMark: '≈',
+  },
+
+  /**
+   * 潮汐风
+   * ∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿∿ 72%
+   */
+  tide: {
+    filled: ['∿'],
+    empty: '╌',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '∿',
+    completedMark: '≈',
+  },
+
+  /**
+   * 圆点风
+   * ●●●●●●●●●●●●●○○○○○○ 72%
+   */
+  dot: {
+    filled: ['●'],
+    empty: '○',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '◉',
+    completedMark: '●',
+  },
+
+  /**
+   * 靶心风
+   * ◎◎◎◎◎◎◎◎◎◎◎◎◎⊙⊙⊙⊙⊙⊙ 72%
+   */
+  target: {
+    filled: ['◎'],
+    empty: '⊙',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '◎',
+    completedMark: '⊙',
+  },
+
+  /**
+   * 渐变风 (特殊渲染: 按百分比选 ▓/▒/░)
+   * ▓▓▓▓▓▓▓▓▓▓▒▒▒▒░░░░░░ 72%
+   */
+  gradient: {
+    filled: ['▓', '▒', '░'],
+    empty: '·',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '▒',
+    completedMark: '▓',
+  },
+
+  /**
+   * 阴影风 (filled 数组循环: █▓▒░)
+   * ████████████████▓▓▒▒░░ 72%
+   */
+  shades: {
+    filled: ['█', '▓', '▒', '░'],
+    empty: '·',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '▒',
+    completedMark: '█',
+  },
+
+  /**
+   * 复古终端风 (特殊渲染: 末位箭头指示器)
+   * ══════════════▸────────── 72%
+   */
+  retro: {
+    filled: ['═'],
+    empty: '─',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '►',
+    completedMark: '■',
+  },
+
+  /**
+   * 纯 ASCII 风
+   * ################.... 72%
+   */
+  ascii: {
+    filled: ['#'],
+    empty: '.',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '@',
+    completedMark: '#',
+  },
+
+  /**
+   * 铁轨风
+   * ════════════════╌╌╌╌╌╌ 72%
+   */
+  rail: {
+    filled: ['═'],
+    empty: '╌',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '╌',
+    completedMark: '═',
+  },
+
+  /**
+   * 星光风
+   * ★★★★★★★★★★★★★☆☆☆☆☆☆ 72%
+   */
+  star: {
+    filled: ['★'],
+    empty: '☆',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '★',
+    completedMark: '★',
+  },
+
+  /**
+   * 火花风
+   * ✦✦✦✦✦✦✦✦✦✦✦✦✦✦✧✧✧✧✧✧ 72%
+   */
+  spark: {
+    filled: ['✦'],
+    empty: '✧',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '✦',
+    completedMark: '✧',
+  },
+
+  /**
+   * 心形风
+   * ♥♥♥♥♥♥♥♥♥♥♥♥♥♡♡♡♡♡♡ 72%
+   */
+  heart: {
+    filled: ['♥'],
+    empty: '♡',
+    leftBorder: '',
+    rightBorder: '',
+    width: 20,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '♥',
+    completedMark: '♥',
+  },
 };
 
 // ─── 主题选择 ─────────────────────────────────────────────────────────────
 
 /** 有效的主题名列表 */
-export const THEME_NAMES: ThemeName[] = ['default', 'neon', 'braille', 'hardcore', 'minimal', 'pixel', 'diamond', 'arrow'];
+export const THEME_NAMES: ThemeName[] = ['default', 'neon', 'braille', 'hardcore', 'minimal', 'pixel', 'diamond', 'arrow', 'wave', 'tide', 'dot', 'target', 'gradient', 'shades', 'retro', 'ascii', 'rail', 'star', 'spark', 'heart'];
 
 /** 从环境变量解析主题名 (无效值回退到 default) */
 function resolveName(envKey: string): ThemeName {

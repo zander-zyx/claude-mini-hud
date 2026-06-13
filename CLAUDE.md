@@ -53,4 +53,4 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 - **Zero runtime dependencies** — only Node.js built-ins
 - **Never crash Claude Code** — all errors caught, fallback message printed
 - **Compiled output is lightweight** — `dist/` contains multi-module JS files, must stay small
-- **Environment variables control behavior**: `CLAUDE_MINI_HUD_LANG` (zh/en/minimal), `CLAUDE_MINI_HUD_SHOW_MODEL` (1 to show model line), `CLAUDE_MINI_HUD_TOKEN_MODE` (session/context/both), `CLAUDE_MINI_HUD_THEME` (default/neon/braille/hardcore/minimal/pixel/diamond/arrow), `CLAUDE_MINI_HUD_MARKS` (same values, controls tool/agent icons independently)
+- **Environment variables control behavior**: `CLAUDE_MINI_HUD_LANG` (zh/en/minimal), `CLAUDE_MINI_HUD_SHOW_MODEL` (1 to show model line), `CLAUDE_MINI_HUD_TOKEN_MODE` (session/context/both), `CLAUDE_MINI_HUD_THEME` (default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart), `CLAUDE_MINI_HUD_MARKS` (same values, controls tool/agent icons independently)

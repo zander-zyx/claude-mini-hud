@@ -84,12 +84,38 @@ function progressBar(percent: number, _width?: number): string {
   // 颜色按百分比: 绿 < 60, 黄 60-80, 红 > 80
   const color = percent > 80 ? c.red : percent > 60 ? c.yellow : c.green;
 
+  // ─── 渐变主题: 按位置在总宽度中的比例选 ▓/▒/░ ──────────────────────
+  if (THEME_NAME === 'gradient' && fillCount > 0) {
+    let filledStr = '';
+    for (let i = 0; i < fillCount; i++) {
+      const ratio = i / totalSlots;
+      if (ratio < 0.6) filledStr += '▓';
+      else if (ratio < 0.8) filledStr += '▒';
+      else filledStr += '░';
+    }
+    const emptyStr = theme.empty.repeat(emptyCount);
+    const bar = color(filledStr + emptyStr);
+    return bar;
+  }
+
+  // ─── 复古终端主题: 末位用 ▸ 箭头指示器 ────────────────────────────
+  if (THEME_NAME === 'retro' && fillCount > 0) {
+    const arrowPos = fillCount - 1; // 最后一个填充位放箭头
+    let filledStr = '';
+    for (let i = 0; i < fillCount; i++) {
+      filledStr += i === arrowPos ? '▸' : '═';
+    }
+    const emptyStr = theme.empty.repeat(emptyCount);
+    const bar = color(filledStr) + c.dim(emptyStr);
+    return bar;
+  }
+
   // 填充部分
   let filledStr = '';
   if (theme.filled.length === 1) {
     filledStr = theme.filled[0].repeat(fillCount);
   } else {
-    // 多字符循环填充 (如 braille 风格)
+    // 多字符循环填充 (如 braille / shades 风格)
     for (let i = 0; i < fillCount; i++) {
       filledStr += theme.filled[i % theme.filled.length];
     }

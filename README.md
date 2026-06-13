@@ -323,8 +323,8 @@ TMPDIR=~/.cache/tmp claude
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` / `ultra-minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji, ultra-minimal = 只显示 Context + Token 两行) |
-| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | 进度条风格 (见下方主题预览) |
-| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `gradient` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` | 进度条风格 (见下方主题预览) |
+| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `gradient` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (未设) | `1` | 设置为 `1` 时强制禁用 emoji, 使用 ASCII 符号 (# $ > 等) |
@@ -365,6 +365,18 @@ TMPDIR=~/.cache/tmp claude
 | 像素 | `pixel` | `# Context ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣀⣀⣀⣀⣀⣀ 72%` | `▣ 运行中` `■ 已完成` |
 | 钻石 | `diamond` | `# Context ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◇◇◇◇◇◇ 72%` | `◈ 运行中` `◆ 已完成` |
 | 箭头 | `arrow` | `# Context ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▹▹▹▹▹▹ 72%` | `▸ 运行中` `✓ 已完成` |
+| 波浪 | `wave` | `# Context ≋≋≋≋≋≋≋≋≋≋≋≋≋≋∿∿∿∿∿∿ 72%` | `≋ 运行中` `≈ 已完成` |
+| 潮汐 | `tide` | `# Context ∿∿∿∿∿∿∿∿∿∿∿∿∿∿╌╌╌╌╌╌ 72%` | `∿ 运行中` `≈ 已完成` |
+| 圆点 | `dot` | `# Context ●●●●●●●●●●●●●●○○○○○○ 72%` | `◉ 运行中` `● 已完成` |
+| 靶心 | `target` | `# Context ◎◎◎◎◎◎◎◎◎◎◎◎◎◎⊙⊙⊙⊙⊙⊙ 72%` | `◎ 运行中` `⊙ 已完成` |
+| 渐变 | `gradient` | `# Context ▓▓▓▓▓▓▓▓▓▓▓▓▒▒······ 72%` | `▒ 运行中` `▓ 已完成` |
+| 阴影 | `shades` | `# Context █▓▒░█▓▒░█▓▒░█▓······ 72%` | `▒ 运行中` `█ 已完成` |
+| 复古终端 | `retro` | `# Context ═════════════▸────── 72%` | `► 运行中` `■ 已完成` |
+| 纯 ASCII | `ascii` | `# Context ##############...... 72%` | `@ 运行中` `# 已完成` |
+| 铁轨 | `rail` | `# Context ══════════════╌╌╌╌╌╌ 72%` | `╌ 运行中` `═ 已完成` |
+| 星光 | `star` | `# Context ★★★★★★★★★★★★★★☆☆☆☆☆☆ 72%` | `★ 运行中` `★ 已完成` |
+| 火花 | `spark` | `# Context ✦✦✦✦✦✦✦✦✦✦✦✦✦✦✧✧✧✧✧✧ 72%` | `✦ 运行中` `✧ 已完成` |
+| 心形 | `heart` | `# Context ♥♥♥♥♥♥♥♥♥♥♥♥♥♥♡♡♡♡♡♡ 72%` | `♥ 运行中` `♥ 已完成` |
 
 > 💡 **自由组合**: `CLAUDE_MINI_HUD_THEME` 控制进度条, `CLAUDE_MINI_HUD_MARKS` 控制工具/Agent 标记, 两者独立可混搭。例如 `THEME=hardcore MARKS=diamond`。
 
@@ -453,7 +465,7 @@ npm run build   # 重新编译
 通过环境变量切换 (无需改代码):
 
 ```bash
-CLAUDE_MINI_HUD_THEME=arrow  # 可选: default/neon/braille/hardcore/minimal/pixel/diamond/arrow
+CLAUDE_MINI_HUD_THEME=arrow  # 可选: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart
 ```
 
 或自定义主题,修改 `src/themes.ts` 中的 `ThemeConfig`:
@@ -707,7 +719,7 @@ claude-mini-hud/
 │   ├── types.ts        # 共享类型定义
 │   ├── i18n.ts         # 国际化 (zh/en/minimal)
 │   ├── colors.ts       # ANSI 颜色 (零依赖)
-│   ├── themes.ts       # 进度条主题系统 (8 种可选)
+│   ├── themes.ts       # 进度条主题系统 (20 种可选)
 │   ├── render.ts       # 所有渲染函数
 │   ├── transcript.ts   # Transcript JSONL 解析
 │   └── usage.ts        # 多平台用量/余额查询
@@ -755,7 +767,7 @@ claude-mini-hud/
 ### Roadmap
 
 近期 (v0.2):
-- [x] 进度条主题系统 (8 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头)
+- [x] 进度条主题系统 (20 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头/波浪/潮汐/圆点/靶心/渐变/阴影/复古/ASCII/铁轨/星光/火花/心形)
 - [ ] Session 费用显示 (需要 Claude Code 暴露 `cost` 字段)
 - [ ] 多窗口切换时更平滑的刷新
 - [ ] 从环境变量读取颜色阈值
