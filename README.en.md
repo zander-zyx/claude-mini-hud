@@ -201,7 +201,7 @@ See those two lines? Everything works. Next step: [Install into Claude Code](#in
 **What setup does**:
 1. Detects your OS and Claude config directory
 2. Choose language (Chinese / English / Minimal / Ultra-Minimal)
-3. Choose progress bar theme + tool marks (optional, 21 themes mix freely, default Classic)
+3. Choose progress bar theme + tool marks (optional, 20 themes mix freely, default Classic)
 4. Checks existing statusLine config; backs up if there's a conflict
 5. Writes `node <path>/dist/index.js` + env vars into `~/.claude/settings.json`
 6. Prompts you to restart + verify
@@ -321,8 +321,8 @@ The statusline automatically refreshes at these moments:
 | Variable | Default | Options | Description |
 |----------|---------|---------|-------------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` / `ultra-minimal` | UI language (minimal = English-Chinese hybrid + no emoji, ultra-minimal = only Context + Token lines) |
-| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `gradient` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | Progress bar style |
-| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `gradient` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | Tool/Agent indicator icons (independent from THEME, mix freely) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | Progress bar style |
+| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | Tool/Agent indicator icons (independent from THEME, mix freely) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (unset) | `1` | When set to `1`, shows the model line |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token line mode: session=cumulative / context=snapshot / both=two lines |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (unset) | `1` | When set to `1`, forces ASCII symbols (# $ > etc.) instead of emoji |
@@ -367,7 +367,6 @@ The statusline automatically refreshes at these moments:
 | Tide | `tide` | `# Context ∿∿∿∿∿∿∿∿∿∿∿∿∿∿╌╌╌╌╌╌ 72%` | `∿ running` `≈ completed` |
 | Dot | `dot` | `# Context ●●●●●●●●●●●●●●○○○○○○ 72%` | `◉ running` `● completed` |
 | Target | `target` | `# Context ◎◎◎◎◎◎◎◎◎◎◎◎◎◎⊙⊙⊙⊙⊙⊙ 72%` | `◎ running` `⊙ completed` |
-| Gradient | `gradient` | `# Context ▓▓▓▓▓▓▓▓▓▓▓▓▒▒······ 72%` | `▒ running` `▓ completed` |
 | Shades | `shades` | `# Context █▓▒░█▓▒░█▓▒░█▓······ 72%` | `▒ running` `█ completed` |
 | Retro | `retro` | `# Context ═════════════▸────── 72%` | `► running` `■ completed` |
 | ASCII | `ascii` | `# Context ##############...... 72%` | `@ running` `# completed` |
@@ -703,7 +702,7 @@ claude-mini-hud/
 │   ├── types.ts        # Shared type definitions
 │   ├── i18n.ts         # Internationalization (zh/en/minimal)
 │   ├── colors.ts       # ANSI colors (zero-dependency)
-│   ├── themes.ts       # Progress bar theme system (21 themes)
+│   ├── themes.ts       # Progress bar theme system (20 themes)
 │   ├── render.ts       # All render functions
 │   ├── transcript.ts   # Transcript JSONL parser
 │   └── usage.ts        # Multi-platform usage/balance queries
@@ -751,7 +750,7 @@ PRs are welcome! Here are the contribution guidelines:
 ### Roadmap
 
 Short-term (v1.1):
-- [x] Progress bar theme system (21 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart/love)
+- [x] Progress bar theme system (20 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/shades/retro/ascii/rail/star/spark/heart/love)
 - [ ] Session cost display (requires Claude Code to expose `cost` field)
 - [ ] Smoother refresh across multi-window switches
 - [ ] Read color thresholds from environment variables
