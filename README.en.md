@@ -21,13 +21,13 @@
 
 **Ultra-Minimal (ultra-minimal)** — only Context + Token lines, maximum simplicity:
 ```
- Context ██████████░░░░░░░░░░ 52%  104k / 200k  剩余 96k
+ Context █████░░░░░ 52%  104k / 200k  剩余 96k
  Token 118k (in 89k · out 4k · cache 25k ) 12 tok/s
 ```
 
 **Chinese (zh, default)** — full Chinese + emoji:
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+📊 上下文 ███░░░░░░░ 13%  100k / 1M  剩余 900k
 🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
 ▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
@@ -39,7 +39,7 @@
 
 **English (en)**:
 ```
-📊 Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  left 900k
+📊 Context ███░░░░░░░ 13%  100k / 1M  left 900k
 🪙 Token 4.8M (in 3.5M · out 1.2M · cache 103k ) 45 tok/s
 ▶ Todos Writing skill  (1/4)
   ◐ reading index.ts
@@ -168,7 +168,7 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 **Expected output** (with ANSI colors):
 
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
+📊 上下文 ███░░░░░░░ 13%  22.0k / 200.0k  剩余 178k
 🪙 Token 23.1k (入 22.0k · 出 342 · 缓存 768 )
 ```
 
@@ -286,7 +286,7 @@ This is a [Claude Code platform limitation](https://github.com/anthropics/claude
 
 **All features enabled** (Chinese + model + tool activity + agent tracking):
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+📊 上下文 ███░░░░░░░ 13%  100k / 1M  剩余 900k
 🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
 ▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
@@ -298,7 +298,7 @@ This is a [Claude Code platform limitation](https://github.com/anthropics/claude
 
 **No tools/agents** (those lines auto-hide, only 3 lines):
 ```
-📊 上下文 ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+📊 上下文 ███░░░░░░░ 13%  100k / 1M  剩余 900k
 🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
 ▶ 当前任务 调研充电行业政策  (2/5)
 ```
@@ -355,24 +355,24 @@ The statusline automatically refreshes at these moments:
 
 | Theme | Variable | Progress Bar | Tool Marks |
 |-------|----------|--------------|------------|
-| Classic | `default` | `# Context ██████████████░░░░░░ 72%` | `◐ running` `✓ completed` |
-| Neon | `neon` | `⟦ CTX: ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░ 72% ⟧` | `◈ running` `✦ completed` |
-| Braille | `braille` | `# Context ⣿⣷⣯⣟⡿⣯⣟⣿⣷⣯⣟⡿⣯⣟░░░░░░ 72%` | `⣷ running` `⣿ completed` |
-| Hardcore | `hardcore` | `[■■■■■■■■■■■■■■□□□□□□] 72% CTX │` | `● running` `■ completed` |
+| Classic | `default` | `# Context ███████░░░ 72%` | `◐ running` `✓ completed` |
+| Neon | `neon` | `⟦ CTX: ▓▓▓▓▓▓▓░░░ 72% ⟧` | `◈ running` `✦ completed` |
+| Braille | `braille` | `# Context ⣿⣷⣯⣟⡿⣯⣟░░░░ 72%` | `⣷ running` `⣿ completed` |
+| Hardcore | `hardcore` | `[■■■■■■■□□□] 72% CTX │` | `● running` `■ completed` |
 | Minimal | `minimal` | `◈ 72% ┃ 125k / 200k  left 75k` | `· running` `• completed` |
-| Pixel | `pixel` | `# Context ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣀⣀⣀⣀⣀⣀ 72%` | `▣ running` `■ completed` |
-| Diamond | `diamond` | `# Context ◆◆◆◆◆◆◆◆◆◆◆◆◆◆◇◇◇◇◇◇ 72%` | `◈ running` `◆ completed` |
-| Arrow | `arrow` | `# Context ▸▸▸▸▸▸▸▸▸▸▸▸▸▸▹▹▹▹▹▹ 72%` | `▸ running` `✓ completed` |
-| Wave | `wave` | `# Context ≋≋≋≋≋≋≋≋≋≋≋≋≋≋∿∿∿∿∿∿ 72%` | `≋ running` `≈ completed` |
-| Tide | `tide` | `# Context ∿∿∿∿∿∿∿∿∿∿∿∿∿∿╌╌╌╌╌╌ 72%` | `∿ running` `≈ completed` |
-| Dot | `dot` | `# Context ●●●●●●●●●●●●●●○○○○○○ 72%` | `◉ running` `● completed` |
-| Target | `target` | `# Context ◎◎◎◎◎◎◎◎◎◎◎◎◎◎⊙⊙⊙⊙⊙⊙ 72%` | `◎ running` `⊙ completed` |
-| Shades | `shades` | `# Context █▓▒░█▓▒░█▓▒░█▓······ 72%` | `▒ running` `█ completed` |
-| Retro | `retro` | `# Context ═════════════▸────── 72%` | `► running` `■ completed` |
-| ASCII | `ascii` | `# Context ##############...... 72%` | `@ running` `# completed` |
-| Rail | `rail` | `# Context ══════════════╌╌╌╌╌╌ 72%` | `╌ running` `═ completed` |
-| Star | `star` | `# Context ★★★★★★★★★★★★★★☆☆☆☆☆☆ 72%` | `☆ running` `★ completed` |
-| Spark | `spark` | `# Context ✦✦✦✦✦✦✦✦✦✦✦✦✦✦✧✧✧✧✧✧ 72%` | `✦ running` `✧ completed` |
+| Pixel | `pixel` | `# Context ⣿⣿⣿⣿⣿⣿⣿⣀⣀⣀ 72%` | `▣ running` `■ completed` |
+| Diamond | `diamond` | `# Context ◆◆◆◆◆◆◆◆◇◇ 72%` | `◈ running` `◆ completed` |
+| Arrow | `arrow` | `# Context ▸▸▸▸▸▸▸▸▹▹ 72%` | `▸ running` `✓ completed` |
+| Wave | `wave` | `# Context ≋≋≋≋≋≋≋≋∿∿ 72%` | `≋ running` `≈ completed` |
+| Tide | `tide` | `# Context ∿∿∿∿∿∿∿∿╌╌ 72%` | `∿ running` `≈ completed` |
+| Dot | `dot` | `# Context ●●●●●●●●○○ 72%` | `◉ running` `● completed` |
+| Target | `target` | `# Context ◎◎◎◎◎◎◎◎⊙⊙ 72%` | `◎ running` `⊙ completed` |
+| Shades | `shades` | `# Context █▓▒░█▓▒░·· 72%` | `▒ running` `█ completed` |
+| Retro | `retro` | `# Context ════════▸─── 72%` | `► running` `■ completed` |
+| ASCII | `ascii` | `# Context ##########.... 72%` | `@ running` `# completed` |
+| Rail | `rail` | `# Context ══════════╌╌ 72%` | `╌ running` `═ completed` |
+| Star | `star` | `# Context ⭐⭐⭐⭐⭐⭐⭐⭐☆☆ 72%` | `☆ running` `⭐ completed` |
+| Spark | `spark` | `# Context ✦✦✦✦✦✦✦✦✧✧ 72%` | `✦ running` `✧ completed` |
 | Heart | `heart` | `# Context 🖤🖤🖤🖤🖤🖤🖤🤍🤍🤍 72%` | `💗 running` `🖤 completed` |
 | Love | `love` | `# Context ❤️❤️❤️❤️❤️❤️❤️🤍🤍🤍 72%` | `💗 running` `❤️ completed` |
 
