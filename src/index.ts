@@ -22,7 +22,7 @@
 
 import type { StdinData } from './types.js';
 import { c } from './colors.js';
-import { t, MINIMAL, lbl } from './i18n.js';
+import { t, MINIMAL, lbl, ULTRA_MINIMAL } from './i18n.js';
 import { readTranscriptData } from './transcript.js';
 import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent } from './render.js';
 import { getUsageData } from './usage.js';
@@ -105,8 +105,8 @@ function readLastStdinCache(): StdinData | null {
     if (!existsSync(STDIN_CACHE_PATH)) return null;
     const raw = readFileSync(STDIN_CACHE_PATH, 'utf8');
     const data = JSON.parse(raw) as StdinData;
-    // 无 context_window 视为无效缓存
-    if (!data.context_window) return null;
+    // 校验 context_window 类型 (防止损坏的缓存文件导致后续访问 .used_percentage 崩溃)
+    if (!data.context_window || typeof data.context_window !== 'object' || data.context_window === null) return null;
     return data;
   } catch {
     return null;
@@ -120,11 +120,21 @@ const CTX_PCT_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'ctx-pct-cache.js
 /** 读取 Context 百分比缓存 (仅同一会话有效) */
 function readCtxPctCache(transcriptPath?: string): number {
   try {
-    const { pct, ts, tp } = JSON.parse(readFileSync(CTX_PCT_CACHE_PATH, 'utf8'));
+    const { pct, ts, tp, mtime } = JSON.parse(readFileSync(CTX_PCT_CACHE_PATH, 'utf8'));
     // 不同会话 (transcript_path 不匹配) → 缓存无效
     if (!transcriptPath || !tp || transcriptPath !== tp) return 0;
-    // 60 秒内的缓存才有效 (平衡防闪烁 + /compact 后快速恢复)
-    if (typeof pct === 'number' && pct > 0 && Date.now() - ts < 60_000) return pct;
+
+    // 检测 /clear: transcript 文件被截断 → mtime 变化
+    if (transcriptPath && mtime && typeof mtime === 'number') {
+      try {
+        const { statSync } = require('node:fs');
+        const currentMtime = statSync(transcriptPath).mtimeMs;
+        if (Math.abs(currentMtime - mtime) > 1000) return 0; // mtime 差距 >1s → 文件被修改
+      } catch { /* file not found */ return 0; }
+    }
+
+    // 300 秒 (5分钟) 内的缓存才有效 (与文档描述一致, 平衡防闪烁 + /clear 后快速恢复)
+    if (typeof pct === 'number' && pct > 0 && Date.now() - ts < 300_000) return pct;
   } catch { /* ignore */ }
   return 0;
 }
@@ -132,7 +142,14 @@ function readCtxPctCache(transcriptPath?: string): number {
 function writeCtxPctCache(pct: number, transcriptPath?: string): void {
   try {
     mkdirSync(dirname(CTX_PCT_CACHE_PATH), { recursive: true });
-    writeFileSync(CTX_PCT_CACHE_PATH, JSON.stringify({ pct, ts: Date.now(), tp: transcriptPath ?? null }));
+    let mtime = 0;
+    if (transcriptPath) {
+      try {
+        const { statSync } = require('node:fs');
+        mtime = statSync(transcriptPath).mtimeMs;
+      } catch { /* ignore */ }
+    }
+    writeFileSync(CTX_PCT_CACHE_PATH, JSON.stringify({ pct, ts: Date.now(), tp: transcriptPath ?? null, mtime }));
   } catch { /* silent */ }
 }
 
@@ -184,6 +201,12 @@ async function main(): Promise<void> {
   lines.push(renderContextLine(stdin, usageData));
   // 2) Token 细分 (必显, 模式由 CLAUDE_MINI_HUD_TOKEN_MODE 控制)
   lines.push(...renderTokenLine(stdin, tdata, TOKEN_MODE, SPEED_CACHE_DIR));
+
+  // ultra-minimal 模式: 只显示 Context + Token 两行, 其余全部隐藏
+  if (ULTRA_MINIMAL) {
+    console.log(lines.join('\n'));
+    return;
+  }
 
   // 2.5) 用量/余额行
   const usageLine = renderUsageLine(usageData);

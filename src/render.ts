@@ -122,8 +122,10 @@ function getTotalTokens(stdin: StdinData): number {
 }
 
 // 上下文窗口大小: 直接信任 Claude Code 上报值 (与 claude-hud 一致)
+// 校验范围: 负数或超大值会导致除法异常, 限制在 0-10M
 function resolveContextSize(stdin: StdinData): number {
-  return stdin.context_window?.context_window_size ?? 0;
+  const size = stdin.context_window?.context_window_size ?? 0;
+  return Math.max(0, Math.min(size, 10_000_000));
 }
 
 export function getContextPercent(stdin: StdinData): number {
@@ -131,7 +133,7 @@ export function getContextPercent(stdin: StdinData): number {
   // 注意: native=0 时不直接返回, 而是走 fallback (用 current_usage token 算)
   // 这样即使 Claude Code 临时发 used_percentage=0, 也能通过 token 数据防闪烁
   const native = stdin.context_window?.used_percentage;
-  if (typeof native === 'number' && !Number.isNaN(native) && native > 0) {
+  if (typeof native === 'number' && Number.isFinite(native) && native > 0) {
     return Math.min(100, Math.max(0, Math.round(native)));
   }
 
@@ -373,14 +375,25 @@ function detectProvider(stdin: StdinData): string | null {
 }
 
 // ─── Token 峰值缓存 (/compact 后 Claude Code 重置 session token 计数, 用峰值兜底) ──
+// 缓存键包含 transcript_path + mtime, 避免跨会话泄漏
 
 const TOKEN_PEAK_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'token-peak-cache.json');
 
 function readTokenPeakCache(transcriptPath?: string): TokenBreakdown | null {
   try {
     const raw = readFileSync(TOKEN_PEAK_CACHE_PATH, 'utf8');
-    const data = JSON.parse(raw) as { tp: string; input: number; output: number; cache: number; total: number };
+    const data = JSON.parse(raw) as { tp: string; mtime: number; input: number; output: number; cache: number; total: number };
     if (!transcriptPath || !data.tp || transcriptPath !== data.tp) return null;
+
+    // 校验 mtime: 如果 transcript 文件被修改 (如新会话), 缓存失效
+    if (data.mtime && transcriptPath) {
+      try {
+        const { statSync } = require('node:fs');
+        const currentMtime = statSync(transcriptPath).mtimeMs;
+        if (Math.abs(currentMtime - data.mtime) > 1000) return null; // mtime 差距 >1s → 新会话
+      } catch { return null; }
+    }
+
     return { input: data.input, output: data.output, cache: data.cache, total: data.total };
   } catch { return null; }
 }
@@ -388,8 +401,15 @@ function readTokenPeakCache(transcriptPath?: string): TokenBreakdown | null {
 function writeTokenPeakCache(b: TokenBreakdown, transcriptPath?: string): void {
   try {
     mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
+    let mtime = 0;
+    if (transcriptPath) {
+      try {
+        const { statSync } = require('node:fs');
+        mtime = statSync(transcriptPath).mtimeMs;
+      } catch { /* ignore */ }
+    }
     writeFileSync(TOKEN_PEAK_CACHE_PATH, JSON.stringify({
-      tp: transcriptPath ?? null, input: b.input, output: b.output, cache: b.cache, total: b.total,
+      tp: transcriptPath ?? null, mtime, input: b.input, output: b.output, cache: b.cache, total: b.total,
     }));
   } catch { /* silent */ }
 }
@@ -476,8 +496,14 @@ function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
     try { prev = JSON.parse(readFileSync(cacheFile, 'utf8')); } catch { /* first run */ }
 
     const writeBaseline = () => {
-      mkdirSync(cacheDir, { recursive: true });
-      writeFileSync(cacheFile, JSON.stringify({ n: outputTokens, ts: now }));
+      try {
+        mkdirSync(cacheDir, { recursive: true });
+        // 原子写入: 先写临时文件, 再 rename (避免并发竞态)
+        const tmpFile = `${cacheFile}.tmp`;
+        writeFileSync(tmpFile, JSON.stringify({ n: outputTokens, ts: now }));
+        const { renameSync } = require('node:fs');
+        renameSync(tmpFile, cacheFile);
+      } catch { /* silent on write failure */ }
     };
 
     // 无基线 / token 回退 (新会话) / 无新输出 / 基线过旧 → 重建基线
@@ -485,7 +511,8 @@ function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
     const dt = (now - prev.ts) / 1000;
     if (dt > 300) { writeBaseline(); return null; }
     // 间隔太短 (StatusLine 刷新可达 300ms): 保留旧基线, 等累计到足够窗口再算
-    if (dt < 0.5) return null;
+    // 降低下限到 1.0 秒 (避免极小 dt 导致虚高速率)
+    if (dt < 1.0) return null;
 
     writeBaseline();
     const speed = Math.round((outputTokens - prev.n) / dt);

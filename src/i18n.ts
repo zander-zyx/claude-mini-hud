@@ -8,7 +8,7 @@
 
 import { c } from './colors.js';
 
-export type Lang = 'zh' | 'en' | 'minimal';
+export type Lang = 'zh' | 'en' | 'minimal' | 'ultra-minimal';
 
 /** i18n 字符串结构 */
 export interface I18nStrings {
@@ -112,17 +112,35 @@ const STRINGS: Record<Lang, I18nStrings> = {
       TodoWrite: 'todo',
     },
   },
+  'ultra-minimal': {
+    context: 'Context',
+    contextRemaining: '剩余',
+    token: 'Token',
+    in: 'in',
+    out: 'out',
+    cache: 'cache',
+    todo: '当前任务',
+    model: 'Model',
+    tools: 'Tools',
+    agent: 'Agent',
+    fallback: '—',
+    renderFailed: 'err',
+    toolVerb: {},
+  },
 };
 
 // 语言选择: 环境变量控制, 默认中文
-export const LANG: Lang = (['zh', 'en', 'minimal'] as const).includes(
+export const LANG: Lang = (['zh', 'en', 'minimal', 'ultra-minimal'] as const).includes(
   process.env.CLAUDE_MINI_HUD_LANG as Lang,
 )
   ? (process.env.CLAUDE_MINI_HUD_LANG as Lang)
   : 'zh';
 
 // 是否 minimal 模式 (无 emoji 前缀)
-export const MINIMAL = LANG === 'minimal';
+export const MINIMAL = LANG === 'minimal' || LANG === 'ultra-minimal';
+
+// 是否 ultra-minimal 模式 (只显示 Context + Token 两行)
+export const ULTRA_MINIMAL = LANG === 'ultra-minimal';
 
 // ─── Emoji 能力检测 ────────────────────────────────────────────────────────
 

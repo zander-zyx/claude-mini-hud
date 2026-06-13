@@ -310,20 +310,33 @@ The statusline automatically refreshes at these moments:
 
 | Variable | Default | Options | Description |
 |----------|---------|---------|-------------|
-| `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` | UI language (minimal = English-Chinese hybrid + no emoji) |
+| `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` / `ultra-minimal` | UI language (minimal = English-Chinese hybrid + no emoji, ultra-minimal = only Context + Token lines) |
 | `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | Progress bar style |
 | `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | Tool/Agent indicator icons (independent from THEME, mix freely) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (unset) | `1` | When set to `1`, shows the model line |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token line mode: session=cumulative / context=snapshot / both=two lines |
+| `CLAUDE_MINI_HUD_NO_EMOJI` | (unset) | `1` | When set to `1`, forces ASCII symbols (# $ > etc.) instead of emoji |
 
 **Set them in statusLine.command** (recommended):
 
+**Linux / macOS**:
 ```jsonc
 // ~/.claude/settings.json
 {
   "statusLine": {
     "type": "command",
     "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
+  }
+}
+```
+
+**Windows (requires PowerShell wrapper)**:
+```jsonc
+// %USERPROFILE%\.claude\settings.json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\0.1.0\\dist\\index.js'\""
   }
 }
 ```
@@ -629,7 +642,7 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 12 | `CLAUDE_MINI_HUD_LANG=en` shows English | no Chinese markers |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` no emoji + hybrid | hybrid output verification |
 | 14–25 | Multi-platform detection (claude/deepseek/minimax/minimax.io/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL matching (incl. international) |
-| 26–35 | Cache read/write + E2E + MiniMax model matching | see `tests/usage.test.ts` |
+| 26–35 | Cache read/write + E2E + MiniMax model matching | see `tests/usage.test.ts` (22 cases) |
 
 ### Project Structure
 
@@ -700,12 +713,13 @@ PRs are welcome! Here are the contribution guidelines:
 ### Roadmap
 
 Short-term (v0.2):
+- [x] Progress bar theme system (8 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow)
 - [ ] Session cost display (requires Claude Code to expose `cost` field)
 - [ ] Smoother refresh across multi-window switches
 - [ ] Read color thresholds from environment variables
 
 Medium-term (v0.3):
-- [x] Progress bar theme system (8 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow)
+- [ ] Light/dark theme adaptation
 - [ ] Mouse hover tooltips (subject to Claude Code TUI limits)
 - [ ] Clickable statusline links (jump to current transcript)
 

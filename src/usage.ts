@@ -217,9 +217,9 @@ function resolveCurrentModelId(stdin: StdinData): string | null {
   return stdin.model?.id?.trim() || stdin.model?.display_name?.trim() || null;
 }
 
-/** 标准化模型名: 小写 + 去非字母数字, 便于跨格式匹配 (MiniMax-M3 / minimax_m3 / M3 等) */
+/** 标准化模型名: 小写 + Unicode 规范化 (NFC) + 去非字母数字, 便于跨格式匹配 (MiniMax-M3 / minimax_m3 / M3 / Unicode连字符等) */
 function normalizeModelKey(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return s.normalize('NFC').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 /**

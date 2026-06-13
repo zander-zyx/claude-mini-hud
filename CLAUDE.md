@@ -13,7 +13,7 @@ npm install          # Install dev dependencies
 npm run build        # Compile TypeScript to dist/
 npm run dev          # Watch mode compilation
 npm run typecheck    # Type-check tests (tsconfig.test.json, no emit)
-npm test             # Full suite: build + typecheck + 32 tests
+npm test             # Full suite: build + typecheck + 35 tests
 ```
 
 No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/strict`, run via `tsx`.

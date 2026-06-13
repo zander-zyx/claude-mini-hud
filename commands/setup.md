@@ -22,13 +22,15 @@ Use AskUserQuestion:
       description: "Context + Token + Todos 全部英文"
     - label: "简约 (Minimal)"
       description: "英中混搭, 无前缀符号, 最紧凑布局"
+    - label: "极简 (Ultra-Minimal)"
+      description: "只显示 Context + Token 两行, 其余全部隐藏"
 ```
 
-把用户选择存到 `{LANG}` 变量 (zh / en / minimal), 后续步骤用它:
+把用户选择存到 `{LANG}` 变量 (zh / en / minimal / ultra-minimal), 后续步骤用它:
 1. 决定 Step 6 输出提示的语种
 2. 写入 `statusLine.command` 的 `CLAUDE_MINI_HUD_LANG={LANG}` 环境变量
 
-**3 种模式输出示例** (支持 emoji 的终端会自动显示 emoji 图标, 不支持的终端显示 ASCII 符号):
+**4 种模式输出示例** (支持 emoji 的终端会自动显示 emoji 图标, 不支持的终端显示 ASCII 符号):
 
 ```
 # 中文 (zh) — emoji 终端
@@ -50,6 +52,10 @@ $ Token 23k (in 22k · out 342 · cache 768)
  Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
  Token 23k (in 22k · out 342 · cache 768)
  当前任务 调研充电行业政策  (2/5)
+
+# 极简 (ultra-minimal) — 只显示两行
+ Context ███░░░░░░░░░░░░░░░░░ 13%  100k / 1M  剩余 900k
+ Token 23k (in 22k · out 342 · cache 768)
 ```
 
 ## Step 1.5: 选择主题风格 (可选)
@@ -120,7 +126,7 @@ echo "EXISTS_DIST=$([ -f "$PLUGIN_DIR/dist/index.js" ] && echo YES || echo NO)"
 ```powershell
 $claudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME ".claude" }
 $pluginDir = Get-ChildItem (Join-Path $claudeDir "plugins\cache") -Directory | ForEach-Object {
-  Get-ChildItem $_.FullName -Directory | Where-Object { $_.Name -like "*claude-mini-hud*" }
+  Get-ChildItem $_.FullName -Directory | Where-Object { $_.Name -like "*claude-mini-hud*" } | Get-ChildItem -Directory | Sort-Object Name -Descending | Select-Object -First 1
 } | Select-Object -First 1 -ExpandProperty FullName
 Write-Host "PLUGIN_DIR=$pluginDir"
 ```
@@ -212,14 +218,14 @@ if ($settings.statusLine) {
   $settings.statusLine | ConvertTo-Json -Depth 10 | Set-Content $backupPath
 }
 
-# 拼接环境变量
-$envVars = "CLAUDE_MINI_HUD_LANG=$lang"
-if ($theme -ne "default") { $envVars += " CLAUDE_MINI_HUD_THEME=$theme" }
-if ($marks -ne "default") { $envVars += " CLAUDE_MINI_HUD_MARKS=$marks" }
+# Windows 需要 PowerShell 包装环境变量 (cmd/PowerShell 不支持 POSIX VAR=value 语法)
+$envSetup = "`$env:CLAUDE_MINI_HUD_LANG='$lang';"
+if ($theme -ne "default") { $envSetup += " `$env:CLAUDE_MINI_HUD_THEME='$theme';" }
+if ($marks -ne "default") { $envSetup += " `$env:CLAUDE_MINI_HUD_MARKS='$marks';" }
 
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "$envVars node '$runtimePath'"
+  command = "powershell -NoProfile -Command `"$envSetup node '$runtimePath'`""
 } -Force
 $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath
 ```
@@ -313,4 +319,9 @@ $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath
 
 ## 切换语言 / Change Language
 
-如果想换语言 (中文 ↔ English), 直接重新跑 `/claude-mini-hud:setup`, 选不同语言即可。运行时显示文字来自 `src/index.ts` 里的中文常量, 改语言需要重编译:
+如果想换语言 (中文 ↔ English), 有两种方式:
+
+1. **重新跑 setup** (推荐): `/claude-mini-hud:setup`, 选不同语言, 自动更新 `settings.json`
+2. **手动改环境变量**: 直接修改 `~/.claude/settings.json` 里的 `CLAUDE_MINI_HUD_LANG=zh|en|minimal`, 重启 Claude Code 即可
+
+**无需重新编译** — 语言切换是运行时通过环境变量选择的, 只有修改 `src/i18n.ts` 里的字符串常量才需要重编译。

@@ -316,20 +316,33 @@ TMPDIR=~/.cache/tmp claude
 
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
-| `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji) |
+| `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` / `ultra-minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji, ultra-minimal = 只显示 Context + Token 两行) |
 | `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | 进度条风格 (见下方主题预览) |
 | `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
+| `CLAUDE_MINI_HUD_NO_EMOJI` | (未设) | `1` | 设置为 `1` 时强制禁用 emoji, 使用 ASCII 符号 (# $ > 等) |
 
 **在 statusLine.command 里设置** (推荐):
 
+**Linux / macOS**:
 ```jsonc
 // ~/.claude/settings.json
 {
   "statusLine": {
     "type": "command",
     "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/0.1.0/dist/index.js"
+  }
+}
+```
+
+**Windows (需要 PowerShell 包装)**:
+```jsonc
+// %USERPROFILE%\.claude\settings.json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\0.1.0\\dist\\index.js'\""
   }
 }
 ```
@@ -665,7 +678,7 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 12 | `CLAUDE_MINI_HUD_LANG=en` 显示英文 | 无中文 marker |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` 无 emoji + 英中混搭 | 混合输出验证 |
 | 14–25 | 多平台检测 (claude/deepseek/minimax/minimax.io/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL 匹配 (含国际站) |
-| 26–35 | 缓存读写 + 端到端 + MiniMax 模型匹配 | 见 `tests/usage.test.ts` |
+| 26–35 | 缓存读写 + 端到端 + MiniMax 模型匹配 | 见 `tests/usage.test.ts` (22 用例) |
 
 ### 项目结构
 
