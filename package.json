@@ -1,6 +1,6 @@
 {
   "name": "claude-mini-hud",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Claude Code StatusLine plugin — context / token / todos / tools / agents + 21 progress bar themes + multi-provider usage (Claude/MiniMax/Zhipu/MiMo/DeepSeek/Kimi/...)",
   "type": "module",
   "main": "dist/index.js",
