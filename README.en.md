@@ -79,13 +79,14 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 | Platform | Detection | Display Format |
 |----------|-----------|----------------|
 | **Claude Native** | `rate_limits` has data | `5h:45% (1h30m) 7d:12%` |
-| **MiniMax** | URL contains `minimaxi.com` / `minimax.io` | `5h:55% 7d:74% m:50% (26d)` |
+| **MiniMax** | URL contains `minimaxi.com` (CN) / `minimax.io` (Intl) | `5h:55% 7d:74% m:50% (26d)` |
 | **Zhipu (GLM)** | URL contains `bigmodel.cn` / `z.ai` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
 | **Xiaomi (MiMo)** | URL contains `xiaomimimo` | `50M/100M m:45% (26d)` |
 | **Alibaba (DashScope)** | URL contains `dashscope` | Platform detection only (no public usage API) |
 | **Volcengine (Ark)** | URL contains `volces.com` | Platform detection only (no public usage API) |
 | **DeepSeek** | URL contains `deepseek.com` | `¥123.45` (account balance) |
 | **Kimi** | URL contains `moonshot.cn` / `moonshot.ai` | `¥42.50 (granted ¥10.00)` |
+| **Kimi For Coding** | URL contains `api.kimi.com/coding` | `5h:42% (1h23m) 7d:15%` |
 
 #### Usage Display Format Reference
 
@@ -106,7 +107,7 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) is a full-featured statusline (10+ lines), primarily for Anthropic Claude native users. **This project** balances information density with simplicity, with two core goals:
 
 1. **Matching claude-hud core features** — tool activity, agent tracking, task parsing — all present, but kept within 7 lines, lighter than claude-hud
-2. **Deep multi-provider support** — built-in usage queries for Zhipu GLM, MiniMax, Xiaomi MiMo, Alibaba DashScope, Volcengine Ark, DeepSeek, Kimi and more Coding Plan / Token Plan platforms, so third-party proxy users can also see their quota in real time
+2. **Deep multi-provider support** — built-in usage queries for Zhipu GLM, MiniMax, Xiaomi MiMo, Alibaba DashScope, Volcengine Ark, DeepSeek, Kimi, Kimi For Coding and more Coding Plan / Token Plan platforms, so third-party proxy users can also see their quota in real time
 
 ---
 
@@ -648,7 +649,7 @@ npm run build      # tsc compile src/ → dist/
 
 ```bash
 npm install
-npm test            # build + typecheck + run 35 tests (using tsx to run ts tests directly)
+npm test            # build + typecheck + run 36 tests (using tsx to run ts tests directly)
 npm run test:stdin  # manually test a single stdin input
 npm run typecheck   # type-check only, no emit
 ```
@@ -678,8 +679,8 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` defaults to Chinese | Chinese label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` shows English | no Chinese markers |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` no emoji + hybrid | hybrid output verification |
-| 14–25 | Multi-platform detection (claude/deepseek/minimax/minimax.io/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL matching (incl. international) |
-| 26–35 | Cache read/write + E2E + MiniMax model matching | see `tests/usage.test.ts` (22 cases) |
+| 14–26 | Multi-platform detection (claude/deepseek/minimax/minimax.io/kimi-coding/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL matching (incl. international) |
+| 26–36 | Cache read/write + E2E + MiniMax model matching | see `tests/usage.test.ts` (23 cases) |
 
 ### Project Structure
 
@@ -708,7 +709,7 @@ claude-mini-hud/
 │   └── usage.ts        # Multi-platform usage/balance queries
 └── tests/
     ├── stdin.test.ts   # Statusline render tests (13 cases)
-    └── usage.test.ts   # Multi-platform usage query tests (19 cases)
+    └── usage.test.ts   # Multi-platform usage query tests (23 cases)
 ```
 
 ---

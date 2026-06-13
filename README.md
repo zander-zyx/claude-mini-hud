@@ -84,13 +84,14 @@
 | 平台 | 检测条件 | 显示格式 |
 |------|---------|---------|
 | **Claude 原生** | `rate_limits` 有数据 | `5h:45% (1h30m) 7d:12%` |
-| **MiniMax** | URL 含 `minimaxi.com` / `minimax.io` | `5h:55% 7d:74% m:50% (26d)` |
+| **MiniMax** | URL 含 `minimaxi.com` (国内) / `minimax.io` (国际) | `5h:55% 7d:74% m:50% (26d)` |
 | **智谱 (GLM)** | URL 含 `bigmodel.cn` / `z.ai` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
 | **小米 (MiMo)** | URL 含 `xiaomimimo` | `50M/100M m:45% (26d)` |
 | **阿里 (DashScope)** | URL 含 `dashscope` | 平台识别 (暂无公开用量 API) |
 | **火山引擎 (Ark)** | URL 含 `volces.com` | 平台识别 (暂无公开用量 API) |
 | **DeepSeek** | URL 含 `deepseek.com` | `¥123.45` (账户余额) |
 | **Kimi** | URL 含 `moonshot.cn` / `moonshot.ai` | `¥42.50 (赠送 ¥10.00)` |
+| **Kimi For Coding** | URL 含 `api.kimi.com/coding` | `5h:42% (1h23m) 7d:15%` |
 
 #### 用量显示格式说明
 
@@ -111,7 +112,7 @@
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)，主要面向 Anthropic Claude 原生用户。**本项目**在信息密度和简洁之间取得平衡，核心思路有两点：
 
 1. **对标 claude-hud 核心功能** — 工具活动、Agent 追踪、Task 解析等能力一个不少，但控制在 7 行以内，比 claude-hud 更轻量
-2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、DeepSeek、Kimi 等平台的 Coding Plan / Token Plan 用量查询，使用第三方代理的用户也能在状态栏实时看到额度消耗
+2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、DeepSeek、Kimi、Kimi For Coding 等平台的 Coding Plan / Token Plan 用量查询，使用第三方代理的用户也能在状态栏实时看到额度消耗
 
 ---
 
@@ -668,7 +669,7 @@ npm run build      # tsc 编译 src/ → dist/
 
 ```bash
 npm install
-npm test            # build + typecheck + 跑 35 个测试 (用 tsx 直接跑 ts 测试)
+npm test            # build + typecheck + 跑 36 个测试 (用 tsx 直接跑 ts 测试)
 npm run test:stdin  # 手测单个 stdin 输入
 npm run typecheck   # 只做类型检查, 不 emit
 ```
@@ -698,8 +699,8 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 11 | `CLAUDE_MINI_HUD_LANG=zh` 默认中文 | 中文 label |
 | 12 | `CLAUDE_MINI_HUD_LANG=en` 显示英文 | 无中文 marker |
 | 13 | `CLAUDE_MINI_HUD_LANG=minimal` 无 emoji + 英中混搭 | 混合输出验证 |
-| 14–25 | 多平台检测 (claude/deepseek/minimax/minimax.io/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL 匹配 (含国际站) |
-| 26–35 | 缓存读写 + 端到端 + MiniMax 模型匹配 | 见 `tests/usage.test.ts` (22 用例) |
+| 14–26 | 多平台检测 (claude/deepseek/minimax/minimax.io/kimi-coding/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL 匹配 (含国际站) |
+| 26–36 | 缓存读写 + 端到端 + MiniMax 模型匹配 | 见 `tests/usage.test.ts` (23 用例) |
 
 ### 项目结构
 
@@ -728,7 +729,7 @@ claude-mini-hud/
 │   └── usage.ts        # 多平台用量/余额查询
 └── tests/
     ├── stdin.test.ts   # 状态栏渲染测试 (13 用例)
-    └── usage.test.ts   # 多平台用量查询测试 (19 用例)
+    └── usage.test.ts   # 多平台用量查询测试 (23 用例)
 ```
 
 ---

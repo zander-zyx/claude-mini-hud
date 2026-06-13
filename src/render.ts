@@ -254,7 +254,7 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
 function buildBalanceTag(usage: UsageData | null): string | null {
   if (!usage) return null;
   // 所有有独立 Usage 行的平台都不在 Context 行显示余额 (避免重复)
-  if (usage.deepSeek || usage.kimi || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine) return null;
+  if (usage.deepSeek || usage.kimi || usage.kimiCoding || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine) return null;
   return null;
 }
 
@@ -662,6 +662,38 @@ export function renderUsageLine(usage: UsageData | null): string | null {
       ? c.dim(` (赠送 ¥${usage.kimi.grantedBalance.toFixed(2)})`)
       : '';
     return `${lbl('usage', 'Kimi', '[B]')} ${c.cyan(c.bold(`¥${total}`))}${grant}`;
+  }
+
+  // ─── Kimi For Coding ────────────────────────────────────────────────────────
+  if (usage.kimiCoding) {
+    const kc = usage.kimiCoding;
+    const parts: string[] = [];
+
+    // 5小时窗口已用百分比
+    if (kc.fiveHourPercent !== undefined) {
+      const color = kc.fiveHourPercent >= 80 ? c.red : kc.fiveHourPercent >= 60 ? c.yellow : c.green;
+      let seg = `5h:${color(`${kc.fiveHourPercent}%`)}`;
+      if (kc.fiveHourResetAt) {
+        const countdown = formatCountdown(kc.fiveHourResetAt);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
+    }
+
+    // 周限额已用百分比
+    if (kc.weeklyPercent !== undefined) {
+      const color = kc.weeklyPercent >= 80 ? c.red : kc.weeklyPercent >= 60 ? c.yellow : c.green;
+      let seg = `7d:${color(`${kc.weeklyPercent}%`)}`;
+      if (kc.weeklyResetAt) {
+        const countdown = formatCountdown(kc.weeklyResetAt);
+        if (countdown) seg += c.dim(` (${countdown})`);
+      }
+      parts.push(seg);
+    }
+
+    if (parts.length === 0) return null;
+    const prefix = lbl('usage', 'Kimi Coding', '[B]');
+    return `${prefix} ${parts.join(' ')}`;
   }
 
   if (usage.zhipu) {

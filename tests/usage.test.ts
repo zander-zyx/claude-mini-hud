@@ -85,6 +85,15 @@ test('detectPlatform: kimi 国际站 moonshot.ai', async () => {
   delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('detectPlatform: kimi-coding (by base URL)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.kimi.com/coding/v1/anthropic';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'kimi-coding');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
 test('detectPlatform: zhipu (by base URL)', async () => {
   const { detectPlatform } = await import('../src/usage.js');
   process.env.ANTHROPIC_BASE_URL = 'https://open.bigmodel.cn/anthropic';

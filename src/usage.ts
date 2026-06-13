@@ -12,6 +12,7 @@
  *   - MiniMax      : Coding Plan 剩余 token (5h / 7d / 月)
  *   - DeepSeek      : 账户余额 (CNY)
  *   - Kimi          : Moonshot 余额 (CNY)
+ *   - Kimi Coding   : Coding Plan 用量 (5h / 周限额)
  *   - 智谱          : GLM Coding Plan 用量 (5h / 7d / 月 / MCP)
  *   - 小米          : MiMo Token Plan 固定额度
  *   - 阿里          : DashScope (暂无公开 API)
@@ -55,6 +56,14 @@ export interface KimiBalance {
   grantedBalance?: number;  // 赠送余额
 }
 
+/** Kimi For Coding 用量: 5小时窗口 + 周限额 */
+export interface KimiCodingUsage {
+  fiveHourPercent?: number;   // 5小时窗口已用百分比 (0-100)
+  weeklyPercent?: number;     // 周限额已用百分比 (0-100)
+  fiveHourResetAt?: number;   // 5小时窗口重置时间 (unix 秒)
+  weeklyResetAt?: number;     // 周限额重置时间 (unix 秒)
+}
+
 export interface ZhipuUsage {
   usedPercent?: number;    // 5小时窗口 Token 已用百分比 (0-100)
   weeklyPercent?: number;  // 周限额 Token 已用百分比 (0-100)
@@ -82,6 +91,7 @@ export interface UsageData {
   miniMax?: MiniMaxUsage;
   deepSeek?: DeepSeekBalance;
   kimi?: KimiBalance;
+  kimiCoding?: KimiCodingUsage;
   zhipu?: ZhipuUsage;
   claude?: ClaudeRateLimit;
   xiaomi?: FixedQuotaUsage;
@@ -98,13 +108,13 @@ const HTTP_TIMEOUT_MS = 10_000;
 const DEEPSEEK_API = 'https://api.deepseek.com/user/balance';
 const ZHIPU_QUOTA_ENDPOINT = '/monitor/usage/quota/limit';
 
-/** MiniMax 用量 API: 国内站 minimaxi.com, 国际站 minimax.io */
+/** MiniMax 用量 API: 国内站 api.minimaxi.com, 国际站 api.minimax.io */
 function getMiniMaxApiUrl(): string {
   const url = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
   if (url.includes('minimax.io')) {
     return 'https://api.minimax.io/v1/api/openplatform/coding_plan/remains';
   }
-  return 'https://www.minimaxi.com/v1/api/openplatform/coding_plan/remains';
+  return 'https://api.minimaxi.com/v1/api/openplatform/coding_plan/remains';
 }
 
 /** Kimi 余额 API: 国内站 moonshot.cn, 国际站 moonshot.ai */
@@ -127,25 +137,28 @@ export function detectPlatform(stdin: StdinData): string | null {
 
   const url = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
 
-  // 2) MiniMax
-  if (url.includes('minimaxi.com') || url.includes('minimax')) return 'minimax';
+  // 2) MiniMax (国内站 minimaxi.com / 国际站 minimax.io)
+  if (url.includes('minimaxi.com') || url.includes('minimax.io')) return 'minimax';
 
   // 3) DeepSeek
   if (url.includes('deepseek.com') || url.includes('deepseek')) return 'deepseek';
 
-  // 4) Kimi / Moonshot
+  // 4) Kimi Coding (api.kimi.com/coding)
+  if (url.includes('api.kimi.com/coding')) return 'kimi-coding';
+
+  // 5) Kimi / Moonshot (余额查询)
   if (url.includes('moonshot.cn') || url.includes('moonshot.ai') || url.includes('kimi')) return 'kimi';
 
-  // 5) 智谱 / GLM / Z.AI (国际站)
+  // 6) 智谱 / GLM / Z.AI (国际站)
   if (url.includes('bigmodel.cn') || url.includes('zhipu') || url.includes('glm') || url.includes('z.ai')) return 'zhipu';
 
-  // 6) 小米 / MiMo
+  // 7) 小米 / MiMo
   if (url.includes('xiaomimimo') || url.includes('xiaomi') || url.includes('mimo.xiaomi')) return 'xiaomi';
 
-  // 7) 阿里 / DashScope / 百炼 / Qwen
+  // 8) 阿里 / DashScope / 百炼 / Qwen
   if (url.includes('dashscope') || url.includes('aliyun') || url.includes('qwen') || url.includes('bailian')) return 'alibaba';
 
-  // 8) 火山引擎 / Ark
+  // 9) 火山引擎 / Ark
   if (url.includes('volces.com') || url.includes('volcengine') || url.includes('ark.cn')) return 'volcengine';
 
   return null;
@@ -510,6 +523,71 @@ async function queryVolcengine(): Promise<UsageData | null> {
   return null;
 }
 
+// ─── Kimi For Coding 用量查询 ──────────────────────────────────────────────
+
+const KIMI_CODING_API = 'https://api.kimi.com/coding/v1/usages';
+
+async function queryKimiCoding(apiKey: string): Promise<UsageData | null> {
+  try {
+    const body = await httpGet(KIMI_CODING_API, apiKey);
+    const json = JSON.parse(body);
+
+    let fiveHourPercent: number | undefined;
+    let weeklyPercent: number | undefined;
+    let fiveHourResetAt: number | undefined;
+    let weeklyResetAt: number | undefined;
+
+    // 5 小时窗口限额（优先显示）
+    const limits = json.limits;
+    if (Array.isArray(limits)) {
+      for (const limitItem of limits) {
+        const detail = limitItem?.detail;
+        if (!detail) continue;
+        const limit = parseFloat(String(detail.limit ?? '1'));
+        const remaining = parseFloat(String(detail.remaining ?? '0'));
+        const resetTime = detail.resetTime;
+
+        const used = Math.max(0, limit - remaining);
+        const utilization = limit > 0 ? (used / limit) * 100 : 0;
+        fiveHourPercent = Math.round(utilization);
+        if (resetTime) {
+          fiveHourResetAt = Math.round(parseFloat(String(resetTime)) / 1000);
+        }
+      }
+    }
+
+    // 总体用量（周限额）
+    const usage = json.usage;
+    if (usage && typeof usage === 'object') {
+      const limit = parseFloat(String(usage.limit ?? '1'));
+      const remaining = parseFloat(String(usage.remaining ?? '0'));
+      const resetTime = usage.resetTime;
+
+      const used = Math.max(0, limit - remaining);
+      const utilization = limit > 0 ? (used / limit) * 100 : 0;
+      weeklyPercent = Math.round(utilization);
+      if (resetTime) {
+        weeklyResetAt = Math.round(parseFloat(String(resetTime)) / 1000);
+      }
+    }
+
+    if (fiveHourPercent === undefined && weeklyPercent === undefined) return null;
+
+    return {
+      provider: 'kimi-coding',
+      kimiCoding: {
+        fiveHourPercent,
+        weeklyPercent,
+        fiveHourResetAt,
+        weeklyResetAt,
+      },
+      updatedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ─── 主入口 ───────────────────────────────────────────────────────────────
 
 /**
@@ -528,8 +606,8 @@ function getApiKeyForPlatform(platform: string): string | null {
   switch (platform) {
     case 'deepseek':
       return process.env.DEEPSEEK_API_KEY?.trim() || authToken || null;
-    case 'kimi':
-      return process.env.MOONSHOT_API_KEY?.trim() || authToken || null;
+    case 'kimi-coding':
+      return authToken || null;
     case 'zhipu':
       return process.env.ZHIPUAI_API_KEY?.trim()
         || process.env.GLM_API_KEY?.trim()
@@ -571,6 +649,9 @@ async function refreshCache(platform: string, apiKey: string, stdin: StdinData):
       break;
     case 'kimi':
       data = await queryKimi(apiKey);
+      break;
+    case 'kimi-coding':
+      data = await queryKimiCoding(apiKey);
       break;
     case 'zhipu':
       data = await queryZhipu(apiKey);
