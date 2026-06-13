@@ -32,7 +32,7 @@ test('detectPlatform: claude 原生 (有 rate_limits)', async () => {
 test('detectPlatform: deepseek (by base URL)', async () => {
   const { detectPlatform } = await import('../src/usage.js');
   process.env.ANTHROPIC_BASE_URL = 'https://api.deepseek.com/anthropic';
-  process.env.ANTHROPIC_MODEL = 'deepseek-v4-pro';
+  process.env.ANTHROPIC_MODEL = 'glm-5.2';
   const stdin = { model: { display_name: 'test' }, context_window: {} };
   const result = detectPlatform(stdin);
   assert.equal(result, 'deepseek');

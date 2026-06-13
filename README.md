@@ -43,7 +43,7 @@
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-🧠 模型 deepseek-v4-pro  [deepseek]
+🧠 模型 glm-5.2  [智谱]
 ```
 
 *不支持 emoji 的终端会降级为 ASCII 符号 (`# $ >`)*:
@@ -306,7 +306,7 @@ TMPDIR=~/.cache/tmp claude
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
-🧠 模型 deepseek-v4-pro  [deepseek]
+🧠 模型 glm-5.2  [智谱]
 ```
 
 **无工具/Agent 时** (自动隐藏对应行, 仅 3 行):

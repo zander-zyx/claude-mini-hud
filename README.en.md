@@ -54,7 +54,7 @@
   ◐ writing utils.ts
   ✓ searching ×3  ✓ running ×1
   [Explore] ◐ Searching code 2m 15s
-🧠 Model deepseek-v4-pro  [deepseek]
+🧠 Model glm-5.2  [zhipu]
 ```
 
 **Minimal (minimal)** — English-Chinese hybrid + no emoji:
