@@ -244,7 +244,7 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
 function buildBalanceTag(usage: UsageData | null): string | null {
   if (!usage) return null;
   // 所有有独立 Usage 行的平台都不在 Context 行显示余额 (避免重复)
-  if (usage.deepSeek || usage.kimi || usage.kimiCoding || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine) return null;
+  if (usage.deepSeek || usage.kimi || usage.kimiCoding || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine || usage.stepfun) return null;
   return null;
 }
 
@@ -652,6 +652,15 @@ export function renderUsageLine(usage: UsageData | null): string | null {
       ? c.dim(` (赠送 ¥${usage.kimi.grantedBalance.toFixed(2)})`)
       : '';
     return `${lbl('usage', 'Kimi', '[B]')} ${c.cyan(c.bold(`¥${total}`))}${grant}`;
+  }
+
+  if (usage.stepfun) {
+    const s = usage.stepfun;
+    const total = s.totalBalance.toFixed(2);
+    const voucher = s.voucherBalance > 0
+      ? c.dim(` (代金券 ¥${s.voucherBalance.toFixed(2)})`)
+      : '';
+    return `${lbl('usage', 'StepFun', '[B]')} ${c.cyan(c.bold(`¥${total}`))}${voucher}`;
   }
 
   // ─── Kimi For Coding ────────────────────────────────────────────────────────

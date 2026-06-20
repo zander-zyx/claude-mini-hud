@@ -17,6 +17,7 @@
  *   - 小米          : MiMo Token Plan 固定额度
  *   - 阿里          : DashScope (暂无公开 API)
  *   - 火山引擎      : Ark (暂无公开 API)
+ *   - 阶跃星辰      : StepFun 账户余额 (CNY)
  */
 
 import type { StdinData } from './types.js';
@@ -56,6 +57,13 @@ export interface KimiBalance {
   grantedBalance?: number;  // 赠送余额
 }
 
+/** 阶跃星辰 (StepFun) 余额 */
+export interface StepFunBalance {
+  totalBalance: number;     // CNY 可用余额 (balance)
+  cashBalance: number;      // 充值金额 (total_cash_balance)
+  voucherBalance: number;   // 代金券金额 (total_voucher_balance)
+}
+
 /** Kimi For Coding 用量: 5小时窗口 + 周限额 */
 export interface KimiCodingUsage {
   fiveHourPercent?: number;   // 5小时窗口已用百分比 (0-100)
@@ -92,6 +100,7 @@ export interface UsageData {
   deepSeek?: DeepSeekBalance;
   kimi?: KimiBalance;
   kimiCoding?: KimiCodingUsage;
+  stepfun?: StepFunBalance;
   zhipu?: ZhipuUsage;
   claude?: ClaudeRateLimit;
   xiaomi?: FixedQuotaUsage;
@@ -107,6 +116,15 @@ const HTTP_TIMEOUT_MS = 10_000;
 
 const DEEPSEEK_API = 'https://api.deepseek.com/user/balance';
 const ZHIPU_QUOTA_ENDPOINT = '/monitor/usage/quota/limit';
+
+/** StepFun 余额 API: 国内站 api.stepfun.com, 国际站 api.stepfun.ai */
+function getStepFunApiUrl(): string {
+  const url = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
+  if (url.includes('stepfun.ai')) {
+    return 'https://api.stepfun.ai/v1/accounts';
+  }
+  return 'https://api.stepfun.com/v1/accounts';
+}
 
 /** MiniMax 用量 API: 国内站 api.minimaxi.com, 国际站 api.minimax.io */
 function getMiniMaxApiUrl(): string {
@@ -160,6 +178,9 @@ export function detectPlatform(stdin: StdinData): string | null {
 
   // 9) 火山引擎 / Ark
   if (url.includes('volces.com') || url.includes('volcengine') || url.includes('ark.cn')) return 'volcengine';
+
+  // 10) 阶跃星辰 / StepFun (国内站 api.stepfun.com / 国际站 api.stepfun.ai)
+  if (url.includes('stepfun.com') || url.includes('stepfun.ai') || url.includes('stepfun')) return 'stepfun';
 
   return null;
 }
@@ -356,6 +377,33 @@ async function queryKimi(apiKey: string): Promise<UsageData | null> {
       kimi: {
         totalBalance: parseFloat(String(balance)),
         grantedBalance: typeof d.granted_balance === 'number' ? d.granted_balance : undefined,
+      },
+      updatedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function queryStepFun(apiKey: string): Promise<UsageData | null> {
+  try {
+    // StepFun 响应: { "object": "account", "type": "prepaid",
+    //   "balance": 42.50, "total_cash_balance": 32.50, "total_voucher_balance": 10.00 }
+    const body = await httpGet(getStepFunApiUrl(), apiKey);
+    const json = JSON.parse(body);
+    const d = json.data ?? json;
+    const balance = typeof d.balance === 'number' ? d.balance : parseFloat(String(d.balance ?? '0'));
+    if (!Number.isFinite(balance)) return null;
+    return {
+      provider: 'stepfun',
+      stepfun: {
+        totalBalance: balance,
+        cashBalance: typeof d.total_cash_balance === 'number'
+          ? d.total_cash_balance
+          : parseFloat(String(d.total_cash_balance ?? '0')) || 0,
+        voucherBalance: typeof d.total_voucher_balance === 'number'
+          ? d.total_voucher_balance
+          : parseFloat(String(d.total_voucher_balance ?? '0')) || 0,
       },
       updatedAt: Date.now(),
     };
@@ -599,6 +647,7 @@ async function queryKimiCoding(apiKey: string): Promise<UsageData | null> {
  *   - 小米:      XIAOMI_API_KEY / MIMO_API_KEY
  *   - 阿里:      DASHSCOPE_API_KEY
  *   - 火山引擎:  ARK_API_KEY / VOLC_API_KEY
+ *   - 阶跃星辰:  STEPFUN_API_KEY
  *   - 第三方代理: ANTHROPIC_AUTH_TOKEN (代理转发)
  */
 function getApiKeyForPlatform(platform: string): string | null {
@@ -608,6 +657,8 @@ function getApiKeyForPlatform(platform: string): string | null {
       return process.env.DEEPSEEK_API_KEY?.trim() || authToken || null;
     case 'kimi-coding':
       return authToken || null;
+    case 'stepfun':
+      return process.env.STEPFUN_API_KEY?.trim() || authToken || null;
     case 'zhipu':
       return process.env.ZHIPUAI_API_KEY?.trim()
         || process.env.GLM_API_KEY?.trim()
@@ -649,6 +700,9 @@ async function refreshCache(platform: string, apiKey: string, stdin: StdinData):
       break;
     case 'kimi':
       data = await queryKimi(apiKey);
+      break;
+    case 'stepfun':
+      data = await queryStepFun(apiKey);
       break;
     case 'kimi-coding':
       data = await queryKimiCoding(apiKey);

@@ -139,6 +139,24 @@ test('detectPlatform: volcengine (by base URL)', async () => {
   delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('detectPlatform: stepfun 国内站 api.stepfun.com', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.stepfun.com/step_plan';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'stepfun');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: stepfun 国际站 api.stepfun.ai', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.stepfun.ai/v1';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'stepfun');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
 test('readCache: 无缓存返回 null', async () => {
   const { readCache } = await import('../src/usage.js');
   const result = readCache('nonexistent-platform-xyz');

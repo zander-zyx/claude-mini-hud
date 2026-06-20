@@ -100,6 +100,7 @@
 | **DeepSeek** | URL 含 `deepseek.com` | `¥123.45` (账户余额) |
 | **Kimi** | URL 含 `moonshot.cn` / `moonshot.ai` | `¥42.50 (赠送 ¥10.00)` |
 | **Kimi For Coding** | URL 含 `api.kimi.com/coding` | `5h:42% (1h23m) 7d:15%` |
+| **阶跃星辰 (StepFun)** | URL 含 `stepfun.com` (国内) / `stepfun.ai` (国际) | `¥42.50 (代金券 ¥10.00)` |
 
 #### 用量显示格式说明
 
@@ -120,7 +121,7 @@
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)，主要面向 Anthropic Claude 原生用户。**本项目**在信息密度和简洁之间取得平衡，核心思路有两点：
 
 1. **对标 claude-hud 核心功能** — 工具活动、Agent 追踪、Task 解析等能力一个不少，但控制在 7 行以内，比 claude-hud 更轻量
-2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、DeepSeek、Kimi、Kimi For Coding 等平台的 Coding Plan / Token Plan 用量查询，使用第三方代理的用户也能在状态栏实时看到额度消耗
+2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、DeepSeek、Kimi、Kimi For Coding、阶跃星辰 StepFun 等平台的 Coding Plan / Token Plan 用量查询，使用第三方代理的用户也能在状态栏实时看到额度消耗
 
 ---
 
