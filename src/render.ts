@@ -244,7 +244,7 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
 function buildBalanceTag(usage: UsageData | null): string | null {
   if (!usage) return null;
   // 所有有独立 Usage 行的平台都不在 Context 行显示余额 (避免重复)
-  if (usage.deepSeek || usage.kimi || usage.kimiCoding || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine || usage.stepfun) return null;
+  if (usage.deepSeek || usage.kimi || usage.kimiCoding || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine || usage.stepfun || usage.siliconflow) return null;
   return null;
 }
 
@@ -374,7 +374,24 @@ function detectProvider(stdin: StdinData): string | null {
   // 第三方代理 (ANTHROPIC_BASE_URL 指向非 anthropic.com)
   if (process.env.ANTHROPIC_BASE_URL && !process.env.ANTHROPIC_BASE_URL.includes('anthropic.com')) {
     try {
-      const parts = new URL(process.env.ANTHROPIC_BASE_URL).hostname.split('.');
+      const hostname = new URL(process.env.ANTHROPIC_BASE_URL).hostname.toLowerCase();
+      // 显式品牌映射 (避免域名段无法表达正确品牌名, 如 baidubce → 千帆)
+      const brandMap: Record<string, string> = {
+        'siliconflow.cn': 'SiliconFlow',
+        'siliconflow.com': 'SiliconFlow',
+        'stepfun.com': 'StepFun',
+        'stepfun.ai': 'StepFun',
+        'baidubce.com': '千帆',
+        'hunyuan.cloud.tencent.com': 'Hunyuan',
+        'tencent.com': 'Hunyuan',
+        'xfyun.cn': 'Astron',
+        'xf-yun.com': 'Astron',
+      };
+      for (const [host, brand] of Object.entries(brandMap)) {
+        if (hostname.includes(host)) return brand;
+      }
+
+      const parts = hostname.split('.');
       // 跳过通用前缀 (api/www/open/gateway/proxy/app/console)
       const generic = new Set(['api', 'www', 'open', 'gateway', 'proxy', 'app', 'console']);
       // 优先取真正的品牌段: 跳过 generic 后, 取中间或倒数第二段
@@ -661,6 +678,17 @@ export function renderUsageLine(usage: UsageData | null): string | null {
       ? c.dim(` (代金券 ¥${s.voucherBalance.toFixed(2)})`)
       : '';
     return `${lbl('usage', 'StepFun', '[B]')} ${c.cyan(c.bold(`¥${total}`))}${voucher}`;
+  }
+
+  if (usage.siliconflow) {
+    const sf = usage.siliconflow;
+    const total = sf.totalBalance.toFixed(2);
+    // totalBalance - balance = 赠送额度 (totalBalance 含赠送, balance 为充值)
+    const granted = sf.totalBalance - sf.balance;
+    const grant = granted > 0.001
+      ? c.dim(` (赠送 ¥${granted.toFixed(2)})`)
+      : '';
+    return `${lbl('usage', '硅基流动', '[B]')} ${c.cyan(c.bold(`¥${total}`))}${grant}`;
   }
 
   // ─── Kimi For Coding ────────────────────────────────────────────────────────

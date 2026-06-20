@@ -157,6 +157,51 @@ test('detectPlatform: stepfun 国际站 api.stepfun.ai', async () => {
   delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('detectPlatform: siliconflow 国内站 siliconflow.cn', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.siliconflow.cn/v1';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'siliconflow');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: siliconflow 国际站 siliconflow.com', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.siliconflow.com/v1';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'siliconflow');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: qianfan (百度千帆, 仅平台识别)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://qianfan.baidubce.com/v2/coding';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'qianfan');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: hunyuan (腾讯混元, 仅平台识别)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://api.hunyuan.cloud.tencent.com';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'hunyuan');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
+test('detectPlatform: spark (讯飞星辰, 仅平台识别)', async () => {
+  const { detectPlatform } = await import('../src/usage.js');
+  process.env.ANTHROPIC_BASE_URL = 'https://spark-api.xf-yun.com/v1';
+  const stdin = { model: { display_name: 'test' }, context_window: {} };
+  const result = detectPlatform(stdin);
+  assert.equal(result, 'spark');
+  delete process.env.ANTHROPIC_BASE_URL;
+});
+
 test('readCache: 无缓存返回 null', async () => {
   const { readCache } = await import('../src/usage.js');
   const result = readCache('nonexistent-platform-xyz');

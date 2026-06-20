@@ -13,7 +13,7 @@ npm install          # Install dev dependencies
 npm run build        # Compile TypeScript to dist/
 npm run dev          # Watch mode compilation
 npm run typecheck    # Type-check tests (tsconfig.test.json, no emit)
-npm test             # Full suite: build + typecheck + 37 tests
+npm test             # Full suite: build + typecheck + 43 tests
 ```
 
 No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/strict`, run via `tsx`.
@@ -29,7 +29,7 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 5. **themes.ts** — Progress bar theme system (`ThemeConfig`), selected by `CLAUDE_MINI_HUD_THEME`
 6. **render.ts** — All render functions (context, token, model, todo, usage)
 7. **transcript.ts** — Transcript JSONL parser
-8. **usage.ts** — Multi-platform usage/quota query (9 providers)
+8. **usage.ts** — Multi-platform usage/quota query (13 providers)
 
 **Plugin integration** via `.claude-plugin/plugin.json` (registers the setup command) and `commands/setup.md` (interactive setup skill).
 

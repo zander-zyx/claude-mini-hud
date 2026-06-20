@@ -18,6 +18,10 @@
  *   - 阿里          : DashScope (暂无公开 API)
  *   - 火山引擎      : Ark (暂无公开 API)
  *   - 阶跃星辰      : StepFun 账户余额 (CNY)
+ *   - 硅基流动      : SiliconFlow 账户余额 (CNY)
+ *   - 百度千帆      : Qianfan (暂无公开 API, 仅平台识别)
+ *   - 腾讯混元      : Hunyuan (暂无公开 API, 仅平台识别)
+ *   - 讯飞星辰      : Astron (包月订阅, 仅平台识别)
  */
 
 import type { StdinData } from './types.js';
@@ -64,6 +68,12 @@ export interface StepFunBalance {
   voucherBalance: number;   // 代金券金额 (total_voucher_balance)
 }
 
+/** 硅基流动 (SiliconFlow) 余额 */
+export interface SiliconFlowBalance {
+  totalBalance: number;     // CNY 总可用余额 (totalBalance, 含赠送)
+  balance: number;          // CNY 充值余额 (balance)
+}
+
 /** Kimi For Coding 用量: 5小时窗口 + 周限额 */
 export interface KimiCodingUsage {
   fiveHourPercent?: number;   // 5小时窗口已用百分比 (0-100)
@@ -101,6 +111,7 @@ export interface UsageData {
   kimi?: KimiBalance;
   kimiCoding?: KimiCodingUsage;
   stepfun?: StepFunBalance;
+  siliconflow?: SiliconFlowBalance;
   zhipu?: ZhipuUsage;
   claude?: ClaudeRateLimit;
   xiaomi?: FixedQuotaUsage;
@@ -124,6 +135,15 @@ function getStepFunApiUrl(): string {
     return 'https://api.stepfun.ai/v1/accounts';
   }
   return 'https://api.stepfun.com/v1/accounts';
+}
+
+/** SiliconFlow 余额 API: 国内站 api.siliconflow.cn, 国际站 api.siliconflow.com */
+function getSiliconFlowApiUrl(): string {
+  const url = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
+  if (url.includes('siliconflow.com')) {
+    return 'https://api.siliconflow.com/v1/user/info';
+  }
+  return 'https://api.siliconflow.cn/v1/user/info';
 }
 
 /** MiniMax 用量 API: 国内站 api.minimaxi.com, 国际站 api.minimax.io */
@@ -181,6 +201,18 @@ export function detectPlatform(stdin: StdinData): string | null {
 
   // 10) 阶跃星辰 / StepFun (国内站 api.stepfun.com / 国际站 api.stepfun.ai)
   if (url.includes('stepfun.com') || url.includes('stepfun.ai') || url.includes('stepfun')) return 'stepfun';
+
+  // 11) 硅基流动 / SiliconFlow (国内站 siliconflow.cn / 国际站 siliconflow.com)
+  if (url.includes('siliconflow.cn') || url.includes('siliconflow.com') || url.includes('siliconflow')) return 'siliconflow';
+
+  // 12) 百度千帆 / Qianfan (暂无公开用量 API, 仅平台识别)
+  if (url.includes('qianfan.baidubce') || url.includes('baidubce') || url.includes('qianfan')) return 'qianfan';
+
+  // 13) 腾讯混元 / Hunyuan (暂无公开用量 API, 仅平台识别)
+  if (url.includes('hunyuan.cloud.tencent') || url.includes('hunyuan.tencent') || url.includes('hunyuan')) return 'hunyuan';
+
+  // 14) 讯飞星辰 / Astron (包月订阅, 仅平台识别)
+  if (url.includes('xfyun') || url.includes('spark-api') || url.includes('astron')) return 'spark';
 
   return null;
 }
@@ -404,6 +436,31 @@ async function queryStepFun(apiKey: string): Promise<UsageData | null> {
         voucherBalance: typeof d.total_voucher_balance === 'number'
           ? d.total_voucher_balance
           : parseFloat(String(d.total_voucher_balance ?? '0')) || 0,
+      },
+      updatedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function querySiliconFlow(apiKey: string): Promise<UsageData | null> {
+  try {
+    // SiliconFlow 响应: { "code": 20000, "message": "OK", "status": true,
+    //   "data": { "id":"...", "balance":"32.50", "totalBalance":"42.50" } }
+    // 注意: balance/totalBalance 可能是字符串 (文档示例返回字符串)
+    // 用 totalBalance 作主显示 (balance 字段有负值 bug, 见 cc-switch#3160)
+    const body = await httpGet(getSiliconFlowApiUrl(), apiKey);
+    const json = JSON.parse(body);
+    const d = json.data ?? json;
+    const total = typeof d.totalBalance === 'number' ? d.totalBalance : parseFloat(String(d.totalBalance ?? '0'));
+    if (!Number.isFinite(total)) return null;
+    const balanceNum = typeof d.balance === 'number' ? d.balance : parseFloat(String(d.balance ?? '0'));
+    return {
+      provider: 'siliconflow',
+      siliconflow: {
+        totalBalance: total,
+        balance: Number.isFinite(balanceNum) ? balanceNum : total,
       },
       updatedAt: Date.now(),
     };
@@ -648,6 +705,7 @@ async function queryKimiCoding(apiKey: string): Promise<UsageData | null> {
  *   - 阿里:      DASHSCOPE_API_KEY
  *   - 火山引擎:  ARK_API_KEY / VOLC_API_KEY
  *   - 阶跃星辰:  STEPFUN_API_KEY
+ *   - 硅基流动:  SILICONFLOW_API_KEY
  *   - 第三方代理: ANTHROPIC_AUTH_TOKEN (代理转发)
  */
 function getApiKeyForPlatform(platform: string): string | null {
@@ -659,6 +717,8 @@ function getApiKeyForPlatform(platform: string): string | null {
       return authToken || null;
     case 'stepfun':
       return process.env.STEPFUN_API_KEY?.trim() || authToken || null;
+    case 'siliconflow':
+      return process.env.SILICONFLOW_API_KEY?.trim() || authToken || null;
     case 'zhipu':
       return process.env.ZHIPUAI_API_KEY?.trim()
         || process.env.GLM_API_KEY?.trim()
@@ -703,6 +763,9 @@ async function refreshCache(platform: string, apiKey: string, stdin: StdinData):
       break;
     case 'stepfun':
       data = await queryStepFun(apiKey);
+      break;
+    case 'siliconflow':
+      data = await querySiliconFlow(apiKey);
       break;
     case 'kimi-coding':
       data = await queryKimiCoding(apiKey);

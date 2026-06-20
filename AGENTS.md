@@ -13,7 +13,7 @@ npm install          # Install dev dependencies
 npm run build        # Compile TypeScript to dist/
 npm run dev          # Watch mode compilation
 npm run typecheck    # Type-check tests (tsconfig.test.json, no emit)
-npm test             # Full suite: build + typecheck + 37 tests
+npm test             # Full suite: build + typecheck + 43 tests
 ```
 
 No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/strict`, run via `tsx`.
@@ -29,7 +29,7 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 5. **themes.ts** — Progress bar theme system (`ThemeConfig`), selected by `CLAUDE_MINI_HUD_THEME`
 6. **render.ts** — All render functions (context, token, model, todo, usage)
 7. **transcript.ts** — Transcript JSONL parser
-8. **usage.ts** — Multi-platform usage/quota query (9 providers)
+8. **usage.ts** — Multi-platform usage/quota query (13 providers)
 
 **Plugin integration** via `.Codex-plugin/plugin.json` (registers the setup command) and `commands/setup.md` (interactive setup skill).
 
@@ -45,9 +45,13 @@ No linter is configured. Tests use Node.js built-in `node:test` + `node:assert/s
 | 小米 (MiMo) | URL contains `xiaomimimo` | HTTP + Cookie |
 | 阿里 (DashScope) | URL contains `dashscope` | No public API |
 | 火山引擎 (Ark) | URL contains `volces.com` | No public API |
+| 百度千帆 (Qianfan) | URL contains `qianfan` / `baidubce` | No public API |
+| 腾讯混元 (Hunyuan) | URL contains `hunyuan` | No public API |
+| 讯飞星辰 (Astron) | URL contains `xfyun` / `spark-api` | Subscription (no API) |
 | DeepSeek | URL contains `deepseek.com` | HTTP API |
 | Kimi | URL contains `moonshot.cn` / `moonshot.ai` | HTTP API |
 | 阶跃星辰 (StepFun) | URL contains `stepfun.com` / `stepfun.ai` | HTTP API |
+| 硅基流动 (SiliconFlow) | URL contains `siliconflow.cn` / `siliconflow.com` | HTTP API |
 
 ## Key Design Constraints
 

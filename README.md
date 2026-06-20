@@ -97,10 +97,14 @@
 | **小米 (MiMo)** | URL 含 `xiaomimimo` | `50M/100M m:45% (26d)` |
 | **阿里 (DashScope)** | URL 含 `dashscope` | 平台识别 (暂无公开用量 API) |
 | **火山引擎 (Ark)** | URL 含 `volces.com` | 平台识别 (暂无公开用量 API) |
+| **百度千帆 (Qianfan)** | URL 含 `qianfan` / `baidubce` | 平台识别 (暂无公开用量 API) |
+| **腾讯混元 (Hunyuan)** | URL 含 `hunyuan` | 平台识别 (暂无公开用量 API) |
+| **讯飞星辰 (Astron)** | URL 含 `xfyun` / `spark-api` | 平台识别 (包月订阅) |
 | **DeepSeek** | URL 含 `deepseek.com` | `¥123.45` (账户余额) |
 | **Kimi** | URL 含 `moonshot.cn` / `moonshot.ai` | `¥42.50 (赠送 ¥10.00)` |
 | **Kimi For Coding** | URL 含 `api.kimi.com/coding` | `5h:42% (1h23m) 7d:15%` |
 | **阶跃星辰 (StepFun)** | URL 含 `stepfun.com` (国内) / `stepfun.ai` (国际) | `¥42.50 (代金券 ¥10.00)` |
+| **硅基流动 (SiliconFlow)** | URL 含 `siliconflow.cn` (国内) / `siliconflow.com` (国际) | `¥42.50 (赠送 ¥10.00)` |
 
 #### 用量显示格式说明
 
@@ -121,7 +125,7 @@
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)，主要面向 Anthropic Claude 原生用户。**本项目**在信息密度和简洁之间取得平衡，核心思路有两点：
 
 1. **对标 claude-hud 核心功能** — 工具活动、Agent 追踪、Task 解析等能力一个不少，但控制在 7 行以内，比 claude-hud 更轻量
-2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、DeepSeek、Kimi、Kimi For Coding、阶跃星辰 StepFun 等平台的 Coding Plan / Token Plan 用量查询，使用第三方代理的用户也能在状态栏实时看到额度消耗
+2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、百度千帆、腾讯混元、讯飞星辰、DeepSeek、Kimi、Kimi For Coding、阶跃星辰 StepFun、硅基流动 SiliconFlow 等平台的 Coding Plan / Token Plan 用量查询，使用第三方代理的用户也能在状态栏实时看到额度消耗
 
 ---
 

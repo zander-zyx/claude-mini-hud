@@ -92,10 +92,14 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 | **Xiaomi (MiMo)** | URL contains `xiaomimimo` | `50M/100M m:45% (26d)` |
 | **Alibaba (DashScope)** | URL contains `dashscope` | Platform detection only (no public usage API) |
 | **Volcengine (Ark)** | URL contains `volces.com` | Platform detection only (no public usage API) |
+| **Baidu Qianfan** | URL contains `qianfan` / `baidubce` | Platform detection only (no public usage API) |
+| **Tencent Hunyuan** | URL contains `hunyuan` | Platform detection only (no public usage API) |
+| **iFlyTek Astron** | URL contains `xfyun` / `spark-api` | Platform detection only (subscription) |
 | **DeepSeek** | URL contains `deepseek.com` | `¥123.45` (account balance) |
 | **Kimi** | URL contains `moonshot.cn` / `moonshot.ai` | `¥42.50 (granted ¥10.00)` |
 | **Kimi For Coding** | URL contains `api.kimi.com/coding` | `5h:42% (1h23m) 7d:15%` |
 | **StepFun** | URL contains `stepfun.com` (CN) / `stepfun.ai` (intl) | `¥42.50 (voucher ¥10.00)` |
+| **SiliconFlow** | URL contains `siliconflow.cn` (CN) / `siliconflow.com` (intl) | `¥42.50 (granted ¥10.00)` |
 
 #### Usage Display Format Reference
 
@@ -116,7 +120,7 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) is a full-featured statusline (10+ lines), primarily for Anthropic Claude native users. **This project** balances information density with simplicity, with two core goals:
 
 1. **Matching claude-hud core features** — tool activity, agent tracking, task parsing — all present, but kept within 7 lines, lighter than claude-hud
-2. **Deep multi-provider support** — built-in usage queries for Zhipu GLM, MiniMax, Xiaomi MiMo, Alibaba DashScope, Volcengine Ark, DeepSeek, Kimi, Kimi For Coding, StepFun and more Coding Plan / Token Plan platforms, so third-party proxy users can also see their quota in real time
+2. **Deep multi-provider support** — built-in usage queries for Zhipu GLM, MiniMax, Xiaomi MiMo, Alibaba DashScope, Volcengine Ark, Baidu Qianfan, Tencent Hunyuan, iFlyTek Astron, DeepSeek, Kimi, Kimi For Coding, StepFun, SiliconFlow and more Coding Plan / Token Plan platforms, so third-party proxy users can also see their quota in real time
 
 ---
 
