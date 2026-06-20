@@ -17,7 +17,7 @@
 >
 > Access the latest pure-blood Fable 5, Opus 4.8, and Pro-pool exclusive GPT-5.5, GPT-5.4 through our unified API. Seamlessly supports Claude Code and Codex integration — say goodbye to multi-platform management.
 >
-> [👉 Try it now](https://code.aicodeme.cn)
+> [👉 Try it now](https://code.aicodeme.cn/register?aff=H3U6DP3M2QDV)
 
 ---
 
