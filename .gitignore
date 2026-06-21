@@ -25,3 +25,8 @@ coverage/
 
 # Claude Code local config (may contain credentials)
 .claude/
+
+# Local-only notes/docs
+docs/
+scripts/
+assets/

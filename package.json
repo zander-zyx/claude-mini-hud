@@ -21,9 +21,22 @@
   },
   "keywords": [
     "claude-code",
+    "claude",
     "statusline",
     "hud",
-    "minimal"
+    "minimal",
+    "context-window",
+    "token-usage",
+    "zhipu",
+    "glm",
+    "minimax",
+    "deepseek",
+    "kimi",
+    "moonshot",
+    "stepfun",
+    "siliconflow",
+    "dashscope",
+    "qwen"
   ],
   "author": "Zander Zhang",
   "license": "MIT",
