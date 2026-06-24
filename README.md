@@ -78,6 +78,12 @@
 **核心特性**:
 - ⚡ **零依赖**: TypeScript 多模块架构,编译产物轻量
 - 🌍 **四种显示模式**: 中文 / English / Minimal (英中混搭) / Ultra-Minimal (只显示两行)
+- 📦 **花费追踪**: 本次会话累计花费 ($) + 耗时 + 花费增速 ($/h)
+- 🌿 **Git 状态**: 分支名 + dirty/干净标记 + ahead/behind (500ms 缓存,不拖慢刷新)
+- ⏳ **填满 ETA**: 按当前上下文填充速率预测"还剩多久填满",无需心算
+- ⚠️ **阈值告警**: 上下文 ≥85% 或用量窗口 ≥90% 时高亮提醒
+- 📐 **宽度自适应**: 进度条根据终端宽度自动伸缩 (`COLUMNS` / `stdout.columns`)
+- 🎛️ **布局可配**: `CLAUDE_MINI_HUD_LAYOUT` 自定义显示哪些行及顺序; `COMPACT=1` 单行紧凑模式
 - 🔧 **工具活动**: 实时显示文件读写、搜索、命令执行 (◐ 运行中 / ✓ 已完成×N)
 - 🤖 **Agent 追踪**: 显示活跃子 Agent 及其耗时
 - 🔥 **Token 速率**: 实时解码速度 (tok/s)
@@ -95,7 +101,7 @@
 | **MiniMax** | URL 含 `minimaxi.com` (国内) / `minimax.io` (国际) | `5h:55% 7d:74% m:50% (26d)` |
 | **智谱 (GLM)** | URL 含 `bigmodel.cn` / `z.ai` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
 | **小米 (MiMo)** | URL 含 `xiaomimimo` | `50M/100M m:45% (26d)` |
-| **阿里 (DashScope)** | URL 含 `dashscope` | 平台识别 (暂无公开用量 API) |
+| **阿里 (DashScope)** | URL 含 `dashscope` | `¥123.45` (BSS 账户余额) |
 | **火山引擎 (Ark)** | URL 含 `volces.com` | 平台识别 (暂无公开用量 API) |
 | **百度千帆 (Qianfan)** | URL 含 `qianfan` / `baidubce` | 平台识别 (暂无公开用量 API) |
 | **腾讯混元 (Hunyuan)** | URL 含 `hunyuan` | 平台识别 (暂无公开用量 API) |
@@ -119,6 +125,8 @@
 > 💡 **无需额外配置** — 只要设了 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_AUTH_TOKEN`，插件自动识别平台并查询。
 >
 > 🍪 **小米 (MiMo)** 需要额外设置 `XIAOMI_COOKIE` 环境变量 (从浏览器 DevTools 获取 Cookie)，因为小米用量 API 使用 Cookie 认证而非 API Key。
+
+> 🔑 **阿里 (DashScope)** 账户余额查询走阿里云 BSS OpenAPI，需要设置 `ALIYUN_AK_ID` + `ALIYUN_AK_SECRET`（主账号 RAM 密钥，**不是** `DASHSCOPE_API_KEY`）。DashScope 本身没有公开余额 API。
 
 **与 `claude-hud` 的定位**
 
@@ -305,19 +313,22 @@ TMPDIR=~/.cache/tmp claude
 **全部启用** (中文 + 模型 + 工具活动 + Agent 追踪):
 ```
 📊 上下文 ███░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s ~2h40m 填满
+⚠ 告警 上下文即将耗尽 88%
 ▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
 🧠 模型 glm-5.2  [智谱]
+$ 花费 $0.42 · 3m 12s · $1.20/h
+⎇ 分支 main ●
 ```
 
 **无工具/Agent 时** (自动隐藏对应行, 仅 3 行):
 ```
 📊 上下文 ███░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) ~2h40m 填满
 ▶ 当前任务 调研充电行业政策  (2/5)
 ```
 
@@ -344,6 +355,11 @@ TMPDIR=~/.cache/tmp claude
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (未设) | `1` | 设置为 `1` 时强制禁用 emoji, 使用 ASCII 符号 (# $ > 等) |
+| `CLAUDE_MINI_HUD_SHOW_COST` | (未设) | `1` | 显示花费行: 累计 `$` + 耗时 + 花费增速 `$/h` (读 `stdin.cost`) |
+| `CLAUDE_MINI_HUD_SHOW_GIT` | (未设) | `1` | 显示 Git 行: 分支名 + dirty/干净标记 + ahead/behind (spawn git, 500ms 缓存) |
+| `CLAUDE_MINI_HUD_WARN` | `1` (开) | `0` / `1` | 设为 `0` 关闭阈值告警; 默认开启, 上下文 ≥85% 或任一用量窗口 ≥90% 时高亮提醒 |
+| `CLAUDE_MINI_HUD_COMPACT` | (未设) | `1` | 单行紧凑模式: 把 上下文% / 用量 / 花费 / 当前任务 / ETA 用 `│` 压成一行 |
+| `CLAUDE_MINI_HUD_LAYOUT` | (未设) | 逗号分隔行名 | 自定义显示哪些行及顺序, 可用: `context,token,usage,alert,todo,tools,agent,cost,git,model` |
 
 **在 statusLine.command 里设置** (推荐):
 
@@ -410,6 +426,9 @@ TMPDIR=~/.cache/tmp claude
 | **[*] 工具** | ◐ 运行中 / ✓ 已完成×N | 有工具活动时 | `renderToolActivityLines` |
 | **& Agent** | ◐ 描述 + 耗时 | 有活跃 Agent 时 | `renderAgentLines` |
 | **> 模型** | 模型名 + provider 标签 | `SHOW_MODEL=1` | `renderModelLine` |
+| **$ 花费** | 累计 `$` + 耗时 + `$/h` 增速 | `SHOW_COST=1` | `renderCostLine` |
+| **⎇ 分支** | 分支名 + dirty/干净 + ahead/behind | `SHOW_GIT=1` | `renderGitLine` |
+| **⚠ 告警** | 上下文/用量阈值提醒 | 默认开 (`WARN=0` 关) | `renderAlertLine` |
 
 #### Token 行字段详解
 
@@ -522,9 +541,9 @@ if (breakdown.cache > 0) {
 }
 ```
 
-### 添加自定义行 (例如:当前 git 分支)
+### 添加自定义行 (内置 Git 分支已可直接用)
 
-在 `src/index.ts` 的 `main()` 函数中加一个 `renderGitBranchLine`:
+本插件已内置 Git 分支行 (`CLAUDE_MINI_HUD_SHOW_GIT=1` 即可), 下方示例演示如何添加**全新的自定义行**。新增行需在 `src/index.ts` 的 `main()` 里注册到 layout producers:
 
 ```ts
 async function renderGitBranchLine(): Promise<string | null> {
@@ -784,7 +803,12 @@ claude-mini-hud/
 
 近期 (v1.1):
 - [x] 进度条主题系统 (20 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头/波浪/潮汐/圆点/靶心/阴影/复古/ASCII/铁轨/星光/火花/心形/爱心)
-- [ ] Session 费用显示 (需要 Claude Code 暴露 `cost` 字段)
+- [x] Session 费用显示 (花费/耗时/$/h, `CLAUDE_MINI_HUD_SHOW_COST=1`)
+- [x] Git 分支/dirty 状态 (`CLAUDE_MINI_HUD_SHOW_GIT=1`)
+- [x] 上下文填满 ETA (按当前速率预测填满耗时)
+- [x] 阈值告警行 (`CLAUDE_MINI_HUD_WARN`)
+- [x] 终端宽度自适应进度条
+- [x] 布局配置 (`CLAUDE_MINI_HUD_LAYOUT`) + 单行紧凑模式 (`COMPACT=1`)
 - [ ] 多窗口切换时更平滑的刷新
 - [ ] 从环境变量读取颜色阈值
 

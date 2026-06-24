@@ -30,6 +30,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { get as httpGetImpl } from 'node:http';
 import { get as httpsGetImpl } from 'node:https';
+import { createHmac } from 'node:crypto';
 
 // ─── 类型 ─────────────────────────────────────────────────────────────────
 
@@ -316,6 +317,14 @@ export function pickMiniMaxModel(list: unknown[], currentModel: string | null): 
 }
 
 // ─── HTTP 查询 ────────────────────────────────────────────────────────────
+
+/** 阿里云 RPC 签名用的 RFC3986 百分号编码 */
+function percentEncode(s: string): string {
+  return encodeURIComponent(s)
+    .replace(/!/g, '%21').replace(/'/g, '%27')
+    .replace(/\(/g, '%28').replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A');
+}
 
 function httpGet(url: string, apiKey: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -615,12 +624,70 @@ async function queryXiaomi(apiKey: string): Promise<UsageData | null> {
     };
   } catch {
     return null;
-  }
+ }
 }
 
-// 阿里 DashScope Coding Plan — 暂无公开的用量查询 API
+// 阿里 DashScope 无公开的余额 API; 账户余额需走阿里云 BSS OpenAPI (RPC 签名)
+// 需要 ALIYUN_AK_ID + ALIYUN_AK_SECRET (主账号 RAM 密钥, 非 DASHSCOPE_API_KEY)
 async function queryAlibaba(): Promise<UsageData | null> {
-  return null;
+  try {
+    const akId = process.env.ALIYUN_AK_ID?.trim();
+    const akSecret = process.env.ALIYUN_AK_SECRET?.trim();
+    if (!akId || !akSecret) return null;
+
+    // 阿里云 BSS OpenAPI: QueryAccountBalance (RPC 风格, GET)
+    // https://business.aliyuncs.com?Action=QueryAccountBalance&...
+    const params: Record<string, string> = {
+      Action: 'QueryAccountBalance',
+      Format: 'JSON',
+      Version: '2017-12-14',
+      AccessKeyId: akId,
+      SignatureMethod: 'HMAC-SHA1',
+      SignatureVersion: '1.0',
+      SignatureNonce: String(Date.now()) + Math.floor(Math.random() * 1000),
+      Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    };
+
+    // RPC v1.0 签名: 对 canonicalized query string 做 HMAC-SHA1, base64
+    const sortedKeys = Object.keys(params).sort();
+    const canonicalQuery = sortedKeys
+      .map((k) => `${percentEncode(k)}=${percentEncode(params[k])}`)
+      .join('&');
+    const stringToSign = `GET&${percentEncode('/')}&${percentEncode(canonicalQuery)}`;
+    const signature = createHmac('sha1', akSecret + '&')
+      .update(stringToSign, 'utf8')
+      .digest('base64');
+    params.Signature = signature;
+
+    const url = 'https://business.aliyuncs.com/?' + Object.keys(params)
+      .map((k) => `${percentEncode(k)}=${percentEncode(params[k])}`)
+      .join('&');
+
+    const body = await httpGet(url, '');
+    const json = JSON.parse(body);
+    if (json.Code) return null;  // 错误响应带 Code 字段
+
+    const bal = json.Data;
+    if (!bal) return null;
+
+    // Balances 可能为字符串; AccountID/Currency 等字段
+    const available = parseFloat(String(bal.AvailableAmount ?? bal.availableAmount ?? '0'));
+    const cash = parseFloat(String(bal.AvailableCashAmount ?? bal.cashAmount ?? '0'));
+    if (!Number.isFinite(available)) return null;
+
+    // 转为 token-like 用量: 用余额填充 used/total (余额型, total=available, used=0)
+    return {
+      provider: 'alibaba',
+      alibaba: {
+        used: 0,
+        total: Math.round(available * 100),  // 用"分"作单位, 避免小数显示
+        plan: cash > 0 ? `¥${available.toFixed(2)}` : undefined,
+      },
+      updatedAt: Date.now(),
+    };
+  } catch {
+    return null;
+  }
 }
 
 // 火山引擎 Ark — 管控面 API 需要 HMAC-SHA256 签名, 零依赖实现暂不支持

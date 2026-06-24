@@ -83,3 +83,12 @@ export interface TokenBreakdown {
   cache: number;
   total: number;
 }
+
+// ─── Git (本地计算, 非来自 stdin) ─────────────────────────────────────────
+
+export interface GitInfo {
+  branch: string;
+  dirty: boolean;
+  ahead: number;
+  behind: number;
+}

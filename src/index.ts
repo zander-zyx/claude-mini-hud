@@ -25,6 +25,7 @@ import { c } from './colors.js';
 import { t, MINIMAL, lbl, ULTRA_MINIMAL } from './i18n.js';
 import { readTranscriptData } from './transcript.js';
 import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent } from './render.js';
+import { renderCostLine, renderGitLine, renderAlertLine, renderCompactLine } from './render.js';
 import { getUsageData } from './usage.js';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -34,6 +35,25 @@ import { homedir } from 'node:os';
 
 // 模型行可选显示: CLAUDE_MINI_HUD_SHOW_MODEL=1 显示, 默认隐藏
 const SHOW_MODEL = process.env.CLAUDE_MINI_HUD_SHOW_MODEL === '1';
+
+// 花费/耗时行: CLAUDE_MINI_HUD_SHOW_COST=1 显示
+const SHOW_COST = process.env.CLAUDE_MINI_HUD_SHOW_COST === '1';
+
+// Git 分支行: CLAUDE_MINI_HUD_SHOW_GIT=1 显示
+const SHOW_GIT = process.env.CLAUDE_MINI_HUD_SHOW_GIT === '1';
+
+// 阈值告警行: CLAUDE_MINI_HUD_WARN=0 关闭, 默认开启 (context>=85% / usage>=90%)
+const WARN_ENABLED = process.env.CLAUDE_MINI_HUD_WARN !== '0';
+
+// 紧凑单行模式: CLAUDE_MINI_HUD_COMPACT=1 把关键信息压成一行
+const COMPACT = process.env.CLAUDE_MINI_HUD_COMPACT === '1';
+
+// 自定义行布局: CLAUDE_MINI_HUD_LAYOUT=逗号分隔的行名, 控制显示哪些行及其顺序
+// 可用行名: context, token, usage, todo, tools, agent, model, cost, git, alert
+const LAYOUT_RAW = process.env.CLAUDE_MINI_HUD_LAYOUT?.trim();
+const LAYOUT = LAYOUT_RAW
+  ? LAYOUT_RAW.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+  : null;
 
 // Token 行模式: session(默认/累计) | context(上下文快照) | both(两行都显示)
 const TOKEN_MODE = (['session', 'context', 'both'] as const)
@@ -197,36 +217,67 @@ async function main(): Promise<void> {
   const usageData = getUsageData(stdin);
 
   const lines: string[] = [];
-  // 1) 上下文 (必显, 含智谱限额标签)
-  lines.push(renderContextLine(stdin, usageData));
-  // 2) Token 细分 (必显, 模式由 CLAUDE_MINI_HUD_TOKEN_MODE 控制)
-  lines.push(...renderTokenLine(stdin, tdata, TOKEN_MODE, SPEED_CACHE_DIR));
 
-  // ultra-minimal 模式: 只显示 Context + Token 两行, 其余全部隐藏
-  if (ULTRA_MINIMAL) {
-    console.log(lines.join('\n'));
+  // ─── 紧凑单行模式: 把关键信息压成一行, 直接输出 ──────────────────────
+  if (COMPACT) {
+    console.log(renderCompactLine(stdin, usageData, tdata, SPEED_CACHE_DIR));
     return;
   }
 
-  // 2.5) 用量/余额行
-  const usageLine = renderUsageLine(usageData);
-  if (usageLine) lines.push(usageLine);
+  // ─── 各行的渲染 producer (按需调用, 避免无谓计算) ──────────────────────
+  const producers: Record<string, () => string | string[] | null> = {
+    context: () => renderContextLine(stdin, usageData, SPEED_CACHE_DIR),
+    token:   () => renderTokenLine(stdin, tdata, TOKEN_MODE, SPEED_CACHE_DIR),
+    usage:   () => renderUsageLine(usageData),
+    alert:   () => WARN_ENABLED ? renderAlertLine(stdin, usageData) : null,
+    todo:    () => renderTodoLine(tdata),
+    tools:   () => renderToolActivityLines(tdata),
+    agent:   () => renderAgentLines(tdata),
+    cost:    () => SHOW_COST ? renderCostLine(stdin) : null,
+    git:     () => SHOW_GIT ? renderGitLine(stdin) : null,
+    model:   () => SHOW_MODEL ? renderModelLine(stdin) : null,
+  };
 
-  // 3) 当前任务 (必显, 放在工具活动之前——执行计划更重要)
-  const todoLine = renderTodoLine(tdata);
-  if (todoLine) lines.push(todoLine);
+  // ─── 行布局: 自定义 LAYOUT 优先, 否则默认顺序 + 条件行 ──────────────────
+  // 默认顺序: context, token, [alert], usage, todo, tools, agent, [cost], [git], [model]
+  const orderedKeys: string[] = LAYOUT
+    ? LAYOUT
+    : ['context', 'token', 'alert', 'usage', 'todo', 'tools', 'agent', 'cost', 'git', 'model'];
 
-  // 4) 工具活动 (有就显, 运行中/已完成 分行展示)
-  const toolLines = renderToolActivityLines(tdata);
-  if (toolLines.length > 0) lines.push(...toolLines);
+  // context + token 永远渲染 (必显, 即便 LAYOUT 未列)
+  const mustHave = new Set(['context', 'token']);
+  const seen = new Set<string>();
+  const finalKeys: string[] = [];
+  // ultra-minimal: 强制只渲染 context + token
+  const allowed = ULTRA_MINIMAL ? ['context', 'token'] : orderedKeys;
+  for (const k of allowed) {
+    if (seen.has(k)) continue;
+    seen.add(k);
+    finalKeys.push(k);
+  }
+  // 默认布局下补齐必显行 (LAYOUT 模式下严格遵循用户配置)
+  if (!LAYOUT) {
+    for (const k of mustHave) {
+      if (!seen.has(k)) { seen.add(k); finalKeys.unshift(k); }
+    }
+  }
 
-  // 5) Agent 追踪 (有活跃 agent 就显, 每个一行)
-  const agentLines = renderAgentLines(tdata);
-  if (agentLines.length > 0) lines.push(...agentLines);
+  // 渲染并收集非空行 (alert 行默认为 null, 无触发时不占位)
+  for (const key of finalKeys) {
+    const fn = producers[key];
+    if (!fn) continue;
+    const out = fn();
+    if (out === null) continue;
+    if (Array.isArray(out)) {
+      if (out.length > 0) lines.push(...out);
+    } else {
+      lines.push(out);
+    }
+  }
 
-  // 6) 模型 (可选: CLAUDE_MINI_HUD_SHOW_MODEL=1, 放在最后)
-  if (SHOW_MODEL) {
-    lines.push(renderModelLine(stdin));
+  // 兜底: 极端情况下无任何行 → 输出 context 占位
+  if (lines.length === 0) {
+    lines.push(renderContextLine(stdin, usageData, SPEED_CACHE_DIR));
   }
 
   console.log(lines.join('\n'));

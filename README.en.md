@@ -36,7 +36,8 @@
 **Chinese (zh, default)** — full Chinese + emoji:
 ```
 📊 上下文 ███░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) 45 tok/s ~2h40m 填满
+⚠ 告警 上下文即将耗尽 88%
 ▶ 当前任务 正在写 skill  (1/4)
   ◐ 读取 index.ts
   ◐ 写入 utils.ts
@@ -73,6 +74,12 @@ Switch with: `CLAUDE_MINI_HUD_LANG=zh|en|minimal|ultra-minimal` (see [Configurat
 **Key Features**:
 - ⚡ **Zero Dependencies**: Multi-module TypeScript architecture, lightweight compiled output
 - 🌍 **Four Display Modes**: Chinese / English / Minimal (hybrid) / Ultra-Minimal (2 lines only)
+- 📦 **Cost Tracking**: session cost ($) + duration + burn rate ($/h)
+- 🌿 **Git Status**: branch + dirty/clean marker + ahead/behind (500ms cached)
+- ⏳ **Fill ETA**: predicts time-to-full based on current context fill rate
+- ⚠️ **Threshold Alerts**: highlights when context ≥85% or any usage window ≥90%
+- 📐 **Adaptive Width**: progress bar scales to terminal width (`COLUMNS` / `stdout.columns`)
+- 🎛️ **Configurable Layout**: `CLAUDE_MINI_HUD_LAYOUT` for line order/visibility; `COMPACT=1` single-line mode
 - 🔧 **Tool Activity**: Real-time file reads/writes, searches, command execution (◐ running / ✓ completed ×N)
 - 🤖 **Agent Tracking**: Shows active sub-agents and their duration
 - 🔥 **Token Speed**: Real-time decoding speed (tok/s)
@@ -90,7 +97,7 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 | **MiniMax** | URL contains `minimaxi.com` (CN) / `minimax.io` (Intl) | `5h:55% 7d:74% m:50% (26d)` |
 | **Zhipu (GLM)** | URL contains `bigmodel.cn` / `z.ai` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
 | **Xiaomi (MiMo)** | URL contains `xiaomimimo` | `50M/100M m:45% (26d)` |
-| **Alibaba (DashScope)** | URL contains `dashscope` | Platform detection only (no public usage API) |
+| **Alibaba (DashScope)** | URL contains `dashscope` | `¥123.45` (BSS account balance) |
 | **Volcengine (Ark)** | URL contains `volces.com` | Platform detection only (no public usage API) |
 | **Baidu Qianfan** | URL contains `qianfan` / `baidubce` | Platform detection only (no public usage API) |
 | **Tencent Hunyuan** | URL contains `hunyuan` | Platform detection only (no public usage API) |
@@ -114,6 +121,8 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 > 💡 **No extra configuration needed** — as long as `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` are set, the plugin automatically detects the platform and queries it.
 >
 > 🍪 **Xiaomi (MiMo)** requires an additional `XIAOMI_COOKIE` environment variable (extract Cookie from browser DevTools), as the Xiaomi usage API uses Cookie authentication instead of API Key.
+
+> 🔑 **Alibaba (DashScope)** balance query uses the Aliyun BSS OpenAPI, requiring `ALIYUN_AK_ID` + `ALIYUN_AK_SECRET` (primary account RAM key, **not** `DASHSCOPE_API_KEY`). DashScope itself has no public balance API.
 
 **Positioning vs. `claude-hud`**
 
@@ -307,12 +316,14 @@ This is a [Claude Code platform limitation](https://github.com/anthropics/claude
   ✓ 搜索 ×3  ✓ 执行 ×1
   [Explore] ◐ 搜索相关代码 2m 15s
 🧠 模型 glm-5.2  [智谱]
+$ 花费 $0.42 · 3m 12s · $1.20/h
+⎇ 分支 main ●
 ```
 
 **No tools/agents** (those lines auto-hide, only 3 lines):
 ```
 📊 上下文 ███░░░░░░░ 13%  100k / 1M  剩余 900k
-🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k )
+🪙 Token 4.8M (入 3.5M · 出 1.2M · 缓存 103k ) ~2h40m 填满
 ▶ 当前任务 调研充电行业政策  (2/5)
 ```
 
@@ -339,6 +350,11 @@ The statusline automatically refreshes at these moments:
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (unset) | `1` | When set to `1`, shows the model line |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token line mode: session=cumulative / context=snapshot / both=two lines |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (unset) | `1` | When set to `1`, forces ASCII symbols (# $ > etc.) instead of emoji |
+| `CLAUDE_MINI_HUD_SHOW_COST` | (unset) | `1` | Show cost line: cumulative `$` + duration + burn rate `$/h` (reads `stdin.cost`) |
+| `CLAUDE_MINI_HUD_SHOW_GIT` | (unset) | `1` | Show Git line: branch + dirty/clean marker + ahead/behind (spawns git, 500ms cached) |
+| `CLAUDE_MINI_HUD_WARN` | `1` (on) | `0` / `1` | Set to `0` to disable threshold alerts; on by default, highlights when context ≥85% or any usage window ≥90% |
+| `CLAUDE_MINI_HUD_COMPACT` | (unset) | `1` | Single-line compact mode: joins context% / usage / cost / current task / ETA with `│` |
+| `CLAUDE_MINI_HUD_LAYOUT` | (unset) | comma-separated line names | Customize which lines render and in what order; available: `context,token,usage,alert,todo,tools,agent,cost,git,model` |
 
 **Set them in statusLine.command** (recommended):
 
@@ -405,6 +421,9 @@ The statusline automatically refreshes at these moments:
 | **[*] Tools** | ◐ running / ✓ completed ×N | When tool activity exists | `renderToolActivityLines` |
 | **& Agent** | ◐ description + duration | When active agents exist | `renderAgentLines` |
 | **> Model** | Model name + provider label | `SHOW_MODEL=1` | `renderModelLine` |
+| **$ Cost** | Cumulative `$` + duration + `$/h` rate | `SHOW_COST=1` | `renderCostLine` |
+| **⎇ Git** | Branch + dirty/clean + ahead/behind | `SHOW_GIT=1` | `renderGitLine` |
+| **⚠ Alert** | Context/usage threshold warning | On by default (`WARN=0` off) | `renderAlertLine` |
 
 #### Token Line Fields Explained
 
@@ -502,9 +521,9 @@ if (breakdown.cache > 0) {
 }
 ```
 
-### Add a Custom Line (e.g. current git branch)
+### Add a Custom Line (built-in Git line now available directly)
 
-Add a `renderGitBranchLine` in `src/index.ts`'s `main()` function:
+This plugin already includes a built-in Git line (`CLAUDE_MINI_HUD_SHOW_GIT=1`). The example below shows how to add a **brand-new custom line**. New lines must be registered in the layout producers in `src/index.ts`'s `main()`:
 
 ```ts
 async function renderGitBranchLine(): Promise<string | null> {
@@ -764,7 +783,12 @@ PRs are welcome! Here are the contribution guidelines:
 
 Short-term (v1.1):
 - [x] Progress bar theme system (20 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/shades/retro/ascii/rail/star/spark/heart/love)
-- [ ] Session cost display (requires Claude Code to expose `cost` field)
+- [x] Session cost display (cost/duration/$/h, `CLAUDE_MINI_HUD_SHOW_COST=1`)
+- [x] Git branch/dirty status (`CLAUDE_MINI_HUD_SHOW_GIT=1`)
+- [x] Context fill ETA (predicts time-to-full at current rate)
+- [x] Threshold alert line (`CLAUDE_MINI_HUD_WARN`)
+- [x] Terminal-width adaptive progress bar
+- [x] Layout configuration (`CLAUDE_MINI_HUD_LAYOUT`) + compact single-line mode (`COMPACT=1`)
 - [ ] Smoother refresh across multi-window switches
 - [ ] Read color thresholds from environment variables
 

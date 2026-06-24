@@ -25,6 +25,11 @@ export interface I18nStrings {
   fallback: string;
   renderFailed: string;
   toolVerb: Record<string, string>;
+  cost: string;
+  git: string;
+  alert: string;
+  etaFull: string;
+  ctxWarn: string;
 }
 
 const STRINGS: Record<Lang, I18nStrings> = {
@@ -55,6 +60,11 @@ const STRINGS: Record<Lang, I18nStrings> = {
       TaskUpdate: '改任务',
       TodoWrite: '写待办',
     },
+    cost: '花费',
+    git: '分支',
+    alert: '告警',
+    etaFull: '填满',
+    ctxWarn: '上下文即将耗尽',
   },
   en: {
     context: 'Context',
@@ -83,6 +93,11 @@ const STRINGS: Record<Lang, I18nStrings> = {
       TaskUpdate: 'task~',
       TodoWrite: 'todo',
     },
+    cost: 'Cost',
+    git: 'Git',
+    alert: 'Warn',
+    etaFull: 'full',
+    ctxWarn: 'Context almost full',
   },
   minimal: {
     context: 'Context',
@@ -111,6 +126,11 @@ const STRINGS: Record<Lang, I18nStrings> = {
       TaskUpdate: '~',
       TodoWrite: 'todo',
     },
+    cost: 'Cost',
+    git: 'Git',
+    alert: '!',
+    etaFull: 'full',
+    ctxWarn: 'CTX full',
   },
   'ultra-minimal': {
     context: 'Context',
@@ -126,6 +146,11 @@ const STRINGS: Record<Lang, I18nStrings> = {
     fallback: '—',
     renderFailed: 'err',
     toolVerb: {},
+    cost: 'Cost',
+    git: 'Git',
+    alert: '!',
+    etaFull: 'full',
+    ctxWarn: 'CTX full',
   },
 };
 

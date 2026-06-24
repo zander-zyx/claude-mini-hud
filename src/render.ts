@@ -9,14 +9,16 @@
  */
 
 import type { StdinData, TranscriptData, TodoItem, ToolActivity, AgentActivity, TokenBreakdown } from './types.js';
+import type { GitInfo } from './types.js';
 import type { UsageData } from './usage.js';
 import { c } from './colors.js';
 import { t, MINIMAL, LANG, lbl } from './i18n.js';
 import { THEME, THEME_NAME, MARKS } from './themes.js';
 import { truncate } from './transcript.js';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 
 // ─── 格式化工具 ───────────────────────────────────────────────────────────
 
@@ -69,6 +71,36 @@ export function formatElapsed(ms: number): string {
   return `${hrs}h ${rm}m`;
 }
 
+// ─── 终端宽度自适应 ────────────────────────────────────────────────────────
+
+/** 估算可用终端列数 (StatusLine 渲染宽度, 保守取值) */
+function getTerminalWidth(): number {
+  const fromEnv = parseInt(process.env.COLUMNS ?? '', 10);
+  if (Number.isFinite(fromEnv) && fromEnv >= 40) return fromEnv;
+  const cols = process.stdout.columns;
+  if (typeof cols === 'number' && cols >= 40) return cols;
+  return 80;  // 默认回退
+}
+
+/** 根据终端宽度计算进度条宽度 (占比约 1/5, 限制 6-30) */
+function adaptiveBarWidth(): number {
+  const term = getTerminalWidth();
+  const w = Math.round(term / 6);
+  return Math.max(6, Math.min(30, w));
+}
+
+/** 格式化 ETA (按秒数): 90s → "1m", 3600 → "1h", 5400 → "1h30m" */
+function formatEta(seconds: number): string {
+  if (seconds < 60) return `${Math.max(1, Math.round(seconds))}s`;
+  const mins = Math.floor(seconds / 60);
+  const hrs = Math.floor(mins / 60);
+  if (hrs > 0) {
+    const rm = mins % 60;
+    return rm > 0 ? `${hrs}h${rm}m` : `${hrs}h`;
+  }
+  return `${mins}m`;
+}
+
 /** 根据当前主题渲染进度条 */
 function progressBar(percent: number, _width?: number): string {
   const theme = THEME;
@@ -77,9 +109,15 @@ function progressBar(percent: number, _width?: number): string {
   if (theme.isMinimal) return '';
 
   const width = _width ?? theme.width;
-  const totalSlots = width;
+  const totalSlots = _width ?? adaptiveBarWidth();
   const fillCount = Math.round((percent / 100) * totalSlots);
   const emptyCount = totalSlots - fillCount;
+
+  // emoji 双宽字符 (heart/love/star) 占 2 列, slot 数减半以保持视觉等长
+  const isWide = THEME.filled.length > 0 && [...THEME.filled[0]].length > 1;
+  const effWidth = isWide ? Math.max(4, Math.floor(totalSlots / 2)) : totalSlots;
+  const effFill = Math.round((percent / 100) * effWidth);
+  const effEmpty = effWidth - effFill;
 
   // 颜色按百分比: 绿 < 60, 黄 60-80, 红 > 80
   const color = THEME.monochrome ? (s: string) => s : (percent > 80 ? c.red : percent > 60 ? c.yellow : c.green);
@@ -95,10 +133,10 @@ function progressBar(percent: number, _width?: number): string {
   // ─── 复古终端主题: 末位用 ▸ 箭头指示器 ────────────────────────────
   if (THEME_NAME === 'retro') {
     let filledStr = '';
-    for (let i = 0; i < fillCount; i++) {
-      filledStr += (i === fillCount - 1) ? '▸' : '═';
+    for (let i = 0; i < effFill; i++) {
+      filledStr += (i === effFill - 1) ? '▸' : '═';
     }
-    const emptyStr = theme.empty.repeat(emptyCount);
+    const emptyStr = theme.empty.repeat(effEmpty);
     const bar = color(filledStr) + c.dim(emptyStr);
     return `${left}${bar}${right}`;
   }
@@ -109,15 +147,15 @@ function progressBar(percent: number, _width?: number): string {
     // 防御: filled 为空时不渲染进度条内容 (仅 minimal 主题会走到这里, 但已提前返回)
     return '';
   } else if (theme.filled.length === 1) {
-    filledStr = theme.filled[0].repeat(fillCount);
+    filledStr = theme.filled[0].repeat(effFill);
   } else {
     // 多字符循环填充 (如 braille / shades 风格)
-    for (let i = 0; i < fillCount; i++) {
+    for (let i = 0; i < effFill; i++) {
       filledStr += theme.filled[i % theme.filled.length];
     }
   }
 
-  const emptyStr = theme.empty.repeat(emptyCount);
+  const emptyStr = theme.empty.repeat(effEmpty);
   const bar = color(filledStr + emptyStr);
 
   return `${left}${bar}${right}`;
@@ -176,7 +214,7 @@ export function getContextPercent(stdin: StdinData): number {
   return 0;
 }
 
-export function renderContextLine(stdin: StdinData, usage: UsageData | null): string {
+export function renderContextLine(stdin: StdinData, usage: UsageData | null, cacheDir?: string): string {
   const pct = getContextPercent(stdin);
   const size = resolveContextSize(stdin);
   const rawTokens = getTotalTokens(stdin);
@@ -207,6 +245,12 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null): st
   }
   const balanceTag = buildBalanceTag(usage);
   if (balanceTag) detail += `  ${balanceTag}`;
+
+  // ETA: 按当前上下文填充速率预测填满耗时 (仅 cacheDir 提供且速率有效时显示)
+  if (cacheDir && remaining > 0) {
+    const eta = getContextEta(stdin, cacheDir);
+    if (eta && eta > 0) detail += c.dim(`  ~${formatEta(eta)} ${t.etaFull}`);
+  }
 
   const theme = THEME;
 
@@ -246,6 +290,254 @@ function buildBalanceTag(usage: UsageData | null): string | null {
   // 所有有独立 Usage 行的平台都不在 Context 行显示余额 (避免重复)
   if (usage.deepSeek || usage.kimi || usage.kimiCoding || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine || usage.stepfun || usage.siliconflow) return null;
   return null;
+}
+
+// ─── 花费/耗时行 (stdin.cost + $/h 增速缓存) ──────────────────────────────
+
+const COST_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'cost-speed-cache.json');
+
+/** 计算花费增速 ($/h): 基于累计 cost 的时间变化, 用文件缓存 */
+function getCostRate(costUsd: number): number | null {
+  if (!Number.isFinite(costUsd) || costUsd <= 0) return null;
+  try {
+    const now = Date.now();
+    let prev: { c: number; ts: number } | null = null;
+    try { prev = JSON.parse(readFileSync(COST_CACHE_PATH, 'utf8')); } catch { /* first */ }
+
+    const writeBaseline = () => {
+      try {
+        mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
+        writeFileSync(COST_CACHE_PATH, JSON.stringify({ c: costUsd, ts: now }));
+      } catch { /* silent */ }
+    };
+
+    if (!prev || costUsd < prev.c) { writeBaseline(); return null; }
+    const dtH = (now - prev.ts) / 3_600_000;
+    if (dtH < 0.02 || dtH > 6) { if (dtH > 6) writeBaseline(); return null; }
+    const delta = costUsd - prev.c;
+    if (delta === 0) return null;
+    writeBaseline();
+    return delta / dtH;
+  } catch {
+    return null;
+  }
+}
+
+export function renderCostLine(stdin: StdinData): string | null {
+  const cost = stdin.cost;
+  const totalCost = typeof cost?.total_cost_usd === 'number' ? cost.total_cost_usd : undefined;
+  const durationMs = typeof cost?.total_duration_ms === 'number' ? cost.total_duration_ms : undefined;
+
+  if (totalCost === undefined && durationMs === undefined) return null;
+
+  const parts: string[] = [];
+  if (totalCost !== undefined && Number.isFinite(totalCost)) {
+    parts.push(c.cyan(c.bold(`$${totalCost.toFixed(2)}`)));
+    // 花费增速 $/h
+    const rate = getCostRate(totalCost);
+    if (rate && rate > 0) parts.push(c.dim(`$${rate.toFixed(2)}/h`));
+  }
+  if (durationMs !== undefined && Number.isFinite(durationMs) && durationMs > 0) {
+    parts.push(c.dim(formatElapsed(durationMs)));
+  }
+
+  if (parts.length === 0) return null;
+  const label = lbl('cost', t.cost, '$');
+  return `${label} ${parts.join(' · ')}`;
+}
+
+// ─── Git 分支/脏状态行 (spawn git + 文件缓存, TTL 500ms) ──────────────────
+
+const GIT_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'git-cache.json');
+
+/** 读取 Git 缓存 (500ms TTL, 同一会话内复用) */
+function readGitCache(dir: string): GitInfo | null {
+  try {
+    const data = JSON.parse(readFileSync(GIT_CACHE_PATH, 'utf8'));
+    if (data.dir !== dir) return null;
+    if (Date.now() - data.ts > 500) return null;
+    return data.info as GitInfo;
+  } catch { return null; }
+}
+
+function writeGitCache(dir: string, info: GitInfo): void {
+  try {
+    mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
+    writeFileSync(GIT_CACHE_PATH, JSON.stringify({ dir, ts: Date.now(), info }));
+  } catch { /* silent */ }
+}
+
+/** 查询 Git 信息: branch + dirty + ahead/behind */
+export function getGitInfo(stdin: StdinData): GitInfo | null {
+  const dir = stdin.workspace?.current_dir ?? stdin.workspace?.project_dir;
+  if (!dir) return null;
+
+  const cached = readGitCache(dir);
+  if (cached) return cached;
+
+  try {
+    // branch
+    const branch = execFileSync('git', ['-C', dir, 'rev-parse', '--abbrev-ref', 'HEAD'], {
+      encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (!branch) return null;
+
+    // ahead/behind
+    let ahead = 0, behind = 0;
+    try {
+      const counts = execFileSync('git', ['-C', dir, 'rev-list', '--left-right', '--count', '@{u}...HEAD'], {
+        encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim().split(/\s+/);
+      if (counts.length === 2) { behind = parseInt(counts[0], 10) || 0; ahead = parseInt(counts[1], 10) || 0; }
+    } catch { /* no upstream */ }
+
+    // dirty
+    let dirty = false;
+    try {
+      const status = execFileSync('git', ['-C', dir, 'status', '--porcelain'], {
+        encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+      dirty = status.length > 0;
+    } catch { /* ignore */ }
+
+    const info: GitInfo = { branch, dirty, ahead, behind };
+    writeGitCache(dir, info);
+    return info;
+  } catch {
+    return null;  // 非 git 仓库 / git 未安装
+  }
+}
+
+export function renderGitLine(stdin: StdinData): string | null {
+  const info = getGitInfo(stdin);
+  if (!info) return null;
+
+  const branchColor = info.dirty ? c.yellow : c.green;
+  const dirtyTag = info.dirty ? c.yellow('●') : c.green('✓');
+  const abParts: string[] = [];
+  if (info.ahead > 0) abParts.push(c.cyan(`↑${info.ahead}`));
+  if (info.behind > 0) abParts.push(c.red(`↓${info.behind}`));
+  const abStr = abParts.length > 0 ? ` ${abParts.join(' ')}` : '';
+
+  const label = lbl('git', t.git, '⎇');
+  return `${label} ${branchColor(info.branch)} ${dirtyTag}${abStr}`;
+}
+
+// ─── 阈值告警行 (context>=85% 或 任一用量窗口>=90%) ───────────────────────
+
+export interface AlertThresholds {
+  contextPct?: number;   // 0-100
+  usagePct?: number;     // 任一用量窗口最大值
+}
+
+/** 检测是否需要告警, 返回告警文本 (无则 null). threshold: context/usage 百分比上限 */
+export function renderAlertLine(stdin: StdinData, usage: UsageData | null, ctxThreshold = 85, usageThreshold = 90): string | null {
+  const ctxPct = getContextPercent(stdin);
+  const ctxAlert = ctxPct >= ctxThreshold;
+
+  // 取所有用量窗口最大百分比
+  let usageMax = 0;
+  if (usage) {
+    const u = usage.claude;
+    if (u) {
+      if (typeof u.fiveHour === 'number') usageMax = Math.max(usageMax, u.fiveHour);
+      if (typeof u.sevenDay === 'number') usageMax = Math.max(usageMax, u.sevenDay);
+    }
+    const m = usage.miniMax;
+    if (m) {
+      if (m.intervalRemainingPercent !== undefined) usageMax = Math.max(usageMax, 100 - m.intervalRemainingPercent);
+      if (m.weeklyRemainingPercent !== undefined) usageMax = Math.max(usageMax, 100 - m.weeklyRemainingPercent);
+    }
+    const kc = usage.kimiCoding;
+    if (kc) {
+      if (kc.fiveHourPercent !== undefined) usageMax = Math.max(usageMax, kc.fiveHourPercent);
+      if (kc.weeklyPercent !== undefined) usageMax = Math.max(usageMax, kc.weeklyPercent);
+    }
+    const z = usage.zhipu;
+    if (z) {
+      if (z.usedPercent !== undefined) usageMax = Math.max(usageMax, z.usedPercent);
+      if (z.weeklyPercent !== undefined) usageMax = Math.max(usageMax, z.weeklyPercent);
+      if (z.monthlyPercent !== undefined) usageMax = Math.max(usageMax, z.monthlyPercent);
+    }
+  }
+  const usageAlert = usageMax >= usageThreshold;
+
+  if (!ctxAlert && !usageAlert) return null;
+
+  const msgs: string[] = [];
+  if (ctxAlert) msgs.push(`${t.ctxWarn} ${ctxPct}%`);
+  if (usageAlert) msgs.push(`${t.alert} ${usageMax}%`);
+
+  const prefix = c.bold(c.red('⚠'));
+  return `${prefix} ${c.red(msgs.join(' · '))}`;
+}
+
+// ─── 紧凑单行模式: 把关键信息压成一行 (用 │ 分隔) ────────────────────────
+
+/** 剥离 ANSI 的纯文本长度 (用于紧凑模式的可见性判断) */
+function visibleLen(s: string): number {
+  return s.replace(/\x1b\[[0-9;]*m/g, '').length;
+}
+
+export function renderCompactLine(
+  stdin: StdinData,
+  usage: UsageData | null,
+  tdata: TranscriptData | null,
+  cacheDir?: string,
+): string {
+  const segs: string[] = [];
+  const sep = c.dim(' │ ');
+
+  // 1) 上下文百分比 (核心)
+  const pct = getContextPercent(stdin);
+  const pctColorFn = THEME.monochrome ? (s: string) => s : (pct >= 80 ? c.red : pct >= 60 ? c.yellow : c.green);
+  segs.push(pctColorFn(c.bold(`${pct}%`)));
+
+  // 2) 用量窗口 (短)
+  if (usage) {
+    let usageStr: string | null = null;
+    if (usage.claude?.fiveHour !== null && usage.claude?.fiveHour !== undefined) {
+      usageStr = `API ${usage.claude.fiveHour}%`;
+    } else if (usage.miniMax?.intervalRemainingPercent !== undefined) {
+      usageStr = `5h ${100 - usage.miniMax.intervalRemainingPercent}%`;
+    } else if (usage.deepSeek) {
+      usageStr = `¥${usage.deepSeek.totalBalance.toFixed(2)}`;
+    } else if (usage.kimi) {
+      usageStr = `¥${usage.kimi.totalBalance.toFixed(2)}`;
+    } else if (usage.stepfun) {
+      usageStr = `¥${usage.stepfun.totalBalance.toFixed(2)}`;
+    } else if (usage.siliconflow) {
+      usageStr = `¥${usage.siliconflow.totalBalance.toFixed(2)}`;
+    }
+    if (usageStr) segs.push(c.cyan(usageStr));
+  }
+
+  // 3) 花费 (有则显示)
+  const costUsd = stdin.cost?.total_cost_usd;
+  if (typeof costUsd === 'number' && Number.isFinite(costUsd) && costUsd > 0) {
+    segs.push(c.cyan(`$${costUsd.toFixed(2)}`));
+  }
+
+  // 4) 当前任务 (截断)
+  if (tdata?.todos && tdata.todos.length > 0) {
+    const active = tdata.todos.find((td) => td.status === 'in_progress')
+      ?? tdata.todos.find((td) => td.status === 'pending');
+    if (active) {
+      const completed = tdata.todos.filter((td) => td.status === 'completed').length;
+      const total = tdata.todos.length;
+      const todoText = truncate(active.activeForm || active.content, 30);
+      segs.push(`${c.dim(`(${completed}/${total})`)} ${todoText}`);
+    }
+  }
+
+  // 5) ETA (仅紧凑模式额外显示, 视终端宽度)
+  if (cacheDir && pct < 95) {
+    const eta = getContextEta(stdin, cacheDir);
+    if (eta && eta > 0) segs.push(c.dim(`~${formatEta(eta)}`));
+  }
+
+  void visibleLen;  // 保留供未来按宽度截断
+  return segs.join(sep);
 }
 
 // ─── 当前任务行 ───────────────────────────────────────────────────────────
@@ -556,6 +848,56 @@ function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
   } catch {
     return null;
   }
+}
+
+/** 获取上下文填充速率 (token/s): 基于当前窗口用量的增长, 用于 ETA 预测 */
+export function getContextFillSpeed(stdin: StdinData, cacheDir: string): number | null {
+  const ctxTokens = getTotalTokens(stdin);
+  if (ctxTokens <= 0) return null;
+  const tp = stdin.transcript_path;
+  if (!tp) return null;
+
+  try {
+    const cacheFile = join(cacheDir, `ctxspeed-${simpleHash(tp)}.json`);
+    const now = Date.now();
+
+    let prev: { n: number; ts: number } | null = null;
+    try { prev = JSON.parse(readFileSync(cacheFile, 'utf8')); } catch { /* first run */ }
+
+    const writeBaseline = () => {
+      try {
+        mkdirSync(cacheDir, { recursive: true });
+        const tmpFile = `${cacheFile}.tmp`;
+        writeFileSync(tmpFile, JSON.stringify({ n: ctxTokens, ts: now }));
+        const { renameSync } = require('node:fs');
+        renameSync(tmpFile, cacheFile);
+      } catch { /* silent */ }
+    };
+
+    // 无基线 / token 回退 (新会话/compact) / 无增长 / 基线过旧 → 重建基线
+    if (!prev || ctxTokens < prev.n) { writeBaseline(); return null; }
+    const dt = (now - prev.ts) / 1000;
+    if (dt > 300 || dt < 1.0) { if (dt > 300) writeBaseline(); return null; }
+
+    const delta = ctxTokens - prev.n;
+    if (delta === 0) return null;  // 无新增长, 不更新基线
+    writeBaseline();
+    const speed = Math.round(delta / dt);
+    return speed > 0 ? speed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 计算上下文填满 ETA (秒), 无法计算返回 null */
+export function getContextEta(stdin: StdinData, cacheDir: string): number | null {
+  const speed = getContextFillSpeed(stdin, cacheDir);
+  if (!speed || speed <= 0) return null;
+  const size = resolveContextSize(stdin);
+  if (size <= 0) return null;
+  const remaining = Math.max(0, size - getTotalTokens(stdin));
+  if (remaining <= 0) return null;
+  return remaining / speed;
 }
 
 export function renderTokenLine(stdin: StdinData, tdata: TranscriptData | null, tokenMode: string, cacheDir: string): string[] {
