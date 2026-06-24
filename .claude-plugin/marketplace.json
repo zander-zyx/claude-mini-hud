@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "Minimal Claude Code statusline — context / token / todos (model optional)",
-    "version": "1.0.8"
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "claude-mini-hud",
       "source": "./",
-      "description": "Minimal statusline showing context progress, token usage (in/out/cache), and current todo. 3 required lines + 1 optional model line. Zero dependencies, multi-module TypeScript.",
+      "description": "Minimal Claude Code statusline — context / token / todos / tools / agents + 20 progress bar themes + cost / Git / ETA / alerts + multi-provider usage (Claude/MiniMax/Zhipu/MiMo/DeepSeek/Kimi/StepFun/SiliconFlow). Zero dependencies, multi-module TypeScript.",
       "category": "monitoring",
       "tags": [
         "hud",
@@ -21,7 +21,10 @@
         "context",
         "token",
         "todos",
-        "minimal"
+        "minimal",
+        "cost",
+        "git",
+        "usage"
       ]
     }
   ]
