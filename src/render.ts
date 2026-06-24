@@ -634,7 +634,16 @@ export function renderModelLine(stdin: StdinData): string {
 
 // 解析模型名: 优先用 env 显式配置 (第三方代理常用), 再回退到 stdin
 function resolveModelName(stdin: StdinData): string {
-  // 按优先级取第一个非空 env (ANTHROPIC_MODEL → OPUS → SONNET → HAIKU)
+  // 1) 优先用 stdin.model — 反映实际运行时模型 (支持 /model 切换 + 正确 tier)
+  const stdinId = stdin.model?.id?.trim();
+  const stdinName = stdin.model?.display_name?.trim();
+
+  // stdin 有明确的非 Claude 泛化名 (第三方模型, 如 glm-5.2 / MiniMax-M3) → 直接用
+  if (stdinAnyLooksCustom(stdinId, stdinName)) {
+    return stripContextTag(stdinName || stdinId!);
+  }
+
+  // 2) stdin 为空 或 stdin 是 Claude 原生模型名 → 回退到 env 显式配置 (第三方代理常用)
   const envKeys = [
     'ANTHROPIC_MODEL',
     'ANTHROPIC_DEFAULT_OPUS_MODEL',
@@ -646,9 +655,23 @@ function resolveModelName(stdin: StdinData): string {
     if (v) return stripContextTag(v);
   }
 
-  // env 都没配 → 用 Claude Code stdin 给的模型
-  const name = stdin.model?.display_name?.trim() || stdin.model?.id?.trim() || 'Unknown';
+  // 3) env 也没配 → 用 stdin (哪怕是 Claude 原生名) 或 Unknown
+  const name = stdinName || stdinId || 'Unknown';
   return stripContextTag(name);
+}
+
+/** 判断 stdin 的模型名是否为"明确的自定义模型" (第三方模型, 非泛化 Claude 名) */
+function stdinAnyLooksCustom(id?: string, name?: string): boolean {
+  const cand = name || id;
+  if (!cand) return false;
+  const lower = cand.toLowerCase();
+  // 泛化 Claude 名 (含 claude/sonnet/opus/haiku) 且不含明确版本 → 不算自定义
+  const isClaudish = /claude|sonnet|opus|haiku/.test(lower);
+  // 但如果 id 里有明确的后缀 (如 [1M] 上下文标记) → 说明经过 env 配置, 算自定义
+  const hasContextTag = /\[\d+[km]/i.test(id ?? '');
+  // 有 context tag 说明是第三方代理配置的模型 (Claude 原生名不带 [1M])
+  if (hasContextTag) return true;
+  return !isClaudish;
 }
 
 /** 去掉模型名里的 [200k] / [1M] 上下文标记 (与 claude-hud 的 stripContextSuffix 一致) */
