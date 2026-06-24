@@ -331,7 +331,7 @@ export function renderCostLine(stdin: StdinData): string | null {
   if (totalCost === undefined && durationMs === undefined) return null;
 
   const parts: string[] = [];
-  if (totalCost !== undefined && Number.isFinite(totalCost)) {
+  if (totalCost !== undefined && Number.isFinite(totalCost) && totalCost > 0) {
     parts.push(c.cyan(c.bold(`$${totalCost.toFixed(2)}`)));
     // 花费增速 $/h
     const rate = getCostRate(totalCost);
