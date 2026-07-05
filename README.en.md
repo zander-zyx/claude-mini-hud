@@ -262,10 +262,10 @@ npm run build
 
 ```powershell
 # 1. Clone
-git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0
+git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1
 
 # 2. Compile
-cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0
+cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1
 npm install
 npm run build
 
@@ -273,7 +273,7 @@ npm run build
 $settings = Get-Content $env:USERPROFILE\.claude\settings.json -Raw | ConvertFrom-Json
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0\dist\index.js"
+  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1\dist\index.js"
 }
 $settings | ConvertTo-Json -Depth 10 | Set-Content $env:USERPROFILE\.claude\settings.json
 
@@ -375,7 +375,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.0.0\\dist\\index.js'\""
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.1.1\\dist\\index.js'\""
   }
 }
 ```

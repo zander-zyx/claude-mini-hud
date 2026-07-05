@@ -266,10 +266,10 @@ npm run build
 
 ```powershell
 # 1. 克隆
-git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0
+git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1
 
 # 2. 编译
-cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0
+cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1
 npm install
 npm run build
 
@@ -277,7 +277,7 @@ npm run build
 $settings = Get-Content $env:USERPROFILE\.claude\settings.json -Raw | ConvertFrom-Json
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.0.0\dist\index.js"
+  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1\dist\index.js"
 }
 $settings | ConvertTo-Json -Depth 10 | Set-Content $env:USERPROFILE\.claude\settings.json
 
@@ -380,7 +380,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 {
   "statusLine": {
     "type": "command",
-    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.0.0\\dist\\index.js'\""
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.1.1\\dist\\index.js'\""
   }
 }
 ```
