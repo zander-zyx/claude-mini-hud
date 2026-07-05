@@ -15,7 +15,7 @@ import { c } from './colors.js';
 import { t, MINIMAL, LANG, lbl } from './i18n.js';
 import { THEME, THEME_NAME, MARKS } from './themes.js';
 import { truncate } from './transcript.js';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -243,8 +243,6 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null, cac
   } else {
     detail = c.dim(`${formatTokenCount(displayTokens)}`);
   }
-  const balanceTag = buildBalanceTag(usage);
-  if (balanceTag) detail += `  ${balanceTag}`;
 
   // ETA: 按当前上下文填充速率预测填满耗时 (仅 cacheDir 提供且速率有效时显示)
   if (cacheDir && remaining > 0) {
@@ -282,14 +280,6 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null, cac
   // ─── 经典 / Braille / Pixel / Diamond / Arrow 默认布局
   const label = lbl('context', t.context, '#');
   return `${label} ${bar} ${pctStr}  ${detail}`;
-}
-
-/** 构建余额标签: 仅非套餐平台 (余额型) 在 Context 行显示 */
-function buildBalanceTag(usage: UsageData | null): string | null {
-  if (!usage) return null;
-  // 所有有独立 Usage 行的平台都不在 Context 行显示余额 (避免重复)
-  if (usage.deepSeek || usage.kimi || usage.kimiCoding || usage.zhipu || usage.xiaomi || usage.alibaba || usage.volcengine || usage.stepfun || usage.siliconflow) return null;
-  return null;
 }
 
 // ─── 花费/耗时行 (stdin.cost + $/h 增速缓存) ──────────────────────────────
@@ -739,7 +729,6 @@ function readTokenPeakCache(transcriptPath?: string): TokenBreakdown | null {
     // 校验 mtime: 如果 transcript 文件被修改 (如新会话), 缓存失效
     if (data.mtime && transcriptPath) {
       try {
-        const { statSync } = require('node:fs');
         const currentMtime = statSync(transcriptPath).mtimeMs;
         if (Math.abs(currentMtime - data.mtime) > 1000) return null; // mtime 差距 >1s → 新会话
       } catch { return null; }
@@ -755,7 +744,6 @@ function writeTokenPeakCache(b: TokenBreakdown, transcriptPath?: string): void {
     let mtime = 0;
     if (transcriptPath) {
       try {
-        const { statSync } = require('node:fs');
         mtime = statSync(transcriptPath).mtimeMs;
       } catch { /* ignore */ }
     }
@@ -852,7 +840,6 @@ function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
         // 原子写入: 先写临时文件, 再 rename (避免并发竞态)
         const tmpFile = `${cacheFile}.tmp`;
         writeFileSync(tmpFile, JSON.stringify({ n: outputTokens, ts: now }));
-        const { renameSync } = require('node:fs');
         renameSync(tmpFile, cacheFile);
       } catch { /* silent on write failure */ }
     };
@@ -892,7 +879,6 @@ export function getContextFillSpeed(stdin: StdinData, cacheDir: string): number 
         mkdirSync(cacheDir, { recursive: true });
         const tmpFile = `${cacheFile}.tmp`;
         writeFileSync(tmpFile, JSON.stringify({ n: ctxTokens, ts: now }));
-        const { renameSync } = require('node:fs');
         renameSync(tmpFile, cacheFile);
       } catch { /* silent */ }
     };

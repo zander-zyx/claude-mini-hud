@@ -27,7 +27,7 @@ import { readTranscriptData } from './transcript.js';
 import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent } from './render.js';
 import { renderCostLine, renderGitLine, renderAlertLine, renderCompactLine } from './render.js';
 import { getUsageData } from './usage.js';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -147,7 +147,6 @@ function readCtxPctCache(transcriptPath?: string): number {
     // 检测 /clear: transcript 文件被截断 → mtime 变化
     if (transcriptPath && mtime && typeof mtime === 'number') {
       try {
-        const { statSync } = require('node:fs');
         const currentMtime = statSync(transcriptPath).mtimeMs;
         if (Math.abs(currentMtime - mtime) > 1000) return 0; // mtime 差距 >1s → 文件被修改
       } catch { /* file not found */ return 0; }
@@ -165,7 +164,6 @@ function writeCtxPctCache(pct: number, transcriptPath?: string): void {
     let mtime = 0;
     if (transcriptPath) {
       try {
-        const { statSync } = require('node:fs');
         mtime = statSync(transcriptPath).mtimeMs;
       } catch { /* ignore */ }
     }

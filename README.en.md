@@ -237,10 +237,10 @@ See those two lines? Everything works. Next step: [Install into Claude Code](#in
 ```bash
 # 1. Clone into the Claude plugins directory (version is part of the dir name, update it when upgrading)
 git clone https://github.com/zander-zyx/claude-mini-hud.git \
-  ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
+  ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
 
 # 2. Enter the directory and compile
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
 npm install
 npm run build
 
@@ -249,7 +249,7 @@ npm run build
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js"
+    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js"
   }
 }
 
@@ -364,7 +364,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js"
   }
 }
 ```
@@ -552,10 +552,10 @@ if (branchLine) lines.push(branchLine);
 Troubleshooting:
 ```bash
 # 1. Check if dist/index.js exists
-ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js
+ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js
 
 # 2. Test manually, check if stdout has content
-echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js
+echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js
 # Should output: 📊 上下文 ... 🪙 Token ...
 
 # 3. If manual run works but Claude Code doesn't show it, check settings.json
@@ -615,7 +615,7 @@ async function main() {
 
 **A**:
 ```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
 git pull
 npm install
 npm run build

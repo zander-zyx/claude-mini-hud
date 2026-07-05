@@ -241,10 +241,10 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 ```bash
 # 1. 克隆到 Claude 插件目录 (version 是目录名一部分,改版本时同步改)
 git clone https://github.com/zander-zyx/claude-mini-hud.git \
-  ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
+  ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
 
 # 2. 进入目录编译
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
 npm install
 npm run build
 
@@ -253,7 +253,7 @@ npm run build
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js"
+    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js"
   }
 }
 
@@ -369,7 +369,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js"
   }
 }
 ```
@@ -572,10 +572,10 @@ if (branchLine) lines.push(branchLine);
 排查:
 ```bash
 # 1. 检查 dist/index.js 是否存在
-ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js
+ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js
 
 # 2. 手动测试,看 stdout 有没有内容
-echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0/dist/index.js
+echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js
 # 应该输出: 📊 上下文 ... 🪙 Token ...
 
 # 3. 如果手动跑 OK 但 Claude Code 里没显示,检查 settings.json
@@ -635,7 +635,7 @@ async function main() {
 
 **A**:
 ```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.0.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
 git pull
 npm install
 npm run build
