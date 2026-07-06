@@ -31,6 +31,7 @@ import { homedir } from 'node:os';
 import { get as httpGetImpl } from 'node:http';
 import { get as httpsGetImpl } from 'node:https';
 import { createHmac } from 'node:crypto';
+import { debugLog } from './log.js';
 
 // ─── 类型 ─────────────────────────────────────────────────────────────────
 
@@ -380,7 +381,8 @@ async function queryMiniMax(apiKey: string, stdin: StdinData): Promise<UsageData
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:minimax] queryMiniMax failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
@@ -400,7 +402,8 @@ async function queryDeepSeek(apiKey: string): Promise<UsageData | null> {
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:deepseek] queryDeepSeek failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
@@ -421,7 +424,8 @@ async function queryKimi(apiKey: string): Promise<UsageData | null> {
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:kimi] queryKimi failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
@@ -448,7 +452,8 @@ async function queryStepFun(apiKey: string): Promise<UsageData | null> {
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:stepfun] queryStepFun failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
@@ -473,7 +478,8 @@ async function querySiliconFlow(apiKey: string): Promise<UsageData | null> {
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:siliconflow] querySiliconFlow failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
@@ -552,7 +558,8 @@ async function queryZhipu(apiKey: string): Promise<UsageData | null> {
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:zhipu] queryZhipu failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
@@ -622,9 +629,10 @@ async function queryXiaomi(apiKey: string): Promise<UsageData | null> {
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:xiaomi] queryXiaomi failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
- }
+  }
 }
 
 // 阿里 DashScope 无公开的余额 API; 账户余额需走阿里云 BSS OpenAPI (RPC 签名)
@@ -685,7 +693,8 @@ async function queryAlibaba(): Promise<UsageData | null> {
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:alibaba] queryAlibaba failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
@@ -755,7 +764,8 @@ async function queryKimiCoding(apiKey: string): Promise<UsageData | null> {
       },
       updatedAt: Date.now(),
     };
-  } catch {
+  } catch (e) {
+    debugLog('[usage:kimi-coding] queryKimiCoding failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
@@ -874,7 +884,9 @@ export function getUsageData(stdin: StdinData): UsageData | null {
   // 无缓存 → 异步刷新 (fire-and-forget)
   const apiKey = getApiKeyForPlatform(platform);
   if (apiKey) {
-    refreshCache(platform, apiKey, stdin).catch(() => {});
+    refreshCache(platform, apiKey, stdin).catch((e) => {
+      debugLog(`[usage:${platform}] refreshCache 失败: ${e instanceof Error ? e.message : String(e)}`);
+    });
   }
 
   return null;
