@@ -247,10 +247,10 @@ Help me install the claude-mini-hud statusline plugin:
 ```bash
 # 1. Clone into the Claude plugins directory (version is part of the dir name, update it when upgrading)
 git clone https://github.com/zander-zyx/claude-mini-hud.git \
-  ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
+  ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
 
 # 2. Enter the directory and compile
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
 npm install
 npm run build
 
@@ -259,7 +259,7 @@ npm run build
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js"
+    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js"
   }
 }
 
@@ -272,10 +272,10 @@ npm run build
 
 ```powershell
 # 1. Clone
-git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1
+git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0
 
 # 2. Compile
-cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1
+cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0
 npm install
 npm run build
 
@@ -283,7 +283,7 @@ npm run build
 $settings = Get-Content $env:USERPROFILE\.claude\settings.json -Raw | ConvertFrom-Json
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1\dist\index.js"
+  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0\dist\index.js"
 }
 $settings | ConvertTo-Json -Depth 10 | Set-Content $env:USERPROFILE\.claude\settings.json
 
@@ -377,7 +377,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js"
   }
 }
 ```
@@ -388,7 +388,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.1.1\\dist\\index.js'\""
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.2.0\\dist\\index.js'\""
   }
 }
 ```
@@ -505,14 +505,19 @@ npm run build   # recompile
 
 ### Change Progress Bar Color Thresholds
 
-In the `progressBar` function:
+Since v1.2.0, color thresholds are centralized as environment variables — **no code changes needed**:
 
-```ts
-function progressBar(percent: number, width: number = 20) {
-  const color = percent > 80 ? c.red : percent > 60 ? c.yellow : c.green;
-  // Change to your preferred values, e.g.:
-  // const color = percent > 90 ? c.red : percent > 70 ? c.yellow : c.green;
+```bash
+# Red threshold (default 80): percentage ≥ this shows red
+CLAUDE_MINI_HUD_RED_PCT=90
+
+# Yellow threshold (default 60): percentage ≥ this shows yellow
+CLAUDE_MINI_HUD_YELLOW_PCT=70
 ```
+
+Add them to your `statusLine.command`. Applies to all percentages (Context / usage windows / monthly).
+
+> 💡 For finer control (e.g. separate thresholds for Context vs Usage), edit the `RED_PCT` / `YELLOW_PCT` constants in `src/render.ts`.
 
 ### Change Progress Bar Width
 
@@ -565,10 +570,10 @@ if (branchLine) lines.push(branchLine);
 Troubleshooting:
 ```bash
 # 1. Check if dist/index.js exists
-ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js
+ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js
 
 # 2. Test manually, check if stdout has content
-echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js
+echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js
 # Should output: 📊 上下文 ... 🪙 Token ...
 
 # 3. If manual run works but Claude Code doesn't show it, check settings.json
@@ -628,7 +633,7 @@ async function main() {
 
 **A**:
 ```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
 git pull
 npm install
 npm run build
@@ -706,7 +711,7 @@ npm run dev   # tsc --watch, auto-recompile
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### Test Coverage (35 test cases)
+### Test Coverage (43 test cases)
 
 | # | Case | Verification |
 |---|------|-------------|

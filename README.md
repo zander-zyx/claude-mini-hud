@@ -251,10 +251,10 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 ```bash
 # 1. 克隆到 Claude 插件目录 (version 是目录名一部分,改版本时同步改)
 git clone https://github.com/zander-zyx/claude-mini-hud.git \
-  ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
+  ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
 
 # 2. 进入目录编译
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
 npm install
 npm run build
 
@@ -263,7 +263,7 @@ npm run build
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js"
+    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js"
   }
 }
 
@@ -276,10 +276,10 @@ npm run build
 
 ```powershell
 # 1. 克隆
-git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1
+git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0
 
 # 2. 编译
-cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1
+cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0
 npm install
 npm run build
 
@@ -287,7 +287,7 @@ npm run build
 $settings = Get-Content $env:USERPROFILE\.claude\settings.json -Raw | ConvertFrom-Json
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.1.1\dist\index.js"
+  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0\dist\index.js"
 }
 $settings | ConvertTo-Json -Depth 10 | Set-Content $env:USERPROFILE\.claude\settings.json
 
@@ -382,7 +382,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js"
   }
 }
 ```
@@ -393,7 +393,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 {
   "statusLine": {
     "type": "command",
-    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.1.1\\dist\\index.js'\""
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.2.0\\dist\\index.js'\""
   }
 }
 ```
@@ -533,14 +533,19 @@ export interface ThemeConfig {
 
 ### 改进度条颜色阈值
 
-`progressBar` 函数:
+v1.2.0 起,颜色阈值已集中为环境变量,**无需改源码**:
 
-```ts
-function progressBar(percent: number, width: number = 20) {
-  const color = percent > 80 ? c.red : percent > 60 ? c.yellow : c.green;
-  // 改成你想要的值,例如:
-  // const color = percent > 90 ? c.red : percent > 70 ? c.yellow : c.green;
+```bash
+# 红色阈值 (默认 80): 百分比 ≥ 此值显示红色
+CLAUDE_MINI_HUD_RED_PCT=90
+
+# 黄色阈值 (默认 60): 百分比 ≥ 此值显示黄色
+CLAUDE_MINI_HUD_YELLOW_PCT=70
 ```
+
+写进 `statusLine.command` 即可,对所有百分比生效(Context / 用量窗口 / 月度)。
+
+> 💡 如果需要更精细的控制(如 Context 和 Usage 分开阈值),再改 `src/render.ts` 里的 `RED_PCT` / `YELLOW_PCT` 常量定义。
 
 ### 改 Token 行格式
 
@@ -587,10 +592,10 @@ if (branchLine) lines.push(branchLine);
 排查:
 ```bash
 # 1. 检查 dist/index.js 是否存在
-ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js
+ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js
 
 # 2. 手动测试,看 stdout 有没有内容
-echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1/dist/index.js
+echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js
 # 应该输出: 📊 上下文 ... 🪙 Token ...
 
 # 3. 如果手动跑 OK 但 Claude Code 里没显示,检查 settings.json
@@ -650,7 +655,7 @@ async function main() {
 
 **A**:
 ```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.1.1
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
 git pull
 npm install
 npm run build
@@ -728,7 +733,7 @@ npm run dev   # tsc --watch, 自动重新编译
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### 测试覆盖 (35 个用例)
+### 测试覆盖 (43 个用例)
 
 | # | 用例 | 验证 |
 |---|------|------|
