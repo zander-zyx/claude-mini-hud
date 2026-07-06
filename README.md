@@ -350,8 +350,8 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` / `ultra-minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji, ultra-minimal = 只显示 Context + Token 两行) |
-| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | 进度条风格 (见下方主题预览) |
-| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | [21 种,见主题预览](#进度条主题预览) | 进度条风格 |
+| `CLAUDE_MINI_HUD_MARKS` | `default` | [21 种,见主题预览](#进度条主题预览) | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (未设) | `1` | 设置为 `1` 时强制禁用 emoji, 使用 ASCII 符号 (# $ > 等) |

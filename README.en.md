@@ -345,8 +345,8 @@ The statusline automatically refreshes at these moments:
 | Variable | Default | Options | Description |
 |----------|---------|---------|-------------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` / `ultra-minimal` | UI language (minimal = English-Chinese hybrid + no emoji, ultra-minimal = only Context + Token lines) |
-| `CLAUDE_MINI_HUD_THEME` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | Progress bar style |
-| `CLAUDE_MINI_HUD_MARKS` | `default` | `default` / `neon` / `braille` / `hardcore` / `minimal` / `pixel` / `diamond` / `arrow` / `wave` / `tide` / `dot` / `target` / `shades` / `retro` / `ascii` / `rail` / `star` / `spark` / `heart` / `love` | Tool/Agent indicator icons (independent from THEME, mix freely) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | [21 options, see Theme Preview](#theme-preview) | Progress bar style |
+| `CLAUDE_MINI_HUD_MARKS` | `default` | [21 options, see Theme Preview](#theme-preview) | Tool/Agent indicator icons (independent from THEME, mix freely) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (unset) | `1` | When set to `1`, shows the model line |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token line mode: session=cumulative / context=snapshot / both=two lines |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (unset) | `1` | When set to `1`, forces ASCII symbols (# $ > etc.) instead of emoji |
