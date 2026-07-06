@@ -17,6 +17,7 @@ import { THEME, THEME_NAME, MARKS } from './themes.js';
 import { truncate } from './transcript.js';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 
@@ -262,11 +263,12 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null, cac
   } else {
     detail = `${formatTokenCount(displayTokens)}`;
   }
-  // transcript_path 转 file:// URI (Windows 路径需正斜杠 + encodeURI)
+  // 若有 transcript_path, 把详情包裹成 OSC 8 链接 (Cmd/Ctrl+click 打开 transcript)
+  // 用 Node 内置 pathToFileURL 构造 file:// URI (跨平台正确, Windows 盘符冒号不被编码)
   const tp = stdin.transcript_path;
   if (tp) {
     try {
-      const uri = `file://${tp.replace(/\\/g, '/').replace(/^([a-zA-Z]):/, '/$1:').split('/').map(encodeURIComponent).join('/')}`;
+      const uri = pathToFileURL(tp).toString();
       detail = c.dim(c.link(detail, uri));
     } catch {
       detail = c.dim(detail);  // URI 构造失败, 回退纯文本
@@ -314,21 +316,26 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null, cac
 }
 
 // ─── 花费/耗时行 (stdin.cost + $/h 增速缓存) ──────────────────────────────
+// 按 transcript_path 哈希隔离, 多窗口各写各的 (避免速率基线串味)
 
-const COST_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'cost-speed-cache.json');
+function getCostCachePath(transcriptPath?: string): string {
+  const key = transcriptPath ? simpleHash(transcriptPath) : 'default';
+  return join(homedir(), '.claude-mini-hud', `cost-speed-${key}.json`);
+}
 
 /** 计算花费增速 ($/h): 基于累计 cost 的时间变化, 用文件缓存 */
-function getCostRate(costUsd: number): number | null {
+function getCostRate(costUsd: number, transcriptPath?: string): number | null {
   if (!Number.isFinite(costUsd) || costUsd <= 0) return null;
+  const cachePath = getCostCachePath(transcriptPath);
   try {
     const now = Date.now();
     let prev: { c: number; ts: number } | null = null;
-    try { prev = JSON.parse(readFileSync(COST_CACHE_PATH, 'utf8')); } catch { /* first */ }
+    try { prev = JSON.parse(readFileSync(cachePath, 'utf8')); } catch { /* first */ }
 
     const writeBaseline = () => {
       try {
         mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
-        writeFileSync(COST_CACHE_PATH, JSON.stringify({ c: costUsd, ts: now }));
+        writeFileSync(cachePath, JSON.stringify({ c: costUsd, ts: now }));
       } catch { /* silent */ }
     };
 
@@ -355,7 +362,7 @@ export function renderCostLine(stdin: StdinData): string | null {
   if (totalCost !== undefined && Number.isFinite(totalCost) && totalCost > 0) {
     parts.push(c.cyan(c.bold(`$${totalCost.toFixed(2)}`)));
     // 花费增速 $/h
-    const rate = getCostRate(totalCost);
+    const rate = getCostRate(totalCost, stdin.transcript_path);
     if (rate && rate > 0) parts.push(c.dim(`$${rate.toFixed(2)}/h`));
   }
   if (durationMs !== undefined && Number.isFinite(durationMs) && durationMs > 0) {
@@ -368,13 +375,16 @@ export function renderCostLine(stdin: StdinData): string | null {
 }
 
 // ─── Git 分支/脏状态行 (spawn git + 文件缓存, TTL 500ms) ──────────────────
+// 按工作目录哈希隔离 (同一仓库多窗口共享, 不同仓库不互相覆盖)
 
-const GIT_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'git-cache.json');
+function getGitCachePath(dir: string): string {
+  return join(homedir(), '.claude-mini-hud', `git-${simpleHash(dir)}.json`);
+}
 
 /** 读取 Git 缓存 (500ms TTL, 同一会话内复用) */
 function readGitCache(dir: string): GitInfo | null {
   try {
-    const data = JSON.parse(readFileSync(GIT_CACHE_PATH, 'utf8'));
+    const data = JSON.parse(readFileSync(getGitCachePath(dir), 'utf8'));
     if (data.dir !== dir) return null;
     if (Date.now() - data.ts > 500) return null;
     return data.info as GitInfo;
@@ -384,7 +394,7 @@ function readGitCache(dir: string): GitInfo | null {
 function writeGitCache(dir: string, info: GitInfo): void {
   try {
     mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
-    writeFileSync(GIT_CACHE_PATH, JSON.stringify({ dir, ts: Date.now(), info }));
+    writeFileSync(getGitCachePath(dir), JSON.stringify({ dir, ts: Date.now(), info }));
   } catch { /* silent */ }
 }
 
@@ -749,18 +759,24 @@ function detectProvider(stdin: StdinData): string | null {
 }
 
 // ─── Token 峰值缓存 (/compact 后 Claude Code 重置 session token 计数, 用峰值兜底) ──
-// 缓存键包含 transcript_path + mtime, 避免跨会话泄漏
+// 按 transcript_path 哈希隔离 + 内部 tp + mtime 校验 (双保险, 避免跨会话泄漏)
 
-const TOKEN_PEAK_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'token-peak-cache.json');
+function getTokenPeakCachePath(transcriptPath?: string): string {
+  const key = transcriptPath ? simpleHash(transcriptPath) : 'default';
+  return join(homedir(), '.claude-mini-hud', `token-peak-${key}.json`);
+}
 
 function readTokenPeakCache(transcriptPath?: string): TokenBreakdown | null {
+  if (!transcriptPath) return null;
   try {
-    const raw = readFileSync(TOKEN_PEAK_CACHE_PATH, 'utf8');
+    const path = getTokenPeakCachePath(transcriptPath);
+    const raw = readFileSync(path, 'utf8');
     const data = JSON.parse(raw) as { tp: string; mtime: number; input: number; output: number; cache: number; total: number };
-    if (!transcriptPath || !data.tp || transcriptPath !== data.tp) return null;
+    // 双保险: 文件已按 hash 隔离, 这里再校验 tp 是否匹配
+    if (!data.tp || transcriptPath !== data.tp) return null;
 
     // 校验 mtime: 如果 transcript 文件被修改 (如新会话), 缓存失效
-    if (data.mtime && transcriptPath) {
+    if (data.mtime) {
       try {
         const currentMtime = statSync(transcriptPath).mtimeMs;
         if (Math.abs(currentMtime - data.mtime) > 1000) return null; // mtime 差距 >1s → 新会话
@@ -772,16 +788,16 @@ function readTokenPeakCache(transcriptPath?: string): TokenBreakdown | null {
 }
 
 function writeTokenPeakCache(b: TokenBreakdown, transcriptPath?: string): void {
+  if (!transcriptPath) return;
   try {
+    const path = getTokenPeakCachePath(transcriptPath);
     mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
     let mtime = 0;
-    if (transcriptPath) {
-      try {
-        mtime = statSync(transcriptPath).mtimeMs;
-      } catch { /* ignore */ }
-    }
-    writeFileSync(TOKEN_PEAK_CACHE_PATH, JSON.stringify({
-      tp: transcriptPath ?? null, mtime, input: b.input, output: b.output, cache: b.cache, total: b.total,
+    try {
+      mtime = statSync(transcriptPath).mtimeMs;
+    } catch { /* ignore */ }
+    writeFileSync(path, JSON.stringify({
+      tp: transcriptPath, mtime, input: b.input, output: b.output, cache: b.cache, total: b.total,
     }));
   } catch { /* silent */ }
 }
