@@ -24,10 +24,10 @@ import type { StdinData } from './types.js';
 import { c } from './colors.js';
 import { t, MINIMAL, lbl, ULTRA_MINIMAL } from './i18n.js';
 import { readTranscriptData } from './transcript.js';
-import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent } from './render.js';
+import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent, simpleHash } from './render.js';
 import { renderCostLine, renderGitLine, renderAlertLine, renderCompactLine } from './render.js';
 import { getUsageData } from './usage.js';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, renameSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -107,41 +107,79 @@ async function readStdin(): Promise<StdinData | null> {
 }
 
 // ─── stdin 缓存 (兜底超时/空输入, 避免 Context 行闪烁消失) ────────────────
+// 按 transcript_path 哈希隔离, 多窗口 (多个 Claude Code 进程) 各写各的缓存,
+// 互不覆盖。读时优先读当前会话的, 无 tp 时读最近修改的 (LRU 兜底)。
 
-const STDIN_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'stdin-cache.json');
+const CACHE_DIR = join(homedir(), '.claude-mini-hud');
 
-function writeLastStdinCache(data: StdinData): void {
+function getStdinCachePath(transcriptPath?: string): string {
+  const key = transcriptPath ? simpleHash(transcriptPath) : 'default';
+  return join(CACHE_DIR, `stdin-${key}.json`);
+}
+
+function writeLastStdinCache(data: StdinData, transcriptPath?: string): void {
   try {
-    const dir = dirname(STDIN_CACHE_PATH);
+    const path = getStdinCachePath(transcriptPath);
+    const dir = dirname(path);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(STDIN_CACHE_PATH, JSON.stringify(data), 'utf8');
+    // 原子写: 先写 tmp, 再 rename (避免并发读半截 JSON)
+    const tmpFile = `${path}.tmp`;
+    writeFileSync(tmpFile, JSON.stringify(data), 'utf8');
+    renameSync(tmpFile, path);
   } catch {
     // 静默
   }
 }
 
-function readLastStdinCache(): StdinData | null {
+function readLastStdinCache(transcriptPath?: string): StdinData | null {
+  const tryRead = (path: string): StdinData | null => {
+    try {
+      if (!existsSync(path)) return null;
+      const raw = readFileSync(path, 'utf8');
+      const data = JSON.parse(raw) as StdinData;
+      // 校验 context_window 类型 (防止损坏的缓存文件导致后续访问 .used_percentage 崩溃)
+      if (!data.context_window || typeof data.context_window !== 'object' || data.context_window === null) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  };
+
+  // 1) 优先读当前会话的缓存
+  if (transcriptPath) {
+    const hit = tryRead(getStdinCachePath(transcriptPath));
+    if (hit) return hit;
+  }
+  // 2) 无 tp 或当前会话缓存不存在 → 读最近修改的 (LRU 兜底, 处理窗口切换瞬间)
   try {
-    if (!existsSync(STDIN_CACHE_PATH)) return null;
-    const raw = readFileSync(STDIN_CACHE_PATH, 'utf8');
-    const data = JSON.parse(raw) as StdinData;
-    // 校验 context_window 类型 (防止损坏的缓存文件导致后续访问 .used_percentage 崩溃)
-    if (!data.context_window || typeof data.context_window !== 'object' || data.context_window === null) return null;
-    return data;
+    const dir = CACHE_DIR;
+    if (!existsSync(dir)) return null;
+    const files = readdirSync(dir)
+      .filter((f) => f.startsWith('stdin-') && f.endsWith('.json'))
+      .map((f) => ({ f, mt: statSync(join(dir, f)).mtimeMs }))
+      .sort((a, b) => b.mt - a.mt);
+    if (files.length === 0) return null;
+    return tryRead(join(dir, files[0].f));
   } catch {
     return null;
   }
 }
 
 // ─── Context 百分比缓存 (防闪烁: 当 stdin 数据退化时用上次有效值兜底) ─────
+// 按 transcript_path 哈希隔离, 多窗口互不覆盖。内部仍保留 tp 校验作双保险。
 
-const CTX_PCT_CACHE_PATH = join(homedir(), '.claude-mini-hud', 'ctx-pct-cache.json');
+function getCtxPctCachePath(transcriptPath?: string): string {
+  const key = transcriptPath ? simpleHash(transcriptPath) : 'default';
+  return join(CACHE_DIR, `ctx-pct-${key}.json`);
+}
 
 /** 读取 Context 百分比缓存 (仅同一会话有效) */
 function readCtxPctCache(transcriptPath?: string): number {
   try {
-    const { pct, ts, tp, mtime } = JSON.parse(readFileSync(CTX_PCT_CACHE_PATH, 'utf8'));
-    // 不同会话 (transcript_path 不匹配) → 缓存无效
+    const path = getCtxPctCachePath(transcriptPath);
+    if (!existsSync(path)) return 0;
+    const { pct, ts, tp, mtime } = JSON.parse(readFileSync(path, 'utf8'));
+    // 不同会话 (transcript_path 不匹配) → 缓存无效 (双保险: 文件已按哈希隔离, 但兜底场景无 tp 时仍可能误读)
     if (!transcriptPath || !tp || transcriptPath !== tp) return 0;
 
     // 检测 /clear: transcript 文件被截断 → mtime 变化
@@ -160,14 +198,18 @@ function readCtxPctCache(transcriptPath?: string): number {
 
 function writeCtxPctCache(pct: number, transcriptPath?: string): void {
   try {
-    mkdirSync(dirname(CTX_PCT_CACHE_PATH), { recursive: true });
+    const path = getCtxPctCachePath(transcriptPath);
+    mkdirSync(dirname(path), { recursive: true });
     let mtime = 0;
     if (transcriptPath) {
       try {
         mtime = statSync(transcriptPath).mtimeMs;
       } catch { /* ignore */ }
     }
-    writeFileSync(CTX_PCT_CACHE_PATH, JSON.stringify({ pct, ts: Date.now(), tp: transcriptPath ?? null, mtime }));
+    // 原子写
+    const tmpFile = `${path}.tmp`;
+    writeFileSync(tmpFile, JSON.stringify({ pct, ts: Date.now(), tp: transcriptPath ?? null, mtime }));
+    renameSync(tmpFile, path);
   } catch { /* silent */ }
 }
 
@@ -189,8 +231,8 @@ async function main(): Promise<void> {
     }
   }
 
-  // 缓存本次 stdin (供下次 stdin 为 null 时兜底)
-  writeLastStdinCache(stdin);
+  // 缓存本次 stdin (供下次 stdin 为 null 时兜底), 按会话隔离
+  writeLastStdinCache(stdin, stdin.transcript_path);
 
   // ─── Context 百分比防闪烁 ───
   // getContextPercent 内部已有 fallback 链: native > 0 → tokens/size → totalInput/size

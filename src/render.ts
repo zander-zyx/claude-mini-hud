@@ -20,6 +20,24 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 
+// ─── 颜色阈值 (集中管理, 支持环境变量覆盖) ─────────────────────────────────
+// 默认: >=80 红, >=60 黄, <60 绿。用户可通过环境变量自定义:
+//   CLAUDE_MINI_HUD_RED_PCT / CLAUDE_MINI_HUD_YELLOW_PCT (取值 0-100)
+function clampPctEnv(key: string, def: number): number {
+  const v = parseInt(process.env[key] ?? '', 10);
+  if (Number.isFinite(v) && v >= 0 && v <= 100) return v;
+  return def;
+}
+export const RED_PCT = clampPctEnv('CLAUDE_MINI_HUD_RED_PCT', 80);
+export const YELLOW_PCT = clampPctEnv('CLAUDE_MINI_HUD_YELLOW_PCT', 60);
+
+/** 按百分比返回着色函数 (统一 >= 语义, 用于 Context/用量窗口/月度百分比) */
+type ColorFn = (s: string) => string;
+export function pctColor(pct: number): ColorFn {
+  if (THEME.monochrome) return (s: string) => s;
+  return pct >= RED_PCT ? c.red : pct >= YELLOW_PCT ? c.yellow : c.green;
+}
+
 // ─── 格式化工具 ───────────────────────────────────────────────────────────
 
 export function formatTokenCount(n: number, decimals: number = 1): string {
@@ -119,8 +137,8 @@ function progressBar(percent: number, _width?: number): string {
   const effFill = Math.round((percent / 100) * effWidth);
   const effEmpty = effWidth - effFill;
 
-  // 颜色按百分比: 绿 < 60, 黄 60-80, 红 > 80
-  const color = THEME.monochrome ? (s: string) => s : (percent > 80 ? c.red : percent > 60 ? c.yellow : c.green);
+  // 颜色按百分比: 绿 < YELLOW, 黄 YELLOW-RED, 红 >= RED (阈值可由环境变量配置)
+  const color = pctColor(percent);
 
   // 边框 (所有主题共用, 包括 gradient/retro)
   const left = theme.leftBorder ? c.dim(theme.leftBorder) : '';
@@ -161,7 +179,7 @@ function progressBar(percent: number, _width?: number): string {
   return `${left}${bar}${right}`;
 }
 
-function simpleHash(s: string): string {
+export function simpleHash(s: string): string {
   let h = 0;
   for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; }
   return Math.abs(h).toString(36);
@@ -233,15 +251,28 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null, cac
 
   // ─── 公共逻辑 (所有主题共用) ────────────────────────────────────────────
 
-  // 百分比着色
-  const pctColorFn = THEME.monochrome ? (s: string) => s : (pct >= 80 ? c.red : pct >= 60 ? c.yellow : c.green);
+  // 百分比着色 (阈值集中管理, 支持环境变量)
+  const pctColorFn = pctColor(pct);
 
   // 详情文本 (token 数 / 剩余 / 余额)
+  // 若有 transcript_path, 把详情包裹成 OSC 8 链接 (支持的终端 Cmd/Ctrl+click 可打开 transcript 文件)
   let detail = '';
   if (size > 0) {
-    detail = c.dim(`${formatTokenCount(displayTokens)} / ${formatTokenCount(size)}  ${t.contextRemaining} ${formatTokenCount(remaining)}`);
+    detail = `${formatTokenCount(displayTokens)} / ${formatTokenCount(size)}  ${t.contextRemaining} ${formatTokenCount(remaining)}`;
   } else {
-    detail = c.dim(`${formatTokenCount(displayTokens)}`);
+    detail = `${formatTokenCount(displayTokens)}`;
+  }
+  // transcript_path 转 file:// URI (Windows 路径需正斜杠 + encodeURI)
+  const tp = stdin.transcript_path;
+  if (tp) {
+    try {
+      const uri = `file://${tp.replace(/\\/g, '/').replace(/^([a-zA-Z]):/, '/$1:').split('/').map(encodeURIComponent).join('/')}`;
+      detail = c.dim(c.link(detail, uri));
+    } catch {
+      detail = c.dim(detail);  // URI 构造失败, 回退纯文本
+    }
+  } else {
+    detail = c.dim(detail);
   }
 
   // ETA: 按当前上下文填充速率预测填满耗时 (仅 cacheDir 提供且速率有效时显示)
@@ -480,7 +511,7 @@ export function renderCompactLine(
 
   // 1) 上下文百分比 (核心)
   const pct = getContextPercent(stdin);
-  const pctColorFn = THEME.monochrome ? (s: string) => s : (pct >= 80 ? c.red : pct >= 60 ? c.yellow : c.green);
+  const pctColorFn = pctColor(pct);
   segs.push(pctColorFn(c.bold(`${pct}%`)));
 
   // 2) 用量窗口 (短)
@@ -947,7 +978,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     const { fiveHour, sevenDay, fiveHourResetAt, sevenDayResetAt } = usage.claude;
     const parts: string[] = [];
     if (fiveHour !== null) {
-      const color = fiveHour >= 80 ? c.red : fiveHour >= 60 ? c.yellow : c.green;
+      const color = pctColor(fiveHour);
       let seg = `5h:${color(`${fiveHour}%`)}`;
       if (fiveHourResetAt) {
         const countdown = formatCountdown(fiveHourResetAt);
@@ -956,7 +987,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
       parts.push(seg);
     }
     if (sevenDay !== null) {
-      const color = sevenDay >= 80 ? c.red : sevenDay >= 60 ? c.yellow : c.green;
+      const color = pctColor(sevenDay);
       let seg = `7d:${color(`${sevenDay}%`)}`;
       if (sevenDayResetAt) {
         const countdown = formatCountdown(sevenDayResetAt);
@@ -974,7 +1005,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     // 5小时窗口剩余百分比 (仅存在时显示)
     if (m.intervalRemainingPercent !== undefined) {
       const used = 100 - m.intervalRemainingPercent;
-      const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
+      const color = pctColor(used);
       let seg = `5h:${color(`${used}%`)}`;
       if (m.intervalResetAt) {
         const countdown = formatCountdown(m.intervalResetAt);
@@ -985,7 +1016,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     // 周窗口剩余百分比
     if (m.weeklyRemainingPercent !== undefined) {
       const used = 100 - m.weeklyRemainingPercent;
-      const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
+      const color = pctColor(used);
       let seg = `7d:${color(`${used}%`)}`;
       if (m.weeklyResetAt) {
         const countdown = formatCountdown(m.weeklyResetAt);
@@ -996,7 +1027,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     // 月窗口
     if (m.monthlyRemainingPercent !== undefined) {
       const used = 100 - m.monthlyRemainingPercent;
-      const color = used >= 80 ? c.red : used >= 60 ? c.yellow : c.green;
+      const color = pctColor(used);
       let seg = `m:${color(`${used}%`)}`;
       if (m.monthlyResetAt) {
         const countdown = formatCountdown(m.monthlyResetAt, true);
@@ -1051,7 +1082,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
 
     // 5小时窗口已用百分比
     if (kc.fiveHourPercent !== undefined) {
-      const color = kc.fiveHourPercent >= 80 ? c.red : kc.fiveHourPercent >= 60 ? c.yellow : c.green;
+      const color = pctColor(kc.fiveHourPercent);
       let seg = `5h:${color(`${kc.fiveHourPercent}%`)}`;
       if (kc.fiveHourResetAt) {
         const countdown = formatCountdown(kc.fiveHourResetAt);
@@ -1062,7 +1093,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
 
     // 周限额已用百分比
     if (kc.weeklyPercent !== undefined) {
-      const color = kc.weeklyPercent >= 80 ? c.red : kc.weeklyPercent >= 60 ? c.yellow : c.green;
+      const color = pctColor(kc.weeklyPercent);
       let seg = `7d:${color(`${kc.weeklyPercent}%`)}`;
       if (kc.weeklyResetAt) {
         const countdown = formatCountdown(kc.weeklyResetAt);
@@ -1082,7 +1113,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
 
     // 5小时窗口 Token 用量 + 刷新倒计时 (仅存在时显示)
     if (z.usedPercent !== undefined) {
-      const color = z.usedPercent >= 80 ? c.red : z.usedPercent >= 60 ? c.yellow : c.green;
+      const color = pctColor(z.usedPercent);
       let seg = `5h:${color(`${z.usedPercent}%`)}`;
       if (z.resetAt) {
         const countdown = formatCountdown(z.resetAt);
@@ -1093,7 +1124,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
 
     // 周限额
     if (z.weeklyPercent !== undefined) {
-      const color = z.weeklyPercent >= 80 ? c.red : z.weeklyPercent >= 60 ? c.yellow : c.green;
+      const color = pctColor(z.weeklyPercent);
       let seg = `7d:${color(`${z.weeklyPercent}%`)}`;
       if (z.weeklyResetAt) {
         const countdown = formatCountdown(z.weeklyResetAt);
@@ -1104,7 +1135,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
 
     // 月限额
     if (z.monthlyPercent !== undefined) {
-      const color = z.monthlyPercent >= 80 ? c.red : z.monthlyPercent >= 60 ? c.yellow : c.green;
+      const color = pctColor(z.monthlyPercent);
       let seg = `m:${color(`${z.monthlyPercent}%`)}`;
       if (z.monthlyResetAt) {
         const countdown = formatCountdown(z.monthlyResetAt, true);
@@ -1115,7 +1146,7 @@ export function renderUsageLine(usage: UsageData | null): string | null {
 
     // MCP 工具用量 — 简短格式: mcp 已用/总数 (数值按阈值着色)
     if (z.mcpPercent !== undefined) {
-      const color = z.mcpPercent >= 80 ? c.red : z.mcpPercent >= 60 ? c.yellow : c.green;
+      const color = pctColor(z.mcpPercent);
       const detail = (z.mcpUsed !== undefined && z.mcpTotal !== undefined)
         ? `mcp:${color(`${z.mcpUsed}/${z.mcpTotal}`)}`
         : `mcp:${color(`${z.mcpPercent}%`)}`;
@@ -1142,13 +1173,13 @@ export function renderUsageLine(usage: UsageData | null): string | null {
       const usedStr = formatTokenCount(fixedQuota.used);
       const totalStr = formatTokenCount(fixedQuota.total);
       const pct = Math.round((fixedQuota.used / fixedQuota.total) * 100);
-      const color = pct >= 80 ? c.red : pct >= 60 ? c.yellow : c.green;
+      const color = pctColor(pct);
       parts.push(`${color(`${usedStr}/${totalStr}`)}`);
     }
 
     // 月度百分比
     if (fixedQuota.monthlyPercent !== undefined) {
-      const color = fixedQuota.monthlyPercent >= 80 ? c.red : fixedQuota.monthlyPercent >= 60 ? c.yellow : c.green;
+      const color = pctColor(fixedQuota.monthlyPercent);
       let seg = `m:${color(`${fixedQuota.monthlyPercent}%`)}`;
       if (fixedQuota.expiresAt) {
         const countdown = formatCountdown(fixedQuota.expiresAt, true);
