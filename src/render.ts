@@ -554,8 +554,10 @@ export function renderTodoLine(tdata: TranscriptData | null): string | null {
 export function renderToolActivityLines(tdata: TranscriptData | null): string[] {
   if (!tdata || tdata.recentTools.length === 0) return [];
 
-  const running = tdata.recentTools.filter((a) => a.status === 'running');
-  const completed = tdata.recentTools.filter((a) => a.status === 'completed' || a.status === 'error');
+  // Agent 工具由专属的 [&] Agent 行展示, 不在 Tools 行重复显示 (避免 "◐ Agent Agent" 这种无意义输出)
+  const tools = tdata.recentTools.filter((a) => a.tool !== 'Agent');
+  const running = tools.filter((a) => a.status === 'running');
+  const completed = tools.filter((a) => a.status === 'completed' || a.status === 'error');
   const lines: string[] = [];
   const prefix = MINIMAL ? ' ' : '  ';  // 子行缩进
 
