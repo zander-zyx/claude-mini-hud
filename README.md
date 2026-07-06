@@ -853,16 +853,6 @@ MIT © 2026 Zander Zhang — 详见 [LICENSE](./LICENSE)
 
 ---
 
-## 友情赞助
-
-[**词元互联**](https://code.aicodeme.cn/register?aff=H3U6DP3M2QDV) — 企业级 AI 模型中转枢纽
-
-通过统一的 API,即可调用最新纯血 Fable 5、Opus 4.8 及 Pro 池专属的 GPT-5.5、GPT-5.4。同时完美支持 Claude Code 与 Codex 的丝滑接入,告别多平台管理。
-
-👉 [立即体验](https://code.aicodeme.cn/register?aff=H3U6DP3M2QDV)
-
----
-
 ## 致谢
 
 - 灵感来自 [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud)

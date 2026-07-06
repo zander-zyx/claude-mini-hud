@@ -833,16 +833,6 @@ MIT © 2026 Zander Zhang — See [LICENSE](./LICENSE)
 
 ---
 
-## Sponsored
-
-[**CiYuan Hub**](https://code.aicodeme.cn/register?aff=H3U6DP3M2QDV) — Enterprise-grade AI Model Gateway
-
-Access the latest pure Fable 5, Opus 4.8, and Pro-pool exclusive GPT-5.5 / GPT-5.4 through a unified API. Seamlessly supports both Claude Code and Codex — say goodbye to multi-platform management.
-
-👉 [Try it now](https://code.aicodeme.cn/register?aff=H3U6DP3M2QDV)
-
----
-
 ## Acknowledgments
 
 - Inspired by [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud)
