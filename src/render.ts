@@ -15,11 +15,15 @@ import { c } from './colors.js';
 import { t, MINIMAL, LANG, lbl } from './i18n.js';
 import { THEME, THEME_NAME, MARKS } from './themes.js';
 import { truncate } from './transcript.js';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, renameSync } from 'node:fs';
+import { CACHE_DIR, stableHash as simpleHash, sessionCachePath, atomicWrite } from './cache.js';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
+
+// simpleHash 从 cache.ts re-export (供 index.ts 继续从 render.js 导入, 保持向后兼容)
+export { simpleHash };
 
 // ─── 颜色阈值 (集中管理, 支持环境变量覆盖) ─────────────────────────────────
 // 默认: >=80 红, >=60 黄, <60 绿。用户可通过环境变量自定义:
@@ -180,11 +184,7 @@ function progressBar(percent: number, _width?: number): string {
   return `${left}${bar}${right}`;
 }
 
-export function simpleHash(s: string): string {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; }
-  return Math.abs(h).toString(36);
-}
+// simpleHash / sessionCachePath / atomicWrite / CACHE_DIR 已从 ./cache.js 导入 (见文件顶部)
 
 // ─── 上下文行 ─────────────────────────────────────────────────────────────
 
@@ -316,27 +316,21 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null, cac
 }
 
 // ─── 花费/耗时行 (stdin.cost + $/h 增速缓存) ──────────────────────────────
-// 按 transcript_path 哈希隔离, 多窗口各写各的 (避免速率基线串味)
-
-function getCostCachePath(transcriptPath?: string): string {
-  const key = transcriptPath ? simpleHash(transcriptPath) : 'default';
-  return join(homedir(), '.claude-mini-hud', `cost-speed-${key}.json`);
-}
+// 按 transcript_path 哈希隔离 + 内部 tp 双校验 (防哈希碰撞串味)
 
 /** 计算花费增速 ($/h): 基于累计 cost 的时间变化, 用文件缓存 */
 function getCostRate(costUsd: number, transcriptPath?: string): number | null {
   if (!Number.isFinite(costUsd) || costUsd <= 0) return null;
-  const cachePath = getCostCachePath(transcriptPath);
+  const cachePath = sessionCachePath('cost-speed', transcriptPath);
   try {
     const now = Date.now();
-    let prev: { c: number; ts: number } | null = null;
+    let prev: { c: number; ts: number; tp?: string } | null = null;
     try { prev = JSON.parse(readFileSync(cachePath, 'utf8')); } catch { /* first */ }
+    // tp 双校验: 碰撞或窗口切换时丢弃旧基线
+    if (prev && transcriptPath && prev.tp && prev.tp !== transcriptPath) prev = null;
 
     const writeBaseline = () => {
-      try {
-        mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
-        writeFileSync(cachePath, JSON.stringify({ c: costUsd, ts: now }));
-      } catch { /* silent */ }
+      atomicWrite(cachePath, JSON.stringify({ c: costUsd, ts: now, tp: transcriptPath ?? null }));
     };
 
     if (!prev || costUsd < prev.c) { writeBaseline(); return null; }
@@ -377,25 +371,18 @@ export function renderCostLine(stdin: StdinData): string | null {
 // ─── Git 分支/脏状态行 (spawn git + 文件缓存, TTL 500ms) ──────────────────
 // 按工作目录哈希隔离 (同一仓库多窗口共享, 不同仓库不互相覆盖)
 
-function getGitCachePath(dir: string): string {
-  return join(homedir(), '.claude-mini-hud', `git-${simpleHash(dir)}.json`);
-}
-
 /** 读取 Git 缓存 (500ms TTL, 同一会话内复用) */
 function readGitCache(dir: string): GitInfo | null {
   try {
-    const data = JSON.parse(readFileSync(getGitCachePath(dir), 'utf8'));
-    if (data.dir !== dir) return null;
+    const data = JSON.parse(readFileSync(sessionCachePath('git', dir), 'utf8'));
+    if (data.dir !== dir) return null;  // 双校验: hash 已隔离, 这里再校验 dir 防碰撞
     if (Date.now() - data.ts > 500) return null;
     return data.info as GitInfo;
   } catch { return null; }
 }
 
 function writeGitCache(dir: string, info: GitInfo): void {
-  try {
-    mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
-    writeFileSync(getGitCachePath(dir), JSON.stringify({ dir, ts: Date.now(), info }));
-  } catch { /* silent */ }
+  atomicWrite(sessionCachePath('git', dir), JSON.stringify({ dir, ts: Date.now(), info }));
 }
 
 /** 查询 Git 信息: branch + dirty + ahead/behind */
@@ -761,15 +748,10 @@ function detectProvider(stdin: StdinData): string | null {
 // ─── Token 峰值缓存 (/compact 后 Claude Code 重置 session token 计数, 用峰值兜底) ──
 // 按 transcript_path 哈希隔离 + 内部 tp + mtime 校验 (双保险, 避免跨会话泄漏)
 
-function getTokenPeakCachePath(transcriptPath?: string): string {
-  const key = transcriptPath ? simpleHash(transcriptPath) : 'default';
-  return join(homedir(), '.claude-mini-hud', `token-peak-${key}.json`);
-}
-
 function readTokenPeakCache(transcriptPath?: string): TokenBreakdown | null {
   if (!transcriptPath) return null;
   try {
-    const path = getTokenPeakCachePath(transcriptPath);
+    const path = sessionCachePath('token-peak', transcriptPath);
     const raw = readFileSync(path, 'utf8');
     const data = JSON.parse(raw) as { tp: string; mtime: number; input: number; output: number; cache: number; total: number };
     // 双保险: 文件已按 hash 隔离, 这里再校验 tp 是否匹配
@@ -789,17 +771,13 @@ function readTokenPeakCache(transcriptPath?: string): TokenBreakdown | null {
 
 function writeTokenPeakCache(b: TokenBreakdown, transcriptPath?: string): void {
   if (!transcriptPath) return;
+  let mtime = 0;
   try {
-    const path = getTokenPeakCachePath(transcriptPath);
-    mkdirSync(join(homedir(), '.claude-mini-hud'), { recursive: true });
-    let mtime = 0;
-    try {
-      mtime = statSync(transcriptPath).mtimeMs;
-    } catch { /* ignore */ }
-    writeFileSync(path, JSON.stringify({
-      tp: transcriptPath, mtime, input: b.input, output: b.output, cache: b.cache, total: b.total,
-    }));
-  } catch { /* silent */ }
+    mtime = statSync(transcriptPath).mtimeMs;
+  } catch { /* ignore */ }
+  atomicWrite(sessionCachePath('token-peak', transcriptPath), JSON.stringify({
+    tp: transcriptPath, mtime, input: b.input, output: b.output, cache: b.cache, total: b.total,
+  }));
 }
 
 // ─── Token 行 (session 累计 / 上下文快照 / 速率) ──────────────────────
@@ -877,20 +855,16 @@ function getOutputSpeed(stdin: StdinData, cacheDir: string): number | null {
   if (!tp) return null;
 
   try {
-    const cacheFile = join(cacheDir, `speed-${simpleHash(tp)}.json`);
+    const cacheFile = sessionCachePath('speed', tp);
     const now = Date.now();
 
-    let prev: { n: number; ts: number } | null = null;
+    let prev: { n: number; ts: number; tp?: string } | null = null;
     try { prev = JSON.parse(readFileSync(cacheFile, 'utf8')); } catch { /* first run */ }
+    // tp 双校验: 碰撞或窗口切换时丢弃旧基线
+    if (prev && prev.tp && prev.tp !== tp) prev = null;
 
     const writeBaseline = () => {
-      try {
-        mkdirSync(cacheDir, { recursive: true });
-        // 原子写入: 先写临时文件, 再 rename (避免并发竞态)
-        const tmpFile = `${cacheFile}.tmp`;
-        writeFileSync(tmpFile, JSON.stringify({ n: outputTokens, ts: now }));
-        renameSync(tmpFile, cacheFile);
-      } catch { /* silent on write failure */ }
+      atomicWrite(cacheFile, JSON.stringify({ n: outputTokens, ts: now, tp }));
     };
 
     // 无基线 / token 回退 (新会话) / 无新输出 / 基线过旧 → 重建基线
@@ -917,19 +891,16 @@ export function getContextFillSpeed(stdin: StdinData, cacheDir: string): number 
   if (!tp) return null;
 
   try {
-    const cacheFile = join(cacheDir, `ctxspeed-${simpleHash(tp)}.json`);
+    const cacheFile = sessionCachePath('ctxspeed', tp);
     const now = Date.now();
 
-    let prev: { n: number; ts: number } | null = null;
+    let prev: { n: number; ts: number; tp?: string } | null = null;
     try { prev = JSON.parse(readFileSync(cacheFile, 'utf8')); } catch { /* first run */ }
+    // tp 双校验
+    if (prev && prev.tp && prev.tp !== tp) prev = null;
 
     const writeBaseline = () => {
-      try {
-        mkdirSync(cacheDir, { recursive: true });
-        const tmpFile = `${cacheFile}.tmp`;
-        writeFileSync(tmpFile, JSON.stringify({ n: ctxTokens, ts: now }));
-        renameSync(tmpFile, cacheFile);
-      } catch { /* silent */ }
+      atomicWrite(cacheFile, JSON.stringify({ n: ctxTokens, ts: now, tp }));
     };
 
     // 无基线 / token 回退 (新会话/compact) / 无增长 / 基线过旧 → 重建基线

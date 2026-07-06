@@ -24,12 +24,12 @@ import type { StdinData } from './types.js';
 import { c } from './colors.js';
 import { t, MINIMAL, lbl, ULTRA_MINIMAL } from './i18n.js';
 import { readTranscriptData } from './transcript.js';
-import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent, simpleHash } from './render.js';
+import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent } from './render.js';
 import { renderCostLine, renderGitLine, renderAlertLine, renderCompactLine } from './render.js';
 import { getUsageData } from './usage.js';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync, renameSync, readdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { homedir } from 'node:os';
+import { CACHE_DIR, sessionCachePath, atomicWrite, pruneOldSessions } from './cache.js';
+import { existsSync, readFileSync, statSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 // ─── 环境变量配置 ──────────────────────────────────────────────────────────
 
@@ -66,8 +66,8 @@ const TOKEN_MODE = (['session', 'context', 'both'] as const)
 // (由 themes.ts 模块自行解析 CLAUDE_MINI_HUD_THEME / CLAUDE_MINI_HUD_MARKS 环境变量)
 // 两者独立, 可自由组合 (如 THEME=hardcore + MARKS=diamond)
 
-// 预计算速度缓存目录
-const SPEED_CACHE_DIR = join(homedir(), '.claude-mini-hud');
+// 速度缓存目录 (= CACHE_DIR, render 函数的 cacheDir 参数)
+const SPEED_CACHE_DIR = CACHE_DIR;
 
 // ─── stdin 读取 ────────────────────────────────────────────────────────────
 
@@ -109,26 +109,12 @@ async function readStdin(): Promise<StdinData | null> {
 // ─── stdin 缓存 (兜底超时/空输入, 避免 Context 行闪烁消失) ────────────────
 // 按 transcript_path 哈希隔离, 多窗口 (多个 Claude Code 进程) 各写各的缓存,
 // 互不覆盖。读时优先读当前会话的, 无 tp 时读最近修改的 (LRU 兜底)。
-
-const CACHE_DIR = join(homedir(), '.claude-mini-hud');
-
-function getStdinCachePath(transcriptPath?: string): string {
-  const key = transcriptPath ? simpleHash(transcriptPath) : 'default';
-  return join(CACHE_DIR, `stdin-${key}.json`);
-}
+// 路径构造/原子写/清理统一走 ./cache.js
 
 function writeLastStdinCache(data: StdinData, transcriptPath?: string): void {
-  try {
-    const path = getStdinCachePath(transcriptPath);
-    const dir = dirname(path);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    // 原子写: 先写 tmp, 再 rename (避免并发读半截 JSON)
-    const tmpFile = `${path}.tmp`;
-    writeFileSync(tmpFile, JSON.stringify(data), 'utf8');
-    renameSync(tmpFile, path);
-  } catch {
-    // 静默
-  }
+  atomicWrite(sessionCachePath('stdin', transcriptPath), JSON.stringify(data));
+  // 1% 概率清理 30 天前的过期缓存 (防长期累积)
+  pruneOldSessions();
 }
 
 function readLastStdinCache(transcriptPath?: string): StdinData | null {
@@ -147,19 +133,18 @@ function readLastStdinCache(transcriptPath?: string): StdinData | null {
 
   // 1) 优先读当前会话的缓存
   if (transcriptPath) {
-    const hit = tryRead(getStdinCachePath(transcriptPath));
+    const hit = tryRead(sessionCachePath('stdin', transcriptPath));
     if (hit) return hit;
   }
   // 2) 无 tp 或当前会话缓存不存在 → 读最近修改的 (LRU 兜底, 处理窗口切换瞬间)
   try {
-    const dir = CACHE_DIR;
-    if (!existsSync(dir)) return null;
-    const files = readdirSync(dir)
+    if (!existsSync(CACHE_DIR)) return null;
+    const files = readdirSync(CACHE_DIR)
       .filter((f) => f.startsWith('stdin-') && f.endsWith('.json'))
-      .map((f) => ({ f, mt: statSync(join(dir, f)).mtimeMs }))
+      .map((f) => ({ f, mt: statSync(join(CACHE_DIR, f)).mtimeMs }))
       .sort((a, b) => b.mt - a.mt);
     if (files.length === 0) return null;
-    return tryRead(join(dir, files[0].f));
+    return tryRead(join(CACHE_DIR, files[0].f));
   } catch {
     return null;
   }
@@ -168,15 +153,10 @@ function readLastStdinCache(transcriptPath?: string): StdinData | null {
 // ─── Context 百分比缓存 (防闪烁: 当 stdin 数据退化时用上次有效值兜底) ─────
 // 按 transcript_path 哈希隔离, 多窗口互不覆盖。内部仍保留 tp 校验作双保险。
 
-function getCtxPctCachePath(transcriptPath?: string): string {
-  const key = transcriptPath ? simpleHash(transcriptPath) : 'default';
-  return join(CACHE_DIR, `ctx-pct-${key}.json`);
-}
-
 /** 读取 Context 百分比缓存 (仅同一会话有效) */
 function readCtxPctCache(transcriptPath?: string): number {
   try {
-    const path = getCtxPctCachePath(transcriptPath);
+    const path = sessionCachePath('ctx-pct', transcriptPath);
     if (!existsSync(path)) return 0;
     const { pct, ts, tp, mtime } = JSON.parse(readFileSync(path, 'utf8'));
     // 不同会话 (transcript_path 不匹配) → 缓存无效 (双保险: 文件已按哈希隔离, 但兜底场景无 tp 时仍可能误读)
@@ -197,20 +177,13 @@ function readCtxPctCache(transcriptPath?: string): number {
 }
 
 function writeCtxPctCache(pct: number, transcriptPath?: string): void {
-  try {
-    const path = getCtxPctCachePath(transcriptPath);
-    mkdirSync(dirname(path), { recursive: true });
-    let mtime = 0;
-    if (transcriptPath) {
-      try {
-        mtime = statSync(transcriptPath).mtimeMs;
-      } catch { /* ignore */ }
-    }
-    // 原子写
-    const tmpFile = `${path}.tmp`;
-    writeFileSync(tmpFile, JSON.stringify({ pct, ts: Date.now(), tp: transcriptPath ?? null, mtime }));
-    renameSync(tmpFile, path);
-  } catch { /* silent */ }
+  let mtime = 0;
+  if (transcriptPath) {
+    try {
+      mtime = statSync(transcriptPath).mtimeMs;
+    } catch { /* ignore */ }
+  }
+  atomicWrite(sessionCachePath('ctx-pct', transcriptPath), JSON.stringify({ pct, ts: Date.now(), tp: transcriptPath ?? null, mtime }));
 }
 
 // ─── 主入口 ───────────────────────────────────────────────────────────────
