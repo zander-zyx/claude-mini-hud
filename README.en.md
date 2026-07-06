@@ -390,6 +390,7 @@ The statusline automatically refreshes at these moments:
 }
 ```
 
+<a id="theme-preview"></a>
 #### Theme Preview (at 72%)
 
 | Theme | Variable | Progress Bar | Tool Marks |
