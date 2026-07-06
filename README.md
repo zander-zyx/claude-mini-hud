@@ -370,6 +370,9 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 | `CLAUDE_MINI_HUD_WARN` | `1` (开) | `0` / `1` | 设为 `0` 关闭阈值告警; 默认开启, 上下文 ≥85% 或任一用量窗口 ≥90% 时高亮提醒 |
 | `CLAUDE_MINI_HUD_COMPACT` | (未设) | `1` | 单行紧凑模式: 把 上下文% / 用量 / 花费 / 当前任务 / ETA 用 `│` 压成一行 |
 | `CLAUDE_MINI_HUD_LAYOUT` | (未设) | 逗号分隔行名 | 自定义显示哪些行及顺序, 可用: `context,token,usage,alert,todo,tools,agent,cost,git,model` |
+| `CLAUDE_MINI_HUD_RED_PCT` | `80` | `0`-`100` | 红色阈值: 百分比 ≥ 此值显示红色 (Context / 用量窗口 / 月度统一生效) |
+| `CLAUDE_MINI_HUD_YELLOW_PCT` | `60` | `0`-`100` | 黄色阈值: 百分比 ≥ 此值显示黄色, < 红色阈值 |
+| `CLAUDE_MINI_HUD_BG` | (自动) | `light` / `dark` | 终端背景色, 用于颜色对比度适配。未设时自动读 `COLORFGBG` / `TERM_BACKGROUND_COLOR`, 默认 `dark` |
 
 **在 statusLine.command 里设置** (推荐):
 

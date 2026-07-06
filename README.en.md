@@ -365,6 +365,9 @@ The statusline automatically refreshes at these moments:
 | `CLAUDE_MINI_HUD_WARN` | `1` (on) | `0` / `1` | Set to `0` to disable threshold alerts; on by default, highlights when context ≥85% or any usage window ≥90% |
 | `CLAUDE_MINI_HUD_COMPACT` | (unset) | `1` | Single-line compact mode: joins context% / usage / cost / current task / ETA with `│` |
 | `CLAUDE_MINI_HUD_LAYOUT` | (unset) | comma-separated line names | Customize which lines render and in what order; available: `context,token,usage,alert,todo,tools,agent,cost,git,model` |
+| `CLAUDE_MINI_HUD_RED_PCT` | `80` | `0`-`100` | Red threshold: percentage ≥ this shows red (applies to Context / usage windows / monthly) |
+| `CLAUDE_MINI_HUD_YELLOW_PCT` | `60` | `0`-`100` | Yellow threshold: percentage ≥ this shows yellow, < red threshold |
+| `CLAUDE_MINI_HUD_BG` | (auto) | `light` / `dark` | Terminal background color for contrast adaptation. Auto-detected from `COLORFGBG` / `TERM_BACKGROUND_COLOR` if unset; defaults to `dark` |
 
 **Set them in statusLine.command** (recommended):
 

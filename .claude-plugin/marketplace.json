@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Minimal Claude Code statusline — context / token / todos (model optional)",
-    "version": "1.1.1"
+    "version": "1.2.0"
   },
   "plugins": [
     {
