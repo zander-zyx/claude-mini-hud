@@ -9,7 +9,7 @@
 ![Language: TS](https://img.shields.io/badge/TypeScript-ES2022-blue)
 ![StatusLine](https://img.shields.io/badge/Claude_Code-StatusLine-blueviolet)
 
-[简体中文](#) · [English](./README.en.md) · [安装](#安装) · [主题预览](#进度条主题预览) · [FAQ](#faq) · [贡献](#贡献)
+[简体中文](#) · [English](./README.en.md) · [安装](#安装) · [主题预览](#主题预览) · [FAQ](#faq) · [贡献](#贡献)
 
 ---
 
@@ -360,8 +360,8 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 | 变量 | 默认 | 可选值 | 说明 |
 |------|------|--------|------|
 | `CLAUDE_MINI_HUD_LANG` | `zh` | `zh` / `en` / `minimal` / `ultra-minimal` | 界面语言 (minimal = 英中混搭 + 无 emoji, ultra-minimal = 只显示 Context + Token 两行) |
-| `CLAUDE_MINI_HUD_THEME` | `default` | [21 种,见主题预览](#进度条主题预览) | 进度条风格 |
-| `CLAUDE_MINI_HUD_MARKS` | `default` | [21 种,见主题预览](#进度条主题预览) | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
+| `CLAUDE_MINI_HUD_THEME` | `default` | [21 种,见主题预览](#主题预览) | 进度条风格 |
+| `CLAUDE_MINI_HUD_MARKS` | `default` | [21 种,见主题预览](#主题预览) | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (未设) | `1` | 设置为 `1` 时强制禁用 emoji, 使用 ASCII 符号 (# $ > 等) |
@@ -395,8 +395,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 }
 ```
 
-<a id="进度条主题预览"></a>
-#### 进度条主题预览 (72% 时)
+#### 主题预览 (72% 时)
 
 | 主题 | 环境变量值 | 进度条效果 | 工具标记 |
 |------|-----------|-----------|---------|
