@@ -142,6 +142,7 @@
 - [前置条件](#前置条件)
 - [30 秒快速体验](#30-秒快速体验)
 - [安装](#安装)
+  - [方式 0: 让 Claude 自己装 (最省心)](#方式-0-让-claude-自己装-最省心)
   - [方式 1: Marketplace (推荐)](#方式-1-marketplace-推荐)
   - [方式 2: 手动 git clone](#方式-2-手动-git-clone)
   - [方式 3: Windows PowerShell](#方式-3-windows-powershell)
@@ -203,6 +204,23 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 ---
 
 ## 安装
+
+### 方式 0: 让 Claude 自己装 (最省心)
+
+不想看下面这些步骤?直接把下面这段话**复制粘贴到 Claude Code 对话框**,让 Claude 替你完成全部安装:
+
+```
+帮我安装 claude-mini-hud 状态栏插件:
+1. 执行 /plugin marketplace add zander-zyx/claude-mini-hud
+2. 执行 /plugin install claude-mini-hud
+3. 执行 /reload-plugins
+4. 执行 /claude-mini-hud:setup 完成配置 (语言选中文, 主题按我喜好推荐)
+5. 完成后告诉我需要重启 Claude Code
+```
+
+> 💡 Claude 会按顺序执行斜杠命令并引导你完成 setup 菜单。装完后重启 Claude Code 即可看到状态栏。
+
+---
 
 ### 方式 1: Marketplace (推荐)
 

@@ -138,6 +138,7 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 - [Prerequisites](#prerequisites)
 - [30-Second Quick Start](#30-second-quick-start)
 - [Installation](#installation)
+  - [Option 0: Let Claude Install It (Easiest)](#option-0-let-claude-install-it-easiest)
   - [Option 1: Marketplace (Recommended)](#option-1-marketplace-recommended)
   - [Option 2: Manual git clone](#option-2-manual-git-clone)
   - [Option 3: Windows PowerShell](#option-3-windows-powershell)
@@ -199,6 +200,23 @@ See those two lines? Everything works. Next step: [Install into Claude Code](#in
 ---
 
 ## Installation
+
+### Option 0: Let Claude Install It (Easiest)
+
+Don't want to follow the steps below? Just **copy and paste** this prompt into the Claude Code chat box and let Claude do the installation for you:
+
+```
+Help me install the claude-mini-hud statusline plugin:
+1. Run /plugin marketplace add zander-zyx/claude-mini-hud
+2. Run /plugin install claude-mini-hud
+3. Run /reload-plugins
+4. Run /claude-mini-hud:setup to configure (English language, recommend a theme I'd like)
+5. Tell me I need to restart Claude Code when done
+```
+
+> 💡 Claude will execute the slash commands in order and guide you through the setup menu. Restart Claude Code after installation to see the statusline.
+
+---
 
 ### Option 1: Marketplace (Recommended)
 
