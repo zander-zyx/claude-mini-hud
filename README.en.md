@@ -368,6 +368,7 @@ The statusline automatically refreshes at these moments:
 | `CLAUDE_MINI_HUD_RED_PCT` | `80` | `0`-`100` | Red threshold: percentage ≥ this shows red (applies to Context / usage windows / monthly) |
 | `CLAUDE_MINI_HUD_YELLOW_PCT` | `60` | `0`-`100` | Yellow threshold: percentage ≥ this shows yellow, < red threshold |
 | `CLAUDE_MINI_HUD_BG` | (auto) | `light` / `dark` | Terminal background color for contrast adaptation. Auto-detected from `COLORFGBG` / `TERM_BACKGROUND_COLOR` if unset; defaults to `dark` |
+| `CLAUDE_MINI_HUD_DEBUG` | (unset) | `1` | Debug mode: outputs module errors (usage queries/cache) to stderr for troubleshooting |
 
 **Set them in statusLine.command** (recommended):
 
