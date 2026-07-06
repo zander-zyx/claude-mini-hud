@@ -161,7 +161,7 @@ Before installing this plugin, make sure you have:
 
 | Dependency | Minimum Version | Check Command | Notes |
 |------------|----------------|---------------|-------|
-| **Claude Code CLI** | Latest | `claude --version` | [Installation docs](https://docs.claude.com/en/docs/claude-code/installation) |
+| **Claude Code CLI** | ≥ 2.0 | `claude --version` | Minimum version that supports StatusLine; ≥ 2.1.6 recommended (more accurate percentage). [Installation docs](https://docs.claude.com/en/docs/claude-code/installation) |
 | **Node.js** | ≥ 18.0.0 | `node --version` | For compiling TypeScript |
 | **npm** | ≥ 9.0 | `npm --version` | For installing TypeScript |
 | **TypeScript** | ≥ 5.4 | `npx tsc --version` | Auto-installed at compile time |

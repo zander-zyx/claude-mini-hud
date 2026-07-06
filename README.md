@@ -165,7 +165,7 @@
 
 | 依赖 | 最低版本 | 检查命令 | 说明 |
 |------|---------|---------|------|
-| **Claude Code CLI** | 最新版 | `claude --version` | [安装文档](https://docs.claude.com/en/docs/claude-code/installation) |
+| **Claude Code CLI** | ≥ 2.0 | `claude --version` | 支持 StatusLine 的最低版本,推荐 ≥ 2.1.6 (百分比更准)。[安装文档](https://docs.claude.com/en/docs/claude-code/installation) |
 | **Node.js** | ≥ 18.0.0 | `node --version` | 用于编译 TypeScript |
 | **npm** | ≥ 9.0 | `npm --version` | 装 TypeScript |
 | **TypeScript** | ≥ 5.4 | `npx tsc --version` | 编译时自动装 |
