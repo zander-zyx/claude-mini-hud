@@ -13,14 +13,6 @@
 
 ---
 
-> **Ciyuan Interconnect** — Enterprise-grade AI Model Relay Hub
->
-> Access the latest pure-blood Fable 5, Opus 4.8, and Pro-pool exclusive GPT-5.5, GPT-5.4 through our unified API. Seamlessly supports Claude Code and Codex integration — say goodbye to multi-platform management.
->
-> [👉 Try it now](https://code.aicodeme.cn/register?aff=H3U6DP3M2QDV)
-
----
-
 ## What is this?
 
 **claude-mini-hud** is a [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine plugin that continuously displays key session metrics below your input field. **Up to 7 lines**, high information density — a lighter alternative to [claude-hud](https://github.com/jarrodwatts/claude-hud).

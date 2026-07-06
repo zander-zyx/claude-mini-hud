@@ -13,14 +13,6 @@
 
 ---
 
-> **词元互联** — 企业级 AI 模型中转枢纽
->
-> 通过统一的 API，即可调用最新纯血 Fable 5、Opus 4.8 及 Pro 池专属的 GPT-5.5、GPT-5.4。同时完美支持 Claude Code 与 Codex 的丝滑接入，告别多平台管理。
->
-> [👉 立即体验](https://code.aicodeme.cn/register?aff=H3U6DP3M2QDV)
-
----
-
 ## 这是什么?
 
 **claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**最多 7 行**,信息密度高。对标 [claude-hud](https://github.com/jarrodwatts/claude-hud) 的核心功能,同时深度适配国产大模型 Coding Plan / Token Plan 用量查询。
