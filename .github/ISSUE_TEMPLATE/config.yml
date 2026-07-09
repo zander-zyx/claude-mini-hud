@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 提问 / 讨论
+    url: https://github.com/zander-zyx/claude-mini-hud/discussions
+    about: 使用问题、想法讨论、不求修复的，请走 Discussions。
+  - name: 📖 文档
+    url: https://github.com/zander-zyx/claude-mini-hud#readme
+    about: 先看 README，配置/FAQ 都在里面。

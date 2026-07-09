@@ -233,7 +233,7 @@ Help me install the claude-mini-hud statusline plugin:
 **What setup does**:
 1. Detects your OS and Claude config directory
 2. Choose language (Chinese / English / Minimal / Ultra-Minimal)
-3. Choose progress bar theme + tool marks (optional, 20 themes mix freely, default Classic)
+3. Choose progress bar theme + tool marks (optional, 21 themes mix freely, default Classic)
 4. Checks existing statusLine config; backs up if there's a conflict
 5. Writes `node <path>/dist/index.js` + env vars into `~/.claude/settings.json`
 6. Prompts you to restart + verify
@@ -247,10 +247,10 @@ Help me install the claude-mini-hud statusline plugin:
 ```bash
 # 1. Clone into the Claude plugins directory (version is part of the dir name, update it when upgrading)
 git clone https://github.com/zander-zyx/claude-mini-hud.git \
-  ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
+  ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1
 
 # 2. Enter the directory and compile
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1
 npm install
 npm run build
 
@@ -259,7 +259,7 @@ npm run build
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js"
+    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1/dist/index.js"
   }
 }
 
@@ -272,10 +272,10 @@ npm run build
 
 ```powershell
 # 1. Clone
-git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0
+git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.1
 
 # 2. Compile
-cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0
+cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.1
 npm install
 npm run build
 
@@ -283,7 +283,7 @@ npm run build
 $settings = Get-Content $env:USERPROFILE\.claude\settings.json -Raw | ConvertFrom-Json
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0\dist\index.js"
+  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.1\dist\index.js"
 }
 $settings | ConvertTo-Json -Depth 10 | Set-Content $env:USERPROFILE\.claude\settings.json
 
@@ -378,7 +378,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow CLAUDE_MINI_HUD_SHOW_MODEL=1 node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1/dist/index.js"
   }
 }
 ```
@@ -389,7 +389,7 @@ The statusline automatically refreshes at these moments:
 {
   "statusLine": {
     "type": "command",
-    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.2.0\\dist\\index.js'\""
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; $env:CLAUDE_MINI_HUD_SHOW_MODEL='1'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.2.1\\dist\\index.js'\""
   }
 }
 ```
@@ -571,10 +571,10 @@ if (branchLine) lines.push(branchLine);
 Troubleshooting:
 ```bash
 # 1. Check if dist/index.js exists
-ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js
+ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1/dist/index.js
 
 # 2. Test manually, check if stdout has content
-echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js
+echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1/dist/index.js
 # Should output: 📊 上下文 ... 🪙 Token ...
 
 # 3. If manual run works but Claude Code doesn't show it, check settings.json
@@ -634,7 +634,7 @@ async function main() {
 
 **A**:
 ```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1
 git pull
 npm install
 npm run build
@@ -699,7 +699,7 @@ npm run build      # tsc compile src/ → dist/
 
 ```bash
 npm install
-npm test            # build + typecheck + run 36 tests (using tsx to run ts tests directly)
+npm test            # build + typecheck + run 48 tests (using tsx to run ts tests directly)
 npm run test:stdin  # manually test a single stdin input
 npm run typecheck   # type-check only, no emit
 ```
@@ -712,7 +712,7 @@ npm run dev   # tsc --watch, auto-recompile
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### Test Coverage (43 test cases)
+### Test Coverage (48 test cases)
 
 | # | Case | Verification |
 |---|------|-------------|
@@ -725,12 +725,12 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 7 | Context line format used/total + remaining | `100k / 1M` format |
 | 8 | Token line breaks down in/out/cache | exact value match |
 | 9 | Read todos from transcript_path | in_progress + `1/3` |
-| 10 | Provider detection (minimaxi) | output with SHOW_MODEL=1 |
-| 11 | `CLAUDE_MINI_HUD_LANG=zh` defaults to Chinese | Chinese label |
-| 12 | `CLAUDE_MINI_HUD_LANG=en` shows English | no Chinese markers |
-| 13 | `CLAUDE_MINI_HUD_LANG=minimal` no emoji + hybrid | hybrid output verification |
-| 14–26 | Multi-platform detection (claude/deepseek/minimax/minimax.io/kimi-coding/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL matching (incl. international) |
-| 26–36 | Cache read/write + E2E + MiniMax model matching | see `tests/usage.test.ts` (23 cases) |
+| 10–11 | Large transcript Todo regressions | TaskCreate/TaskUpdate matching in long sessions |
+| 12 | Provider detection (minimaxi) | output with SHOW_MODEL=1 |
+| 13–15 | Language modes | zh/en/minimal output verification |
+| 16–17 | CLI/theme regressions | `--version` + gradient theme |
+| 18–37 | Multi-platform detection | URL matching (incl. international) |
+| 38–48 | Cache read/write + E2E + Aliyun/MiniMax regressions | see `tests/usage.test.ts` |
 
 ### Project Structure
 
@@ -753,7 +753,7 @@ claude-mini-hud/
 │   ├── types.ts        # Shared type definitions
 │   ├── i18n.ts         # Internationalization (zh/en/minimal)
 │   ├── colors.ts       # ANSI colors (zero-dependency)
-│   ├── themes.ts       # Progress bar theme system (20 themes)
+│   ├── themes.ts       # Progress bar theme system (21 themes)
 │   ├── render.ts       # All render functions
 │   ├── transcript.ts   # Transcript JSONL parser
 │   └── usage.ts        # Multi-platform usage/balance queries
@@ -801,7 +801,7 @@ PRs are welcome! Here are the contribution guidelines:
 ### Roadmap
 
 Short-term (v1.1):
-- [x] Progress bar theme system (20 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/shades/retro/ascii/rail/star/spark/heart/love)
+- [x] Progress bar theme system (21 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart/love)
 - [x] Session cost display (cost/duration/$/h, `CLAUDE_MINI_HUD_SHOW_COST=1`)
 - [x] Git branch/dirty status (`CLAUDE_MINI_HUD_SHOW_GIT=1`)
 - [x] Context fill ETA (predicts time-to-full at current rate)

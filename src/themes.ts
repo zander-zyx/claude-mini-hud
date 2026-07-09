@@ -30,7 +30,7 @@
 
 // ─── 主题类型 ─────────────────────────────────────────────────────────────
 
-export type ThemeName = 'default' | 'neon' | 'braille' | 'hardcore' | 'minimal' | 'pixel' | 'diamond' | 'arrow' | 'wave' | 'tide' | 'dot' | 'target' | 'shades' | 'retro' | 'ascii' | 'rail' | 'star' | 'spark' | 'heart' | 'love';
+export type ThemeName = 'default' | 'neon' | 'braille' | 'hardcore' | 'minimal' | 'pixel' | 'diamond' | 'arrow' | 'wave' | 'tide' | 'dot' | 'target' | 'gradient' | 'shades' | 'retro' | 'ascii' | 'rail' | 'star' | 'spark' | 'heart' | 'love';
 
 export interface ThemeConfig {
   /** 进度条填充字符 (从满到空排列) */
@@ -265,6 +265,23 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
   },
 
   /**
+   * 渐变风 (由深到浅循环)
+   * █▓▒░█▓▒░···· 72%
+   */
+  gradient: {
+    filled: ['█', '▓', '▒', '░'],
+    empty: '·',
+    leftBorder: '',
+    rightBorder: '',
+    width: 10,
+    isMinimal: false,
+    minimalIcon: '',
+    separator: ' ',
+    runningMark: '▒',
+    completedMark: '▓',
+  },
+
+  /**
    * 阴影风 (filled 数组循环: █▓▒░ 重复)
    * █▓▒░█▓▒░█▓▒░█▓······ 72%
    */
@@ -406,7 +423,7 @@ const THEMES: Record<ThemeName, ThemeConfig> = {
 // ─── 主题选择 ─────────────────────────────────────────────────────────────
 
 /** 有效的主题名列表 */
-export const THEME_NAMES: ThemeName[] = ['default', 'neon', 'braille', 'hardcore', 'minimal', 'pixel', 'diamond', 'arrow', 'wave', 'tide', 'dot', 'target', 'shades', 'retro', 'ascii', 'rail', 'star', 'spark', 'heart', 'love'];
+export const THEME_NAMES: ThemeName[] = ['default', 'neon', 'braille', 'hardcore', 'minimal', 'pixel', 'diamond', 'arrow', 'wave', 'tide', 'dot', 'target', 'gradient', 'shades', 'retro', 'ascii', 'rail', 'star', 'spark', 'heart', 'love'];
 
 /** 从环境变量解析主题名 (无效值回退到 default) */
 function resolveName(envKey: string): ThemeName {

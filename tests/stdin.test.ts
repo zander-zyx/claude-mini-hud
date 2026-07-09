@@ -15,7 +15,10 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { readTranscriptData } from '../src/transcript.js';
+import { renderTodoLine } from '../src/render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(__dirname, '..', 'dist', 'index.js');
@@ -26,6 +29,14 @@ function runCli(input: string, env: NodeJS.ProcessEnv = process.env) {
     encoding: 'utf8',
     timeout: 3000,
     env: { ...env, NO_COLOR: '1' },  // 注意: 当前代码未实现 NO_COLOR, 设此值不影响 ANSI 输出
+  });
+}
+
+function runCliArgs(args: string[], env: NodeJS.ProcessEnv = process.env) {
+  return spawnSync('node', [DIST, ...args], {
+    encoding: 'utf8',
+    timeout: 3000,
+    env: { ...env, NO_COLOR: '1' },
   });
 }
 
@@ -55,6 +66,13 @@ test('cli 接受 stdin JSON 并输出必显行 (context + token)', () => {
   assert.ok(lines.length >= 2, `应至少 2 行, 实际 ${lines.length}: ${result.stdout}`);
   assert.ok(lines[0].includes('上下文'), `第 1 行应是上下文: ${lines[0]}`);
   assert.ok(lines.some((l: string) => l.includes('Token')), `应有 Token 行`);
+});
+
+test('cli --version 输出 package.json 版本号', () => {
+  const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')) as { version: string };
+  const result = runCliArgs(['--version']);
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.trim(), pkg.version);
 });
 
 test('默认不显示模型行 (SHOW_MODEL 未设)', () => {
@@ -147,6 +165,25 @@ test('进度条在 < 60% 时使用绿色', () => {
   );
 });
 
+test('CLAUDE_MINI_HUD_THEME=gradient 使用渐变主题', () => {
+  const input = JSON.stringify({
+    model: { display_name: 'test' },
+    context_window: {
+      current_usage: { input_tokens: 100000 },
+      context_window_size: 200000,
+      used_percentage: 50,
+    },
+  });
+
+  const result = runCli(input, { ...process.env, CLAUDE_MINI_HUD_THEME: 'gradient' });
+  assert.equal(result.status, 0);
+  const plain = stripAnsi(result.stdout);
+  assert.ok(
+    plain.includes('▓') || plain.includes('▒'),
+    `gradient 主题应输出渐变块字符, 实际: ${plain}`
+  );
+});
+
 test('上下文行格式 used/total + 剩余', () => {
   const input = JSON.stringify({
     model: { display_name: 'test' },
@@ -215,6 +252,90 @@ test('从 transcript_path 读取 todos', () => {
     `应输出 in-progress todo: ${result.stdout}`
   );
   assert.ok(result.stdout.includes('1/3'), `应显示完成度 1/3`);
+});
+
+test('大 transcript 中尾部 TaskUpdate 应更新早期 TaskCreate 的状态', async () => {
+  const tmpFile = path.join(tmpdir(), 'claude-mini-hud-large-todo-update.jsonl');
+  const assistantEntry = (content: unknown[]) => JSON.stringify({
+    type: 'assistant',
+    timestamp: new Date().toISOString(),
+    message: { content },
+  });
+
+  const lines: string[] = [];
+  for (const [taskId, subject] of [
+    ['1', '删除 worker/ 目录'],
+    ['2', 'create-server'],
+    ['3', 'update-flutter'],
+    ['4', 'verify-build'],
+  ]) {
+    lines.push(assistantEntry([
+      { type: 'tool_use', id: `create-${taskId}`, name: 'TaskCreate', input: { taskId, subject, status: 'pending' } },
+    ]));
+  }
+
+  lines.push(JSON.stringify({ type: 'user', message: { content: 'x'.repeat(700_000) } }));
+
+  for (const [taskId, status] of [
+    ['1', 'completed'],
+    ['2', 'completed'],
+    ['3', 'completed'],
+    ['4', 'in_progress'],
+  ]) {
+    lines.push(assistantEntry([
+      { type: 'tool_use', id: `update-${taskId}`, name: 'TaskUpdate', input: { taskId, status } },
+    ]));
+  }
+
+  writeFileSync(tmpFile, lines.join('\n') + '\n');
+
+  const tdata = await readTranscriptData(tmpFile);
+  const todoLine = stripAnsi(renderTodoLine(tdata) ?? '');
+  assert.ok(todoLine.includes('verify-build'), `应显示最新 in-progress 任务, 实际: ${todoLine}`);
+  assert.ok(todoLine.includes('(3/4)'), `应显示完成度 3/4, 实际: ${todoLine}`);
+});
+
+test('大 transcript 中间 TaskCreate 也应能匹配尾部 TaskUpdate', async () => {
+  const tmpFile = path.join(tmpdir(), 'claude-mini-hud-middle-todo-update.jsonl');
+  const assistantEntry = (content: unknown[]) => JSON.stringify({
+    type: 'assistant',
+    timestamp: new Date().toISOString(),
+    message: { content },
+  });
+
+  const lines: string[] = [
+    JSON.stringify({ type: 'user', message: { content: 'head'.repeat(180_000) } }),
+  ];
+  for (const [taskId, subject] of [
+    ['1', 'prepare'],
+    ['2', 'build'],
+    ['3', 'test'],
+    ['4', 'release'],
+  ]) {
+    lines.push(assistantEntry([
+      { type: 'tool_use', id: `middle-create-${taskId}`, name: 'TaskCreate', input: { taskId, subject, status: 'pending' } },
+    ]));
+  }
+
+  lines.push(JSON.stringify({ type: 'user', message: { content: 'middle'.repeat(180_000) } }));
+
+  for (const [taskId, status] of [
+    ['1', 'completed'],
+    ['2', 'completed'],
+    ['3', 'completed'],
+    ['4', 'in_progress'],
+  ]) {
+    lines.push(assistantEntry([
+      { type: 'tool_use', id: `tail-update-${taskId}`, name: 'TaskUpdate', input: { taskId, status } },
+    ]));
+  }
+
+  writeFileSync(tmpFile, lines.join('\n') + '\n');
+
+  const tdata = await readTranscriptData(tmpFile);
+  const todoLine = stripAnsi(renderTodoLine(tdata) ?? '');
+  assert.ok(todoLine.includes('release'), `应显示中间创建、尾部更新后的任务, 实际: ${todoLine}`);
+  assert.ok(todoLine.includes('(3/4)'), `应显示完成度 3/4, 实际: ${todoLine}`);
 });
 
 test('检测非 Anthropic provider (minimaxi) 仅在 SHOW_MODEL=1 时可见', () => {

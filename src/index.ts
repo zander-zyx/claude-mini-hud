@@ -69,6 +69,15 @@ const TOKEN_MODE = (['session', 'context', 'both'] as const)
 // 速度缓存目录 (= CACHE_DIR, render 函数的 cacheDir 参数)
 const SPEED_CACHE_DIR = CACHE_DIR;
 
+function readPackageVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version?: unknown };
+    return typeof pkg.version === 'string' ? pkg.version : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 // ─── stdin 读取 ────────────────────────────────────────────────────────────
 
 async function readStdin(): Promise<StdinData | null> {
@@ -189,6 +198,11 @@ function writeCtxPctCache(pct: number, transcriptPath?: string): void {
 // ─── 主入口 ───────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  if (process.argv.includes('--version') || process.argv.includes('-v')) {
+    console.log(readPackageVersion());
+    return;
+  }
+
   let stdin = await readStdin();
 
   // stdin 为 null (超时/空输入/解析失败) → 尝试用缓存的上次数据渲染

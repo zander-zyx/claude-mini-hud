@@ -265,6 +265,30 @@ test('getUsageData: 无平台返回 null', async () => {
   delete process.env.ANTHROPIC_BASE_URL;
 });
 
+test('getApiKeyForPlatform: alibaba 使用 ALIYUN_AK_ID/ALIYUN_AK_SECRET 触发刷新', async () => {
+  const usage = await import('../src/usage.js') as unknown as {
+    getApiKeyForPlatform: (platform: string) => string | null;
+  };
+  const oldAkId = process.env.ALIYUN_AK_ID;
+  const oldAkSecret = process.env.ALIYUN_AK_SECRET;
+  const oldDashscope = process.env.DASHSCOPE_API_KEY;
+  const oldAuth = process.env.ANTHROPIC_AUTH_TOKEN;
+
+  process.env.ALIYUN_AK_ID = 'test-ak-id';
+  process.env.ALIYUN_AK_SECRET = 'test-ak-secret';
+  delete process.env.DASHSCOPE_API_KEY;
+  delete process.env.ANTHROPIC_AUTH_TOKEN;
+
+  try {
+    assert.equal(usage.getApiKeyForPlatform('alibaba'), 'aliyun-bss');
+  } finally {
+    if (oldAkId === undefined) delete process.env.ALIYUN_AK_ID; else process.env.ALIYUN_AK_ID = oldAkId;
+    if (oldAkSecret === undefined) delete process.env.ALIYUN_AK_SECRET; else process.env.ALIYUN_AK_SECRET = oldAkSecret;
+    if (oldDashscope === undefined) delete process.env.DASHSCOPE_API_KEY; else process.env.DASHSCOPE_API_KEY = oldDashscope;
+    if (oldAuth === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN; else process.env.ANTHROPIC_AUTH_TOKEN = oldAuth;
+  }
+});
+
 test('端到端: Claude rate_limits 从 stdin 直接输出', async () => {
   const { getUsageData } = await import('../src/usage.js');
   const stdin = {

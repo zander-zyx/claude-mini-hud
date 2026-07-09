@@ -785,7 +785,7 @@ async function queryKimiCoding(apiKey: string): Promise<UsageData | null> {
  *   - 硅基流动:  SILICONFLOW_API_KEY
  *   - 第三方代理: ANTHROPIC_AUTH_TOKEN (代理转发)
  */
-function getApiKeyForPlatform(platform: string): string | null {
+export function getApiKeyForPlatform(platform: string): string | null {
   const authToken = process.env.ANTHROPIC_AUTH_TOKEN?.trim();
   switch (platform) {
     case 'deepseek':
@@ -807,9 +807,9 @@ function getApiKeyForPlatform(platform: string): string | null {
         || authToken
         || null;
     case 'alibaba':
-      return process.env.DASHSCOPE_API_KEY?.trim()
-        || authToken
-        || null;
+      return process.env.ALIYUN_AK_ID?.trim() && process.env.ALIYUN_AK_SECRET?.trim()
+        ? 'aliyun-bss'
+        : null;
     case 'volcengine':
       return process.env.ARK_API_KEY?.trim()
         || process.env.VOLC_API_KEY?.trim()

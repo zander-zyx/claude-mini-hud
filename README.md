@@ -2,7 +2,7 @@
 
 > Claude Code 状态栏 — 上下文 / Token / 任务 / 工具活动 / Agent 追踪 + 深度适配国产大模型用量查询
 > 
-> 20 种进度条主题 · 4 种显示模式 · 零依赖 · 10ms 启动
+> 21 种进度条主题 · 4 种显示模式 · 零依赖 · 10ms 启动
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
@@ -237,7 +237,7 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 **setup 流程会**:
 1. 检测你的操作系统和 Claude 配置目录
 2. 选择语言 (中文 / English / 简约 Minimal / 极简 Ultra-Minimal)
-3. 选择进度条主题 + 工具标记风格 (可选, 20 种主题自由组合, 默认经典)
+3. 选择进度条主题 + 工具标记风格 (可选, 21 种主题自由组合, 默认经典)
 4. 检查现有 statusLine 配置,如有冲突会备份
 5. 把 `node <path>/dist/index.js` + 环境变量写入 `~/.claude/settings.json`
 6. 提示重启 + 验证步骤
@@ -251,10 +251,10 @@ echo '{"model":{"display_name":"MiniMax-M3"},"context_window":{"current_usage":{
 ```bash
 # 1. 克隆到 Claude 插件目录 (version 是目录名一部分,改版本时同步改)
 git clone https://github.com/zander-zyx/claude-mini-hud.git \
-  ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
+  ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1
 
 # 2. 进入目录编译
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1
 npm install
 npm run build
 
@@ -263,7 +263,7 @@ npm run build
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js"
+    "command": "node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1/dist/index.js"
   }
 }
 
@@ -276,10 +276,10 @@ npm run build
 
 ```powershell
 # 1. 克隆
-git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0
+git clone https://github.com/zander-zyx/claude-mini-hud.git $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.1
 
 # 2. 编译
-cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0
+cd $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.1
 npm install
 npm run build
 
@@ -287,7 +287,7 @@ npm run build
 $settings = Get-Content $env:USERPROFILE\.claude\settings.json -Raw | ConvertFrom-Json
 $settings | Add-Member -Type NoteProperty -Name statusLine -Value @{
   type = "command"
-  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.0\dist\index.js"
+  command = "node $env:USERPROFILE\.claude\plugins\cache\local\claude-mini-hud\1.2.1\dist\index.js"
 }
 $settings | ConvertTo-Json -Depth 10 | Set-Content $env:USERPROFILE\.claude\settings.json
 
@@ -383,7 +383,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js"
+    "command": "CLAUDE_MINI_HUD_LANG=en CLAUDE_MINI_HUD_THEME=arrow node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1/dist/index.js"
   }
 }
 ```
@@ -394,7 +394,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 {
   "statusLine": {
     "type": "command",
-    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.2.0\\dist\\index.js'\""
+    "command": "powershell -NoProfile -Command \"$env:CLAUDE_MINI_HUD_LANG='en'; $env:CLAUDE_MINI_HUD_THEME='arrow'; node '%USERPROFILE%\\.claude\\plugins\\cache\\local\\claude-mini-hud\\1.2.1\\dist\\index.js'\""
   }
 }
 ```
@@ -516,7 +516,7 @@ npm run build   # 重新编译
 通过环境变量切换 (无需改代码):
 
 ```bash
-CLAUDE_MINI_HUD_THEME=arrow  # 可选: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/shades/retro/ascii/rail/star/spark/heart
+CLAUDE_MINI_HUD_THEME=arrow  # 可选: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart/love
 ```
 
 或自定义主题,修改 `src/themes.ts` 中的 `ThemeConfig`:
@@ -593,10 +593,10 @@ if (branchLine) lines.push(branchLine);
 排查:
 ```bash
 # 1. 检查 dist/index.js 是否存在
-ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js
+ls -la ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1/dist/index.js
 
 # 2. 手动测试,看 stdout 有没有内容
-echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0/dist/index.js
+echo '{"model":{"display_name":"test"}}' | node ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1/dist/index.js
 # 应该输出: 📊 上下文 ... 🪙 Token ...
 
 # 3. 如果手动跑 OK 但 Claude Code 里没显示,检查 settings.json
@@ -656,7 +656,7 @@ async function main() {
 
 **A**:
 ```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.0
+cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1
 git pull
 npm install
 npm run build
@@ -721,7 +721,7 @@ npm run build      # tsc 编译 src/ → dist/
 
 ```bash
 npm install
-npm test            # build + typecheck + 跑 36 个测试 (用 tsx 直接跑 ts 测试)
+npm test            # build + typecheck + 跑 48 个测试 (用 tsx 直接跑 ts 测试)
 npm run test:stdin  # 手测单个 stdin 输入
 npm run typecheck   # 只做类型检查, 不 emit
 ```
@@ -734,7 +734,7 @@ npm run dev   # tsc --watch, 自动重新编译
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### 测试覆盖 (43 个用例)
+### 测试覆盖 (48 个用例)
 
 | # | 用例 | 验证 |
 |---|------|------|
@@ -747,12 +747,12 @@ echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 | 7 | 上下文行格式 used/total + 剩余 | `100k / 1M` 格式 |
 | 8 | Token 行细分 in/out/cache | 数值精确匹配 |
 | 9 | 从 transcript_path 读取 todos | in_progress + `1/3` |
-| 10 | provider 检测 (minimaxi) | SHOW_MODEL=1 时输出 |
-| 11 | `CLAUDE_MINI_HUD_LANG=zh` 默认中文 | 中文 label |
-| 12 | `CLAUDE_MINI_HUD_LANG=en` 显示英文 | 无中文 marker |
-| 13 | `CLAUDE_MINI_HUD_LANG=minimal` 无 emoji + 英中混搭 | 混合输出验证 |
-| 14–26 | 多平台检测 (claude/deepseek/minimax/minimax.io/kimi-coding/null/kimi/moonshot.ai/zhipu/z.ai/xiaomi/alibaba/volcengine) | URL 匹配 (含国际站) |
-| 26–36 | 缓存读写 + 端到端 + MiniMax 模型匹配 | 见 `tests/usage.test.ts` (23 用例) |
+| 10–11 | 大 transcript Todo 回归 | 长会话 TaskCreate/TaskUpdate 正确匹配 |
+| 12 | provider 检测 (minimaxi) | SHOW_MODEL=1 时输出 |
+| 13–15 | 语言模式 | zh/en/minimal 输出验证 |
+| 16–17 | CLI/主题回归 | `--version` + gradient 主题 |
+| 18–37 | 多平台检测 | URL 匹配 (含国际站) |
+| 38–48 | 缓存读写 + 端到端 + Aliyun/MiniMax 回归 | 见 `tests/usage.test.ts` |
 
 ### 项目结构
 
@@ -775,7 +775,7 @@ claude-mini-hud/
 │   ├── types.ts        # 共享类型定义
 │   ├── i18n.ts         # 国际化 (zh/en/minimal)
 │   ├── colors.ts       # ANSI 颜色 (零依赖)
-│   ├── themes.ts       # 进度条主题系统 (20 种可选)
+│   ├── themes.ts       # 进度条主题系统 (21 种可选)
 │   ├── render.ts       # 所有渲染函数
 │   ├── transcript.ts   # Transcript JSONL 解析
 │   └── usage.ts        # 多平台用量/余额查询
@@ -823,7 +823,7 @@ claude-mini-hud/
 ### Roadmap
 
 近期 (v1.1):
-- [x] 进度条主题系统 (20 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头/波浪/潮汐/圆点/靶心/阴影/复古/ASCII/铁轨/星光/火花/心形/爱心)
+- [x] 进度条主题系统 (21 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头/波浪/潮汐/圆点/靶心/渐变/阴影/复古/ASCII/铁轨/星光/火花/心形/爱心)
 - [x] Session 费用显示 (花费/耗时/$/h, `CLAUDE_MINI_HUD_SHOW_COST=1`)
 - [x] Git 分支/dirty 状态 (`CLAUDE_MINI_HUD_SHOW_GIT=1`)
 - [x] 上下文填满 ETA (按当前速率预测填满耗时)

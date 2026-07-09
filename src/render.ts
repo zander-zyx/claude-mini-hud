@@ -149,10 +149,6 @@ function progressBar(percent: number, _width?: number): string {
   const left = theme.leftBorder ? c.dim(theme.leftBorder) : '';
   const right = theme.rightBorder ? c.dim(theme.rightBorder) : '';
 
-  // ─── 渐变主题 (已删除) ────────────────────────────────────────────────────
-  // gradient 主题已在 v1.0.5 移除，此处保留注释作为历史记录
-  // 如需渐变效果，请使用 shades 主题
-
   // ─── 复古终端主题: 末位用 ▸ 箭头指示器 ────────────────────────────
   if (THEME_NAME === 'retro') {
     let filledStr = '';

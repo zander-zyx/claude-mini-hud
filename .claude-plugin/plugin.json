@@ -1,7 +1,7 @@
 {
   "name": "claude-mini-hud",
   "description": "极简 Claude Code 状态栏插件 - 上下文 / Token / 用量 / 当前任务 / 工具 / Agent (模型行可选), 2 必显 + 5 条件显示",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": {
     "name": "Zander Zhang",
     "email": "sou_time@163.com",

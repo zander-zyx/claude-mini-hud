@@ -39,6 +39,25 @@ function resolveTaskIndex(
   return null;
 }
 
+function applyTaskUpdate(
+  input: Record<string, unknown>,
+  taskIdToIndex: Map<string, number>,
+  todos: TodoItem[],
+): boolean {
+  const idx = resolveTaskIndex(String(input.taskId ?? ''), taskIdToIndex, todos);
+  if (idx === null) return false;
+
+  const newStatus = normalizeTaskStatus(input.status);
+  if (newStatus) todos[idx].status = newStatus;
+  const subject = typeof input.subject === 'string' ? input.subject : '';
+  if (subject) todos[idx].content = subject;
+  // activeForm 也需要更新 (TaskUpdate 可能包含新的 activeForm)
+  if (typeof input.activeForm === 'string' && input.activeForm) {
+    todos[idx].activeForm = input.activeForm;
+  }
+  return true;
+}
+
 function truncate(s: string | undefined, max: number): string {
   if (!s) return '';
   return s.length <= max ? s : s.slice(0, max - 3) + '...';
@@ -89,6 +108,7 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
     let todos: TodoItem[] | null = null;
     let hasToolTodos = false;
     const taskIdToIndex = new Map<string, number>();
+    const pendingTaskUpdates: Record<string, unknown>[] = [];
     let taskCreateCount = 0;
     const seenTaskCreateIds = new Set<string>();
 
@@ -211,19 +231,12 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
             // TaskUpdate: 更新已有 todo
             if (block.name === 'TaskUpdate') {
               hasToolTodos = true;
+              const input = block.input ?? {};
               if (todos) {
-                const input = block.input ?? {};
-                const idx = resolveTaskIndex(String(input.taskId ?? ''), taskIdToIndex, todos);
-                if (idx !== null) {
-                  const newStatus = normalizeTaskStatus(input.status);
-                  if (newStatus) todos[idx].status = newStatus;
-                  const subject = typeof input.subject === 'string' ? input.subject : '';
-                  if (subject) todos[idx].content = subject;
-                  // activeForm 也需要更新 (TaskUpdate 可能包含新的 activeForm)
-                  if (typeof input.activeForm === 'string' && input.activeForm) {
-                    todos[idx].activeForm = input.activeForm;
-                  }
-                }
+                const applied = applyTaskUpdate(input, taskIdToIndex, todos);
+                if (!applied && fileSize > TAIL_BYTES) pendingTaskUpdates.push(input);
+              } else if (fileSize > TAIL_BYTES) {
+                pendingTaskUpdates.push(input);
               }
               continue;
             }
@@ -341,13 +354,7 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
                   const inp = b.input ?? {};
                   const idx = resolveTaskIndex(String(inp.taskId ?? ''), taskIdToIndex, todos);
                   if (idx !== null && headAddedIndices.has(idx)) {
-                    const newStatus = normalizeTaskStatus(inp.status);
-                    if (newStatus) todos[idx].status = newStatus;
-                    const subject = typeof inp.subject === 'string' ? inp.subject : '';
-                    if (subject) todos[idx].content = subject;
-                    if (typeof inp.activeForm === 'string' && inp.activeForm) {
-                      todos[idx].activeForm = inp.activeForm;
-                    }
+                    applyTaskUpdate(inp, taskIdToIndex, todos);
                   }
                 }
               }
@@ -357,6 +364,84 @@ export async function readTranscriptData(transcriptPath: string): Promise<Transc
           await hh.close();
         }
       } catch { /* 静默 */ }
+    }
+
+    const replayPendingTaskUpdates = (updates: Record<string, unknown>[]): Record<string, unknown>[] => {
+      if (!todos) return updates;
+      const unresolved: Record<string, unknown>[] = [];
+      for (const input of updates) {
+        if (!applyTaskUpdate(input, taskIdToIndex, todos)) unresolved.push(input);
+      }
+      return unresolved;
+    };
+
+    let unresolvedTaskUpdates = replayPendingTaskUpdates(pendingTaskUpdates);
+
+    // 如果 TaskCreate 既不在头部也不在尾部, 再按块扫描中间段补 taskId 映射。
+    // 仅在存在无法解析的尾部 TaskUpdate 时触发, 避免每次状态栏刷新都全量扫描大 transcript。
+    if (unresolvedTaskUpdates.length > 0 && fileSize > TAIL_BYTES * 2) {
+      const middleStart = TAIL_BYTES;
+      const middleEnd = fileSize - TAIL_BYTES;
+      const chunkSize = TAIL_BYTES;
+      let pos = middleStart;
+      let carry = '';
+
+      const processMiddleLine = (line: string) => {
+        let me: Record<string, unknown> | null = null;
+        try { me = JSON.parse(line); } catch { return; }
+        if (!me || me.type !== 'assistant') return;
+        const mBlocks = Array.isArray((me as { message?: { content?: unknown[] } }).message?.content)
+          ? ((me as { message: { content: unknown[] } }).message.content as unknown[]) : [];
+        for (const mb of mBlocks) {
+          const b = mb as { type?: string; name?: string; id?: string; input?: Record<string, unknown> };
+          if (b.type !== 'tool_use' || b.name !== 'TaskCreate' || !b.id) continue;
+          if (seenTaskCreateIds.has(b.id)) continue;
+          seenTaskCreateIds.add(b.id);
+
+          const inp = b.input ?? {};
+          const subj = typeof inp.subject === 'string' ? inp.subject : '';
+          const desc = typeof inp.description === 'string' ? inp.description : '';
+          const taskContent = subj || desc || 'Untitled';
+          const status = normalizeTaskStatus(inp.status) ?? 'pending';
+          taskCreateCount++;
+          const rawId = inp.taskId;
+          const tid = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId) : String(taskCreateCount);
+
+          if (!todos) todos = [];
+          const existingIdx = todos.findIndex(td => td.content === taskContent);
+          if (existingIdx >= 0) {
+            taskIdToIndex.set(tid, existingIdx);
+          } else {
+            todos.push({ content: taskContent, status, activeForm: typeof inp.activeForm === 'string' ? inp.activeForm : undefined });
+            taskIdToIndex.set(tid, todos.length - 1);
+          }
+        }
+      };
+
+      try {
+        const mh = await fsOpen(transcriptPath, 'r');
+        try {
+          while (pos < middleEnd) {
+            const bytesToRead = Math.min(chunkSize, middleEnd - pos);
+            const buf = Buffer.alloc(bytesToRead);
+            const { bytesRead } = await mh.read(buf, 0, bytesToRead, pos);
+            if (bytesRead <= 0) break;
+            pos += bytesRead;
+
+            const chunk = carry + buf.subarray(0, bytesRead).toString('utf8');
+            const chunkLines = chunk.split('\n');
+            carry = chunkLines.pop() ?? '';
+            for (const line of chunkLines) {
+              if (line) processMiddleLine(line);
+            }
+          }
+          if (carry) processMiddleLine(carry);
+        } finally {
+          await mh.close();
+        }
+      } catch { /* 静默 */ }
+
+      replayPendingTaskUpdates(unresolvedTaskUpdates);
     }
 
     return { todos, recentTools, activeAgents, sessionTokens };
