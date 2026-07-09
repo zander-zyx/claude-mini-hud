@@ -654,14 +654,54 @@ async function main() {
 
 ### Q: 升级版本怎么操作?
 
-**A**:
-```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1
-git pull
-npm install
-npm run build
-# 重启 Claude Code
+**A**: 推荐按下面顺序选一种:
+
+**方式 1: 让 AI 帮你升级**
+
+把下面这段复制给 Claude Code / Codex / Cursor:
+
+```text
+请帮我把已安装的 claude-mini-hud 插件升级到最新版本。
+
+要求:
+1. 如果当前环境支持 Claude Code 插件命令,请优先通过插件市场更新:
+   /plugin marketplace add zander-zyx/claude-mini-hud
+   /plugin install claude-mini-hud
+   /reload-plugins
+2. 如果你不能直接执行 Claude Code 插件命令,请明确告诉我复制上面的 3 条命令到 Claude Code 里执行。
+3. 不要删除、覆盖或重置我的 Claude Code 配置文件。
+4. 操作前先说明你准备执行的命令。
+5. 完成后提醒我重启 Claude Code 生效。
+6. 只有插件市场方式不可用时,才考虑源码方式。
 ```
+
+**方式 2: 通过 Claude Code 插件市场更新**
+
+```text
+/plugin marketplace add zander-zyx/claude-mini-hud
+/plugin install claude-mini-hud
+/reload-plugins
+```
+
+**方式 3: 拉取源码更新**
+
+macOS / Linux:
+
+```bash
+git clone https://github.com/zander-zyx/claude-mini-hud.git
+cd claude-mini-hud
+npm install && npm run build
+```
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/zander-zyx/claude-mini-hud.git
+cd claude-mini-hud
+npm install; npm run build
+```
+
+然后把 `statusLine.command` 指向该目录下的 `dist/index.js`,升级后重启 Claude Code 生效。
 
 ### Q: Windows 上 `node` 找不到
 

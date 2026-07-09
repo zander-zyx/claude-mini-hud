@@ -632,14 +632,54 @@ async function main() {
 
 ### Q: How do I upgrade?
 
-**A**:
-```bash
-cd ~/.claude/plugins/cache/local/claude-mini-hud/1.2.1
-git pull
-npm install
-npm run build
-# restart Claude Code
+**A**: Pick one of the options below, in this order:
+
+**Option 1: Ask an AI assistant to upgrade it**
+
+Copy this prompt into Claude Code / Codex / Cursor:
+
+```text
+Please upgrade my installed claude-mini-hud plugin to the latest version.
+
+Requirements:
+1. If this environment supports Claude Code plugin commands, update through the plugin marketplace first:
+   /plugin marketplace add zander-zyx/claude-mini-hud
+   /plugin install claude-mini-hud
+   /reload-plugins
+2. If you cannot run Claude Code plugin commands directly, tell me to copy the 3 commands above into Claude Code.
+3. Do not delete, overwrite, or reset my Claude Code config files.
+4. Before running commands, explain what you are going to run.
+5. After finishing, remind me to restart Claude Code.
+6. Only use the source-code method if the marketplace method is unavailable.
 ```
+
+**Option 2: Update through the Claude Code plugin marketplace**
+
+```text
+/plugin marketplace add zander-zyx/claude-mini-hud
+/plugin install claude-mini-hud
+/reload-plugins
+```
+
+**Option 3: Pull/build from source**
+
+macOS / Linux:
+
+```bash
+git clone https://github.com/zander-zyx/claude-mini-hud.git
+cd claude-mini-hud
+npm install && npm run build
+```
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/zander-zyx/claude-mini-hud.git
+cd claude-mini-hud
+npm install; npm run build
+```
+
+Then point `statusLine.command` to `dist/index.js` in that directory, and restart Claude Code.
 
 ### Q: `node` not found on Windows
 
