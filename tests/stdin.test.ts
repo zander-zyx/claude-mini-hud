@@ -55,7 +55,7 @@ test('cli 接受 stdin JSON 并输出必显行 (context + token)', () => {
       },
       context_window_size: 1000000,
     },
-    transcript_path: '/tmp/nonexistent.jsonl',
+    transcript_path: path.join(tmpdir(), 'nonexistent.jsonl'),
   });
 
   const result = runCli(input, { ...process.env, CLAUDE_MINI_HUD_LANG: 'zh' });
@@ -227,7 +227,7 @@ test('Token 行细分 in/out/cache', () => {
 });
 
 test('从 transcript_path 读取 todos', () => {
-  const tmpFile = '/tmp/claude-mini-hud-test.jsonl';
+  const tmpFile = path.join(tmpdir(), 'claude-mini-hud-test.jsonl');
   const entry = JSON.stringify({
     type: 'user',
     todos: [
@@ -398,7 +398,7 @@ test('CLAUDE_MINI_HUD_LANG=minimal: 无 emoji + 英中混搭', () => {
       current_usage: { input_tokens: 22000, output_tokens: 342 },
       context_window_size: 200000,
     },
-    transcript_path: '/tmp/claude-mini-hud-test.jsonl',
+    transcript_path: path.join(tmpdir(), 'claude-mini-hud-missing.jsonl'),
   });
 
   const result = runCli(input, { ...process.env, CLAUDE_MINI_HUD_LANG: 'minimal' });
