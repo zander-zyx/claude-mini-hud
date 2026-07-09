@@ -840,21 +840,25 @@ PRs are welcome! Here are the contribution guidelines:
 
 ### Roadmap
 
-Short-term (v1.1):
+Completed (v1.1 - v1.2.1):
 - [x] Progress bar theme system (21 styles: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart/love)
 - [x] Session cost display (cost/duration/$/h, `CLAUDE_MINI_HUD_SHOW_COST=1`)
 - [x] Git branch/dirty status (`CLAUDE_MINI_HUD_SHOW_GIT=1`)
 - [x] Context fill ETA (predicts time-to-full at current rate)
 - [x] Threshold alert line (`CLAUDE_MINI_HUD_WARN`)
 - [x] Terminal-width adaptive progress bar
-- [x] Layout configuration (`CLAUDE_MINI_HUD_LAYOUT`) + compact single-line mode (`COMPACT=1`)
-- [ ] Smoother refresh across multi-window switches
-- [ ] Read color thresholds from environment variables
+- [x] Layout configuration (`CLAUDE_MINI_HUD_LAYOUT`) + compact single-line mode (`CLAUDE_MINI_HUD_COMPACT=1`)
+- [x] Smoother refresh across multi-window switches (cache isolated by `transcript_path`)
+- [x] Read color thresholds from environment variables (`CLAUDE_MINI_HUD_RED_PCT` / `CLAUDE_MINI_HUD_YELLOW_PCT`)
+- [x] Clickable statusline links (OSC 8 links to the current transcript, depending on terminal support)
+- [x] Large-transcript Todo status tracking fix (early/middle `TaskCreate` can match tail `TaskUpdate`)
+- [x] CLI version output (`claude-mini-hud --version`)
 
-Medium-term (v1.2):
-- [ ] Light/dark theme adaptation
-- [ ] Mouse hover tooltips (subject to Claude Code TUI limits)
-- [ ] Clickable statusline links (jump to current transcript)
+Planned:
+- [ ] Light/dark theme adaptation (if Claude Code/TUI exposes detectable theme information)
+- [ ] Mouse hover tooltips (subject to Claude Code TUI limits; statusline hover is not currently exposed)
+- [ ] More provider usage APIs (prioritize platforms with public balance/usage endpoints)
+- [ ] More granular threshold configuration (separate Context / Usage / monthly thresholds)
 
 ---
 

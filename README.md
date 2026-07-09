@@ -862,21 +862,25 @@ claude-mini-hud/
 
 ### Roadmap
 
-近期 (v1.1):
+已完成 (v1.1 - v1.2.1):
 - [x] 进度条主题系统 (21 种风格: 经典/霓虹/点阵/硬核/简约/像素/钻石/箭头/波浪/潮汐/圆点/靶心/渐变/阴影/复古/ASCII/铁轨/星光/火花/心形/爱心)
 - [x] Session 费用显示 (花费/耗时/$/h, `CLAUDE_MINI_HUD_SHOW_COST=1`)
 - [x] Git 分支/dirty 状态 (`CLAUDE_MINI_HUD_SHOW_GIT=1`)
 - [x] 上下文填满 ETA (按当前速率预测填满耗时)
 - [x] 阈值告警行 (`CLAUDE_MINI_HUD_WARN`)
 - [x] 终端宽度自适应进度条
-- [x] 布局配置 (`CLAUDE_MINI_HUD_LAYOUT`) + 单行紧凑模式 (`COMPACT=1`)
-- [ ] 多窗口切换时更平滑的刷新
-- [ ] 从环境变量读取颜色阈值
+- [x] 布局配置 (`CLAUDE_MINI_HUD_LAYOUT`) + 单行紧凑模式 (`CLAUDE_MINI_HUD_COMPACT=1`)
+- [x] 多窗口切换时更平滑的刷新 (按 `transcript_path` 隔离缓存)
+- [x] 从环境变量读取颜色阈值 (`CLAUDE_MINI_HUD_RED_PCT` / `CLAUDE_MINI_HUD_YELLOW_PCT`)
+- [x] 可点击的状态栏链接 (OSC 8 链接跳转到当前 transcript, 取决于终端支持)
+- [x] 大 transcript Todo 状态追踪修复 (早期/中段 `TaskCreate` 能匹配尾部 `TaskUpdate`)
+- [x] CLI 版本输出 (`claude-mini-hud --version`)
 
-中期 (v1.2):
-- [ ] 亮色/暗色主题适配
-- [ ] 鼠标悬停提示 (受 Claude Code TUI 限制)
-- [ ] 可点击的状态栏链接 (跳转到当前 transcript)
+后续计划:
+- [ ] 亮色/暗色主题适配 (如果 Claude Code/TUI 暴露可检测的主题信息)
+- [ ] 鼠标悬停提示 (受 Claude Code TUI 限制, 目前状态栏不提供 hover 能力)
+- [ ] 更多平台用量 API 适配 (优先接入有公开余额/用量接口的平台)
+- [ ] 更细粒度的阈值配置 (Context / Usage / 月度用量分开配置)
 
 ---
 
