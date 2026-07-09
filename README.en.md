@@ -881,7 +881,7 @@ MIT © 2026 Zander Zhang — See [LICENSE](./LICENSE)
 ## Acknowledgments
 
 - Inspired by [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud)
-- Built using [Claude Code](https://docs.claude.com/en/docs/claude-code) itself (bootstrapped!)
+- Built with [Claude Code](https://docs.claude.com/en/docs/claude-code) / [Codex](https://developers.openai.com/codex/app) / [ZCode](https://zcode.z.ai/en) (bootstrapped!)
 - Thanks to all [contributors](../../graphs/contributors)
 
 ---

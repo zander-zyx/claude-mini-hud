@@ -903,7 +903,7 @@ MIT © 2026 Zander Zhang — 详见 [LICENSE](./LICENSE)
 ## 致谢
 
 - 灵感来自 [jarrodwatts/claude-hud](https://github.com/jarrodwatts/claude-hud)
-- 用 [Claude Code](https://docs.claude.com/en/docs/claude-code) 本身写这个项目(自举!)
+- 用 [Claude Code](https://docs.claude.com/en/docs/claude-code) / [Codex](https://developers.openai.com/codex/app) / [ZCode](https://zcode.z.ai/en) 一起写这个项目(自举!)
 - 感谢所有 [contributors](../../graphs/contributors)
 
 ---
