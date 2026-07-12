@@ -1058,6 +1058,13 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     return `${lbl('usage', '硅基流动', '[B]')} ${c.cyan(c.bold(`¥${total}`))}${grant}`;
   }
 
+  if (usage.alibaba) {
+    const a = usage.alibaba;
+    if (!Number.isFinite(a.totalBalance)) return null;
+    const symbol = a.currency === 'USD' ? '$' : '¥';
+    return `${lbl('usage', '阿里', '[B]')} ${c.cyan(c.bold(`${symbol}${a.totalBalance.toFixed(2)}`))}`;
+  }
+
   // ─── Kimi For Coding ────────────────────────────────────────────────────────
   if (usage.kimiCoding) {
     const kc = usage.kimiCoding;
@@ -1145,9 +1152,9 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     return `${prefix}${levelTag} ${parts.join(' ')}`;
   }
 
-  // ─── 固定额度平台 (小米 / 阿里 / 火山引擎) ────────────────────────────
+  // ─── 固定额度平台 (小米 / 火山引擎) ──────────────────────────────────
 
-  const fixedQuota = usage.xiaomi || usage.alibaba || usage.volcengine;
+  const fixedQuota = usage.xiaomi || usage.volcengine;
   if (fixedQuota) {
     const parts: string[] = [];
 
@@ -1178,9 +1185,6 @@ export function renderUsageLine(usage: UsageData | null): string | null {
     let levelTag = '';
     if (usage.xiaomi) {
       platformName = lbl('usage', '小米', '[B]');
-      levelTag = fixedQuota.plan ? c.dim(` [${fixedQuota.plan}]`) : '';
-    } else if (usage.alibaba) {
-      platformName = lbl('usage', '阿里', '[B]');
       levelTag = fixedQuota.plan ? c.dim(` [${fixedQuota.plan}]`) : '';
     } else if (usage.volcengine) {
       platformName = lbl('usage', '火山', '[B]');

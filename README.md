@@ -2,7 +2,7 @@
 
 > Claude Code 状态栏 — 上下文 / Token / 任务 / 工具活动 / Agent 追踪 + 深度适配国产大模型用量查询
 > 
-> 21 种进度条主题 · 4 种显示模式 · 零依赖 · 10ms 启动
+> 21 种进度条主题 · 4 种显示模式 · 零运行时依赖 · 用量查询后台刷新
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
@@ -15,7 +15,7 @@
 
 ## 这是什么?
 
-**claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。**最多 7 行**,信息密度高。对标 [claude-hud](https://github.com/jarrodwatts/claude-hud) 的核心功能,同时深度适配国产大模型 Coding Plan / Token Plan 用量查询。
+**claude-mini-hud** 是一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine 插件,在你的输入框下方持续显示会话的关键指标。默认显示 Context + Token 两行，并按数据和配置追加条件行。对标 [claude-hud](https://github.com/jarrodwatts/claude-hud) 的核心功能,同时深度适配国产大模型 Coding Plan / Token Plan 用量查询。
 
 ### 显示效果
 
@@ -80,7 +80,7 @@
 - 🤖 **Agent 追踪**: 显示活跃子 Agent 及其耗时
 - 🔥 **Token 速率**: 实时解码速度 (tok/s)
 - 📊 **Token 模式**: session 累计 / 上下文快照 / both 三种可切换
-- 🚀 **~10ms 启动**: 不拖慢 Claude Code
+- 🚀 **非阻塞用量刷新**: 缓存未命中时由独立后台进程查询，不等待供应商 HTTP 接口
 - 🔌 **即插即用**: `/claude-mini-hud:setup` 一条命令
 
 ### 多平台用量/余额查询
@@ -94,7 +94,7 @@
 | **智谱 (GLM)** | URL 含 `bigmodel.cn` / `z.ai` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
 | **小米 (MiMo)** | URL 含 `xiaomimimo` | `50M/100M m:45% (26d)` |
 | **阿里 (DashScope)** | URL 含 `dashscope` | `¥123.45` (BSS 账户余额) |
-| **火山引擎 (Ark)** | URL 含 `volces.com` | 平台识别 (暂无公开用量 API) |
+| **火山引擎 (Ark)** | URL 含 `volces.com` | 平台识别 (管控面用量 API 暂未集成) |
 | **百度千帆 (Qianfan)** | URL 含 `qianfan` / `baidubce` | 平台识别 (暂无公开用量 API) |
 | **腾讯混元 (Hunyuan)** | URL 含 `hunyuan` | 平台识别 (暂无公开用量 API) |
 | **讯飞星辰 (Astron)** | URL 含 `xfyun` / `spark-api` | 平台识别 (包月订阅) |
@@ -114,18 +114,16 @@
 | `mcp:` | MCP 工具调用次数 | `mcp:20/1000` — 已调用 20 次 / 总限额 1000 次 |
 | 固定额度 | TOKEN PLAN 已用/总额 | `50M/100M` — 大数自动用 M/k 单位 |
 
-> 💡 **无需额外配置** — 只要设了 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_AUTH_TOKEN`，插件自动识别平台并查询。
+> 💡 **代理模式**：只要设置 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_AUTH_TOKEN`，插件会自动识别平台并优先复用代理 token 查询。
 >
-> 🍪 **小米 (MiMo)** 需要额外设置 `XIAOMI_COOKIE` 环境变量 (从浏览器 DevTools 获取 Cookie)，因为小米用量 API 使用 Cookie 认证而非 API Key。
-
-> 🔑 **阿里 (DashScope)** 账户余额查询走阿里云 BSS OpenAPI，需要设置 `ALIYUN_AK_ID` + `ALIYUN_AK_SECRET`（主账号 RAM 密钥，**不是** `DASHSCOPE_API_KEY`）。DashScope 本身没有公开余额 API。
+> 🔐 **原生凭据**：保留对应平台的 `ANTHROPIC_BASE_URL` 用于识别，再设置下方“Provider 凭据变量”。其中小米 MiMo 使用 Cookie 认证；阿里 DashScope 余额走阿里云 BSS OpenAPI，**不是** `DASHSCOPE_API_KEY`。
 
 **与 `claude-hud` 的定位**
 
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) 是全功能状态栏 (10+ 行)，主要面向 Anthropic Claude 原生用户。**本项目**在信息密度和简洁之间取得平衡，核心思路有两点：
 
-1. **对标 claude-hud 核心功能** — 工具活动、Agent 追踪、Task 解析等能力一个不少，但控制在 7 行以内，比 claude-hud 更轻量
-2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、火山引擎 Ark、百度千帆、腾讯混元、讯飞星辰、DeepSeek、Kimi、Kimi For Coding、阶跃星辰 StepFun、硅基流动 SiliconFlow 等平台的 Coding Plan / Token Plan 用量查询，使用第三方代理的用户也能在状态栏实时看到额度消耗
+1. **对标 claude-hud 核心功能** — 支持工具活动、Agent 追踪、Task 解析等能力，默认布局保持 Context + Token 两条基础行
+2. **深度适配国产大模型** — 内置智谱 GLM、MiniMax、小米 MiMo、阿里 DashScope、DeepSeek、Kimi、Kimi For Coding、阶跃星辰 StepFun、硅基流动 SiliconFlow 的用量/余额查询；火山引擎、百度千帆、腾讯混元、讯飞星辰目前仅做平台识别
 
 ---
 
@@ -270,7 +268,7 @@ npm run build
 # 4. 重启 Claude Code
 ```
 
-> 💡 **目录命名规范**:Claude Code 期望 `{vendor}/{name}/{version}/` 三级结构。`local` 是 vendor,`claude-mini-hud` 是 name,`1.0.0` 是 version。改代码时**不要改 version**,否则 Claude Code 认为是新插件,会重新跑一次缓存逻辑。
+> 💡 **目录命名规范**:Claude Code 期望 `{vendor}/{name}/{version}/` 三级结构。`local` 是 vendor,`claude-mini-hud` 是 name,`1.2.1` 是 version。改代码时**不要改 version**,否则 Claude Code 认为是新插件,会重新跑一次缓存逻辑。
 
 ### 方式 3: Windows PowerShell
 
@@ -349,7 +347,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 - 每次你发新消息
 - 每次 todo list 变化 (开始 / 完成 / 切换 in-progress)
 
-**它不影响** Claude Code 性能:渲染是异步的,不到 10ms,不抢主进程 CPU。
+供应商用量查询采用 5 分钟缓存；缓存未命中时由独立后台进程刷新，主 StatusLine 不等待网络响应。
 
 ---
 
@@ -363,6 +361,7 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 | `CLAUDE_MINI_HUD_THEME` | `default` | [21 种,见主题预览](#主题预览) | 进度条风格 |
 | `CLAUDE_MINI_HUD_MARKS` | `default` | [21 种,见主题预览](#主题预览) | 工具/Agent 标记图标 (独立于进度条, 可自由组合) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (未设) | `1` | 设置为 `1` 时显示模型行 |
+| `ANTHROPIC_MODEL` / `ANTHROPIC_DEFAULT_OPUS_MODEL` / `ANTHROPIC_DEFAULT_SONNET_MODEL` / `ANTHROPIC_DEFAULT_HAIKU_MODEL` | (未设) | 模型名 | 代理场景下用于补充模型行和 MiniMax 当前模型匹配 |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token 行模式: session=累计 / context=快照 / both=两行 |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (未设) | `1` | 设置为 `1` 时强制禁用 emoji, 使用 ASCII 符号 (# $ > 等) |
 | `CLAUDE_MINI_HUD_SHOW_COST` | (未设) | `1` | 显示花费行: 累计 `$` + 耗时 + 花费增速 `$/h` (读 `stdin.cost`) |
@@ -373,7 +372,26 @@ $ 花费 $0.42 · 3m 12s · $1.20/h
 | `CLAUDE_MINI_HUD_RED_PCT` | `80` | `0`-`100` | 红色阈值: 百分比 ≥ 此值显示红色 (Context / 用量窗口 / 月度统一生效) |
 | `CLAUDE_MINI_HUD_YELLOW_PCT` | `60` | `0`-`100` | 黄色阈值: 百分比 ≥ 此值显示黄色, < 红色阈值 |
 | `CLAUDE_MINI_HUD_BG` | (自动) | `light` / `dark` | 终端背景色, 用于颜色对比度适配。未设时自动读 `COLORFGBG` / `TERM_BACKGROUND_COLOR`, 默认 `dark` |
+| `TERM_PROGRAM` / `LC_TERMINAL` | (自动) | 终端标识 | 用于自动判断终端是否可靠支持 emoji；通常无需手动设置 |
 | `CLAUDE_MINI_HUD_DEBUG` | (未设) | `1` | 调试模式: 输出各模块 (usage 查询/缓存) 的错误信息到 stderr, 用于排查"用量行不显示"等问题 |
+
+#### Provider 凭据变量
+
+> 只有需要显示“用量/余额”行时才需要配置。除 Claude 原生 `rate_limits` 外，平台识别都依赖 `ANTHROPIC_BASE_URL`；使用第三方代理时通常再配合 `ANTHROPIC_AUTH_TOKEN`，使用原生平台凭据时则配置下表中的对应变量。
+
+| 平台 | 变量 | 说明 |
+|------|------|------|
+| 通用代理 | `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN` | 自动检测 provider，并在支持的平台复用代理 token 查询用量 |
+| MiniMax | `ANTHROPIC_AUTH_TOKEN` | Coding Plan 用量接口走代理 token，平台由 `ANTHROPIC_BASE_URL` 自动识别 |
+| DeepSeek | `DEEPSEEK_API_KEY` | 未设置时回退 `ANTHROPIC_AUTH_TOKEN` |
+| Kimi / Moonshot | `MOONSHOT_API_KEY` | 未设置时回退 `ANTHROPIC_AUTH_TOKEN` |
+| Kimi For Coding | `ANTHROPIC_AUTH_TOKEN` | Coding 用量接口使用当前代理 token |
+| 智谱 GLM | `ZHIPUAI_API_KEY` / `GLM_API_KEY` | 未设置时回退 `ANTHROPIC_AUTH_TOKEN` |
+| 小米 MiMo | `XIAOMI_COOKIE` | Cookie 认证，从浏览器 DevTools 复制；`XIAOMI_API_KEY` / `MIMO_API_KEY` 仅作兼容兜底 |
+| 阿里 DashScope | `ALIYUN_AK_ID` + `ALIYUN_AK_SECRET` | 通过阿里云 BSS OpenAPI 查询账户余额，非 `DASHSCOPE_API_KEY` |
+| 火山引擎 Ark | — | 当前仅平台识别，管控面用量 API 暂未集成 |
+| 阶跃星辰 StepFun | `STEPFUN_API_KEY` | 未设置时回退 `ANTHROPIC_AUTH_TOKEN` |
+| 硅基流动 SiliconFlow | `SILICONFLOW_API_KEY` | 未设置时回退 `ANTHROPIC_AUTH_TOKEN` |
 
 **在 statusLine.command 里设置** (推荐):
 
@@ -761,7 +779,7 @@ npm run build      # tsc 编译 src/ → dist/
 
 ```bash
 npm install
-npm test            # build + typecheck + 跑 48 个测试 (用 tsx 直接跑 ts 测试)
+npm test            # build + typecheck + 跑 57 个测试 (用 tsx 直接跑 ts 测试)
 npm run test:stdin  # 手测单个 stdin 输入
 npm run typecheck   # 只做类型检查, 不 emit
 ```
@@ -774,25 +792,16 @@ npm run dev   # tsc --watch, 自动重新编译
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### 测试覆盖 (48 个用例)
+### 测试覆盖 (57 个用例)
 
 | # | 用例 | 验证 |
 |---|------|------|
-| 1 | cli 接受 stdin JSON 并输出必显行 | context + token 行 |
-| 2 | 默认不显示模型行 | 默认隐藏 |
-| 3 | `CLAUDE_MINI_HUD_SHOW_MODEL=1` 显示模型行 | env 生效 |
-| 4 | 空 stdin 输出 fallback | 错误处理 |
-| 5 | 进度条在 > 80% 时使用红色 | 颜色阈值 |
-| 6 | 进度条在 < 60% 时使用绿色 | 颜色阈值 |
-| 7 | 上下文行格式 used/total + 剩余 | `100k / 1M` 格式 |
-| 8 | Token 行细分 in/out/cache | 数值精确匹配 |
-| 9 | 从 transcript_path 读取 todos | in_progress + `1/3` |
-| 10–11 | 大 transcript Todo 回归 | 长会话 TaskCreate/TaskUpdate 正确匹配 |
-| 12 | provider 检测 (minimaxi) | SHOW_MODEL=1 时输出 |
-| 13–15 | 语言模式 | zh/en/minimal 输出验证 |
-| 16–17 | CLI/主题回归 | `--version` + gradient 主题 |
-| 18–37 | 多平台检测 | URL 匹配 (含国际站) |
-| 38–48 | 缓存读写 + 端到端 + Aliyun/MiniMax 回归 | 见 `tests/usage.test.ts` |
+| 1–3 | CLI / 版本 / 非阻塞刷新 | 基础输出、`--version`、主进程不等待 HTTP |
+| 4–9 | 可选模型 / fallback / 颜色 / 主题 | 环境变量与渲染回归 |
+| 10–15 | Context / Token / Todo / provider | 数值与 transcript 回归 |
+| 16–18 | 语言模式 | zh/en/minimal 输出验证 |
+| 19–38 | 多平台检测 | URL 匹配 (含国际站) |
+| 39–57 | 缓存、凭据、后台锁、余额解析与端到端 | 见 `tests/usage.test.ts` |
 
 ### 项目结构
 
@@ -888,7 +897,7 @@ claude-mini-hud/
 
 | 项目 | 风格 | 适合谁 |
 |------|------|--------|
-| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (本项目) | 轻量, 最多 7 行 | 喜欢清爽, 只要核心指标 |
+| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (本项目) | 轻量, 默认 2 条基础行 + 条件行 | 喜欢清爽, 只要核心指标 |
 | [**claude-hud**](https://github.com/jarrodwatts/claude-hud) | 全功能,10+ 行 | 想要 git 状态 / agents / 工具统计 |
 | [**tweakcc**](https://github.com/adamelliotfields/tweakcc) | 配置 / prompt 级 | 想改 Claude Code 本身行为 |
 

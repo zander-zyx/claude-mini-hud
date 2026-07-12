@@ -15,8 +15,8 @@
  *   - Kimi Coding   : Coding Plan 用量 (5h / 周限额)
  *   - 智谱          : GLM Coding Plan 用量 (5h / 7d / 月 / MCP)
  *   - 小米          : MiMo Token Plan 固定额度
- *   - 阿里          : DashScope (暂无公开 API)
- *   - 火山引擎      : Ark (暂无公开 API)
+ *   - 阿里          : DashScope 账户余额 (Aliyun BSS OpenAPI)
+ *   - 火山引擎      : Ark (仅平台识别, 管控面用量 API 暂未集成)
  *   - 阶跃星辰      : StepFun 账户余额 (CNY)
  *   - 硅基流动      : SiliconFlow 账户余额 (CNY)
  *   - 百度千帆      : Qianfan (暂无公开 API, 仅平台识别)
@@ -25,13 +25,14 @@
  */
 
 import type { StdinData } from './types.js';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { get as httpGetImpl } from 'node:http';
 import { get as httpsGetImpl } from 'node:https';
 import { createHmac } from 'node:crypto';
 import { debugLog } from './log.js';
+import { atomicWrite } from './cache.js';
 
 // ─── 类型 ─────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,13 @@ export interface SiliconFlowBalance {
   balance: number;          // CNY 充值余额 (balance)
 }
 
+/** 阿里云 BSS 账户余额 */
+export interface AlibabaBalance {
+  totalBalance: number;
+  cashBalance: number;
+  currency: string;
+}
+
 /** Kimi For Coding 用量: 5小时窗口 + 周限额 */
 export interface KimiCodingUsage {
   fiveHourPercent?: number;   // 5小时窗口已用百分比 (0-100)
@@ -117,7 +125,7 @@ export interface UsageData {
   zhipu?: ZhipuUsage;
   claude?: ClaudeRateLimit;
   xiaomi?: FixedQuotaUsage;
-  alibaba?: FixedQuotaUsage;
+  alibaba?: AlibabaBalance;
   volcengine?: FixedQuotaUsage;
   updatedAt: number;
 }
@@ -126,6 +134,8 @@ export interface UsageData {
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const HTTP_TIMEOUT_MS = 10_000;
+const REFRESH_LOCK_TTL_MS = HTTP_TIMEOUT_MS + 20_000;
+const USAGE_CACHE_DIR = join(homedir(), '.claude-mini-hud', 'usage-cache');
 
 const DEEPSEEK_API = 'https://api.deepseek.com/user/balance';
 const ZHIPU_QUOTA_ENDPOINT = '/monitor/usage/quota/limit';
@@ -222,7 +232,44 @@ export function detectPlatform(stdin: StdinData): string | null {
 // ─── 缓存 ─────────────────────────────────────────────────────────────────
 
 function getCachePath(platform: string): string {
-  return join(homedir(), '.claude-mini-hud', 'usage-cache', `${platform}.json`);
+  return join(USAGE_CACHE_DIR, `${platform}.json`);
+}
+
+function getRefreshLockPath(platform: string): string {
+  return join(USAGE_CACHE_DIR, `${platform}.lock`);
+}
+
+function isSafePlatformId(platform: string): boolean {
+  return /^[a-z0-9][a-z0-9-]{0,63}$/.test(platform);
+}
+
+/** 获取后台刷新锁；过期锁会被清理，避免异常退出后永久不刷新。 */
+export function claimUsageRefresh(platform: string): boolean {
+  if (!isSafePlatformId(platform)) return false;
+  const lockPath = getRefreshLockPath(platform);
+  try {
+    mkdirSync(USAGE_CACHE_DIR, { recursive: true });
+    writeFileSync(lockPath, String(Date.now()), { encoding: 'utf8', flag: 'wx' });
+    return true;
+  } catch {
+    try {
+      if (Date.now() - statSync(lockPath).mtimeMs <= REFRESH_LOCK_TTL_MS) return false;
+      unlinkSync(lockPath);
+      writeFileSync(lockPath, String(Date.now()), { encoding: 'utf8', flag: 'wx' });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+export function releaseUsageRefresh(platform: string): void {
+  if (!isSafePlatformId(platform)) return;
+  try {
+    unlinkSync(getRefreshLockPath(platform));
+  } catch {
+    // 静默: 锁已不存在不影响主流程
+  }
 }
 
 export function readCache(platform: string): UsageData | null {
@@ -241,9 +288,7 @@ export function readCache(platform: string): UsageData | null {
 function writeCache(platform: string, data: UsageData): void {
   try {
     const file = getCachePath(platform);
-    const dir = dirname(file);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+    atomicWrite(file, JSON.stringify(data, null, 2));
   } catch {
     // 静默
   }
@@ -637,6 +682,28 @@ async function queryXiaomi(apiKey: string): Promise<UsageData | null> {
 
 // 阿里 DashScope 无公开的余额 API; 账户余额需走阿里云 BSS OpenAPI (RPC 签名)
 // 需要 ALIYUN_AK_ID + ALIYUN_AK_SECRET (主账号 RAM 密钥, 非 DASHSCOPE_API_KEY)
+export function parseAlibabaBalance(json: any): Pick<UsageData, 'provider' | 'alibaba'> | null {
+  if (!json || typeof json !== 'object') return null;
+  if (json.Success === false) return null;
+  if (json.Code !== undefined && String(json.Code) !== '200') return null;
+
+  const bal = json.Data;
+  if (!bal || typeof bal !== 'object') return null;
+
+  const totalBalance = parseFloat(String(bal.AvailableAmount ?? bal.availableAmount ?? ''));
+  const cashBalance = parseFloat(String(bal.AvailableCashAmount ?? bal.cashAmount ?? '0'));
+  if (!Number.isFinite(totalBalance)) return null;
+
+  return {
+    provider: 'alibaba',
+    alibaba: {
+      totalBalance,
+      cashBalance: Number.isFinite(cashBalance) ? cashBalance : 0,
+      currency: typeof bal.Currency === 'string' ? bal.Currency : 'CNY',
+    },
+  };
+}
+
 async function queryAlibaba(): Promise<UsageData | null> {
   try {
     const akId = process.env.ALIYUN_AK_ID?.trim();
@@ -673,33 +740,15 @@ async function queryAlibaba(): Promise<UsageData | null> {
 
     const body = await httpGet(url, '');
     const json = JSON.parse(body);
-    if (json.Code) return null;  // 错误响应带 Code 字段
-
-    const bal = json.Data;
-    if (!bal) return null;
-
-    // Balances 可能为字符串; AccountID/Currency 等字段
-    const available = parseFloat(String(bal.AvailableAmount ?? bal.availableAmount ?? '0'));
-    const cash = parseFloat(String(bal.AvailableCashAmount ?? bal.cashAmount ?? '0'));
-    if (!Number.isFinite(available)) return null;
-
-    // 转为 token-like 用量: 用余额填充 used/total (余额型, total=available, used=0)
-    return {
-      provider: 'alibaba',
-      alibaba: {
-        used: 0,
-        total: Math.round(available * 100),  // 用"分"作单位, 避免小数显示
-        plan: cash > 0 ? `¥${available.toFixed(2)}` : undefined,
-      },
-      updatedAt: Date.now(),
-    };
+    const parsed = parseAlibabaBalance(json);
+    return parsed ? { ...parsed, updatedAt: Date.now() } : null;
   } catch (e) {
     debugLog('[usage:alibaba] queryAlibaba failed: ' + (e instanceof Error ? e.message : String(e)));
     return null;
   }
 }
 
-// 火山引擎 Ark — 管控面 API 需要 HMAC-SHA256 签名, 零依赖实现暂不支持
+// 火山引擎 Ark — 已有管控面用量 API，但需要 HMAC-SHA256 签名，当前暂未集成
 async function queryVolcengine(): Promise<UsageData | null> {
   return null;
 }
@@ -778,9 +827,8 @@ async function queryKimiCoding(apiKey: string): Promise<UsageData | null> {
  *   - DeepSeek: DEEPSEEK_API_KEY
  *   - Kimi:     MOONSHOT_API_KEY
  *   - 智谱:      ZHIPUAI_API_KEY / GLM_API_KEY
- *   - 小米:      XIAOMI_API_KEY / MIMO_API_KEY
- *   - 阿里:      DASHSCOPE_API_KEY
- *   - 火山引擎:  ARK_API_KEY / VOLC_API_KEY
+ *   - 小米:      XIAOMI_COOKIE (优先) / XIAOMI_API_KEY / MIMO_API_KEY
+ *   - 阿里:      ALIYUN_AK_ID + ALIYUN_AK_SECRET (BSS OpenAPI, 非 DASHSCOPE_API_KEY)
  *   - 阶跃星辰:  STEPFUN_API_KEY
  *   - 硅基流动:  SILICONFLOW_API_KEY
  *   - 第三方代理: ANTHROPIC_AUTH_TOKEN (代理转发)
@@ -792,6 +840,8 @@ export function getApiKeyForPlatform(platform: string): string | null {
       return process.env.DEEPSEEK_API_KEY?.trim() || authToken || null;
     case 'kimi-coding':
       return authToken || null;
+    case 'kimi':
+      return process.env.MOONSHOT_API_KEY?.trim() || authToken || null;
     case 'stepfun':
       return process.env.STEPFUN_API_KEY?.trim() || authToken || null;
     case 'siliconflow':
@@ -802,27 +852,32 @@ export function getApiKeyForPlatform(platform: string): string | null {
         || authToken
         || null;
     case 'xiaomi':
-      return process.env.XIAOMI_API_KEY?.trim()
-        || process.env.MIMO_API_KEY?.trim()
-        || authToken
-        || null;
+      return process.env.XIAOMI_COOKIE?.trim()
+        ? 'xiaomi-cookie'
+        : process.env.XIAOMI_API_KEY?.trim()
+          || process.env.MIMO_API_KEY?.trim()
+          || authToken
+          || null;
     case 'alibaba':
       return process.env.ALIYUN_AK_ID?.trim() && process.env.ALIYUN_AK_SECRET?.trim()
         ? 'aliyun-bss'
         : null;
-    case 'volcengine':
-      return process.env.ARK_API_KEY?.trim()
-        || process.env.VOLC_API_KEY?.trim()
-        || authToken
-        || null;
-    default:
-      // minimax 走代理模式, 统一用 ANTHROPIC_AUTH_TOKEN
+    case 'minimax':
       return authToken || null;
+    case 'volcengine':
+    case 'qianfan':
+    case 'hunyuan':
+    case 'spark':
+    default:
+      return null;
   }
 }
 
 /** 异步刷新缓存 (不阻塞) */
-async function refreshCache(platform: string, apiKey: string, stdin: StdinData): Promise<void> {
+export async function refreshUsageData(platform: string, stdin: StdinData): Promise<void> {
+  const apiKey = getApiKeyForPlatform(platform);
+  if (!apiKey) return;
+
   let data: UsageData | null = null;
 
   switch (platform) {
@@ -881,13 +936,6 @@ export function getUsageData(stdin: StdinData): UsageData | null {
   const cached = readCache(platform);
   if (cached) return cached;
 
-  // 无缓存 → 异步刷新 (fire-and-forget)
-  const apiKey = getApiKeyForPlatform(platform);
-  if (apiKey) {
-    refreshCache(platform, apiKey, stdin).catch((e) => {
-      debugLog(`[usage:${platform}] refreshCache 失败: ${e instanceof Error ? e.message : String(e)}`);
-    });
-  }
-
+  // 网络刷新由 index.ts 的独立后台进程执行，主 StatusLine 不等待 HTTP。
   return null;
 }

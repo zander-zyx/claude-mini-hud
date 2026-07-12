@@ -6,7 +6,7 @@
  * @since   2025-06
  * @see     https://github.com/zander-zyx/claude-mini-hud
  *
- * 从 stdin 读 JSON (Claude Code StatusLine 契约), 默认输出 2 必显行 + 可选行 (最多 7 行):
+ * 从 stdin 读 JSON (Claude Code StatusLine 契约), 默认输出 2 必显行 + 条件行:
  *   [#] 上下文  进度条 + used/total + 剩余
  *   [$] Token   总数 + in/out/cache 细分 + tok/s 速率
  *   [B] 用量/余额 (多平台自动检测)
@@ -27,9 +27,11 @@ import { readTranscriptData } from './transcript.js';
 import { renderContextLine, renderTokenLine, renderTodoLine, renderToolActivityLines, renderAgentLines, renderModelLine, renderUsageLine, getContextPercent } from './render.js';
 import { renderCostLine, renderGitLine, renderAlertLine, renderCompactLine } from './render.js';
 import { getUsageData } from './usage.js';
+import { claimUsageRefresh, detectPlatform, getApiKeyForPlatform, refreshUsageData, releaseUsageRefresh } from './usage.js';
 import { CACHE_DIR, sessionCachePath, atomicWrite, pruneOldSessions } from './cache.js';
 import { existsSync, readFileSync, statSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 
 // ─── 环境变量配置 ──────────────────────────────────────────────────────────
 
@@ -68,6 +70,8 @@ const TOKEN_MODE = (['session', 'context', 'both'] as const)
 
 // 速度缓存目录 (= CACHE_DIR, render 函数的 cacheDir 参数)
 const SPEED_CACHE_DIR = CACHE_DIR;
+const USAGE_REFRESH_ARG = '--refresh-usage';
+const USAGE_REFRESH_DATA_ENV = 'CLAUDE_MINI_HUD_REFRESH_DATA';
 
 function readPackageVersion(): string {
   try {
@@ -75,6 +79,31 @@ function readPackageVersion(): string {
     return typeof pkg.version === 'string' ? pkg.version : 'unknown';
   } catch {
     return 'unknown';
+  }
+}
+
+function spawnUsageRefresh(stdin: StdinData): void {
+  const platform = detectPlatform(stdin);
+  if (!platform || platform === 'claude' || !getApiKeyForPlatform(platform)) return;
+  if (!claimUsageRefresh(platform)) return;
+
+  const payload = JSON.stringify({ model: stdin.model });
+  if (Buffer.byteLength(payload, 'utf8') > 8 * 1024) {
+    releaseUsageRefresh(platform);
+    return;
+  }
+
+  try {
+    const child = spawn(process.execPath, [process.argv[1], USAGE_REFRESH_ARG, platform], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+      env: { ...process.env, [USAGE_REFRESH_DATA_ENV]: payload },
+    });
+    child.once('error', () => releaseUsageRefresh(platform));
+    child.unref();
+  } catch {
+    releaseUsageRefresh(platform);
   }
 }
 
@@ -203,6 +232,19 @@ async function main(): Promise<void> {
     return;
   }
 
+  const refreshArgIndex = process.argv.indexOf(USAGE_REFRESH_ARG);
+  if (refreshArgIndex >= 0) {
+    const platform = process.argv[refreshArgIndex + 1] ?? '';
+    try {
+      const payload = process.env[USAGE_REFRESH_DATA_ENV];
+      const stdin = payload ? JSON.parse(payload) as StdinData : {};
+      await refreshUsageData(platform, stdin);
+    } finally {
+      releaseUsageRefresh(platform);
+    }
+    return;
+  }
+
   let stdin = await readStdin();
 
   // stdin 为 null (超时/空输入/解析失败) → 尝试用缓存的上次数据渲染
@@ -242,6 +284,7 @@ async function main(): Promise<void> {
 
   // 用量数据 (提前获取, 供 Context 行的限额标签 + 用量行共用)
   const usageData = getUsageData(stdin);
+  if (!usageData) spawnUsageRefresh(stdin);
 
   const lines: string[] = [];
 
@@ -271,7 +314,7 @@ async function main(): Promise<void> {
     ? LAYOUT
     : ['context', 'token', 'alert', 'usage', 'todo', 'tools', 'agent', 'cost', 'git', 'model'];
 
-  // context + token 永远渲染 (必显, 即便 LAYOUT 未列)
+  // 默认布局下 context + token 必显；LAYOUT 模式严格遵循用户配置，允许只显示指定行
   const mustHave = new Set(['context', 'token']);
   const seen = new Set<string>();
   const finalKeys: string[] = [];

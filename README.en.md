@@ -2,7 +2,7 @@
 
 > Claude Code StatusLine plugin — context / token / todos / tools / agents + deep multi-provider usage
 >
-> 21 progress bar themes · 4 display modes · zero dependencies · 10ms startup
+> 21 progress bar themes · 4 display modes · zero runtime dependencies · background usage refresh
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Dependencies: 0](https://img.shields.io/badge/dependencies-0-blue)
@@ -15,7 +15,7 @@
 
 ## What is this?
 
-**claude-mini-hud** is a [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine plugin that continuously displays key session metrics below your input field. **Up to 7 lines**, high information density — a lighter alternative to [claude-hud](https://github.com/jarrodwatts/claude-hud).
+**claude-mini-hud** is a [Claude Code](https://docs.claude.com/en/docs/claude-code) StatusLine plugin that continuously displays key session metrics below your input field. It shows Context + Token by default and appends conditional lines when data and configuration enable them — a lighter alternative to [claude-hud](https://github.com/jarrodwatts/claude-hud).
 
 ### Preview
 
@@ -76,7 +76,7 @@ Switch with: `CLAUDE_MINI_HUD_LANG=zh|en|minimal|ultra-minimal` (see [Configurat
 - 🤖 **Agent Tracking**: Shows active sub-agents and their duration
 - 🔥 **Token Speed**: Real-time decoding speed (tok/s)
 - 📊 **Token Modes**: Session cumulative / context snapshot / both — three switchable modes
-- 🚀 **~10ms Startup**: Won't slow down Claude Code
+- 🚀 **Non-blocking Usage Refresh**: On a cache miss, a detached process queries the provider without making the main StatusLine wait for HTTP
 - 🔌 **Plug & Play**: Just run `/claude-mini-hud:setup`
 
 ### Multi-Platform Usage / Balance Query
@@ -90,7 +90,7 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 | **Zhipu (GLM)** | URL contains `bigmodel.cn` / `z.ai` | `5h:21% (1h54m) 7d:26% m:30% (26d) mcp:20/1000` |
 | **Xiaomi (MiMo)** | URL contains `xiaomimimo` | `50M/100M m:45% (26d)` |
 | **Alibaba (DashScope)** | URL contains `dashscope` | `¥123.45` (BSS account balance) |
-| **Volcengine (Ark)** | URL contains `volces.com` | Platform detection only (no public usage API) |
+| **Volcengine (Ark)** | URL contains `volces.com` | Platform detection only (management-plane usage API not integrated) |
 | **Baidu Qianfan** | URL contains `qianfan` / `baidubce` | Platform detection only (no public usage API) |
 | **Tencent Hunyuan** | URL contains `hunyuan` | Platform detection only (no public usage API) |
 | **iFlyTek Astron** | URL contains `xfyun` / `spark-api` | Platform detection only (subscription) |
@@ -110,18 +110,16 @@ Automatically detects your platform based on `ANTHROPIC_BASE_URL` and shows usag
 | `mcp:` | MCP tool calls | `mcp:20/1000` — 20 calls used / 1000 limit |
 | Fixed quota | TOKEN PLAN used/total | `50M/100M` — auto M/k unit for large numbers |
 
-> 💡 **No extra configuration needed** — as long as `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` are set, the plugin automatically detects the platform and queries it.
+> 💡 **Proxy mode**: set `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN`; the plugin detects the platform automatically and reuses the proxy token when possible.
 >
-> 🍪 **Xiaomi (MiMo)** requires an additional `XIAOMI_COOKIE` environment variable (extract Cookie from browser DevTools), as the Xiaomi usage API uses Cookie authentication instead of API Key.
-
-> 🔑 **Alibaba (DashScope)** balance query uses the Aliyun BSS OpenAPI, requiring `ALIYUN_AK_ID` + `ALIYUN_AK_SECRET` (primary account RAM key, **not** `DASHSCOPE_API_KEY`). DashScope itself has no public balance API.
+> 🔐 **Native credentials**: keep the provider-specific `ANTHROPIC_BASE_URL` for detection, then set the matching variable under “Provider Credential Variables.” Xiaomi MiMo uses Cookie authentication; Alibaba DashScope balance uses Aliyun BSS OpenAPI, **not** `DASHSCOPE_API_KEY`.
 
 **Positioning vs. `claude-hud`**
 
 [`jarrodwatts/claude-hud`](https://github.com/jarrodwatts/claude-hud) is a full-featured statusline (10+ lines), primarily for Anthropic Claude native users. **This project** balances information density with simplicity, with two core goals:
 
-1. **Matching claude-hud core features** — tool activity, agent tracking, task parsing — all present, but kept within 7 lines, lighter than claude-hud
-2. **Deep multi-provider support** — built-in usage queries for Zhipu GLM, MiniMax, Xiaomi MiMo, Alibaba DashScope, Volcengine Ark, Baidu Qianfan, Tencent Hunyuan, iFlyTek Astron, DeepSeek, Kimi, Kimi For Coding, StepFun, SiliconFlow and more Coding Plan / Token Plan platforms, so third-party proxy users can also see their quota in real time
+1. **Matching claude-hud core features** — tool activity, agent tracking, and task parsing, while keeping Context + Token as the two default base lines
+2. **Deep multi-provider support** — built-in usage/balance queries for Zhipu GLM, MiniMax, Xiaomi MiMo, Alibaba DashScope, DeepSeek, Kimi, Kimi For Coding, StepFun, and SiliconFlow; Volcengine Ark, Baidu Qianfan, Tencent Hunyuan, and iFlyTek Astron are currently detection-only
 
 ---
 
@@ -266,7 +264,7 @@ npm run build
 # 4. Restart Claude Code
 ```
 
-> 💡 **Directory naming convention**: Claude Code expects a `{vendor}/{name}/{version}/` three-level structure. `local` is the vendor, `claude-mini-hud` is the name, `1.0.0` is the version. When modifying code, **don't change the version**, or Claude Code will treat it as a new plugin and re-run the cache logic.
+> 💡 **Directory naming convention**: Claude Code expects a `{vendor}/{name}/{version}/` three-level structure. `local` is the vendor, `claude-mini-hud` is the name, and `1.2.1` is the version. When modifying code, **don't change the version**, or Claude Code will treat it as a new plugin and re-run the cache logic.
 
 ### Option 3: Windows PowerShell
 
@@ -344,7 +342,7 @@ The statusline automatically refreshes at these moments:
 - Every time you send a new message
 - Every time the todo list changes (starts / completes / switches in-progress)
 
-**It does not affect** Claude Code performance: rendering is asynchronous, takes less than 10ms, and doesn't compete for the main process CPU.
+Provider usage uses a five-minute cache. On a cache miss, a detached process refreshes it so the main StatusLine does not wait for the network response.
 
 ---
 
@@ -358,6 +356,7 @@ The statusline automatically refreshes at these moments:
 | `CLAUDE_MINI_HUD_THEME` | `default` | [21 options, see Theme Preview](#theme-preview) | Progress bar style |
 | `CLAUDE_MINI_HUD_MARKS` | `default` | [21 options, see Theme Preview](#theme-preview) | Tool/Agent indicator icons (independent from THEME, mix freely) |
 | `CLAUDE_MINI_HUD_SHOW_MODEL` | (unset) | `1` | When set to `1`, shows the model line |
+| `ANTHROPIC_MODEL` / `ANTHROPIC_DEFAULT_OPUS_MODEL` / `ANTHROPIC_DEFAULT_SONNET_MODEL` / `ANTHROPIC_DEFAULT_HAIKU_MODEL` | (unset) | model name | Supplements the model line and MiniMax current-model matching in proxy setups |
 | `CLAUDE_MINI_HUD_TOKEN_MODE` | `session` | `session` / `context` / `both` | Token line mode: session=cumulative / context=snapshot / both=two lines |
 | `CLAUDE_MINI_HUD_NO_EMOJI` | (unset) | `1` | When set to `1`, forces ASCII symbols (# $ > etc.) instead of emoji |
 | `CLAUDE_MINI_HUD_SHOW_COST` | (unset) | `1` | Show cost line: cumulative `$` + duration + burn rate `$/h` (reads `stdin.cost`) |
@@ -368,7 +367,26 @@ The statusline automatically refreshes at these moments:
 | `CLAUDE_MINI_HUD_RED_PCT` | `80` | `0`-`100` | Red threshold: percentage ≥ this shows red (applies to Context / usage windows / monthly) |
 | `CLAUDE_MINI_HUD_YELLOW_PCT` | `60` | `0`-`100` | Yellow threshold: percentage ≥ this shows yellow, < red threshold |
 | `CLAUDE_MINI_HUD_BG` | (auto) | `light` / `dark` | Terminal background color for contrast adaptation. Auto-detected from `COLORFGBG` / `TERM_BACKGROUND_COLOR` if unset; defaults to `dark` |
+| `TERM_PROGRAM` / `LC_TERMINAL` | (auto) | terminal identifier | Used to auto-detect whether the terminal reliably supports emoji; normally no manual setup needed |
 | `CLAUDE_MINI_HUD_DEBUG` | (unset) | `1` | Debug mode: outputs module errors (usage queries/cache) to stderr for troubleshooting |
+
+#### Provider Credential Variables
+
+> Configure these only if you want the Usage/Balance line. Except for Claude's native `rate_limits`, platform detection requires `ANTHROPIC_BASE_URL`; third-party proxies usually also use `ANTHROPIC_AUTH_TOKEN`, while native provider access uses the matching credential below.
+
+| Platform | Variables | Notes |
+|----------|-----------|-------|
+| Generic proxy | `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN` | Detects provider automatically and reuses the proxy token where supported |
+| MiniMax | `ANTHROPIC_AUTH_TOKEN` | Coding Plan endpoint uses the proxy token; platform is detected from `ANTHROPIC_BASE_URL` |
+| DeepSeek | `DEEPSEEK_API_KEY` | Falls back to `ANTHROPIC_AUTH_TOKEN` if unset |
+| Kimi / Moonshot | `MOONSHOT_API_KEY` | Falls back to `ANTHROPIC_AUTH_TOKEN` if unset |
+| Kimi For Coding | `ANTHROPIC_AUTH_TOKEN` | Coding usage endpoint uses the current proxy token |
+| Zhipu GLM | `ZHIPUAI_API_KEY` / `GLM_API_KEY` | Falls back to `ANTHROPIC_AUTH_TOKEN` if unset |
+| Xiaomi MiMo | `XIAOMI_COOKIE` | Cookie auth copied from browser DevTools; `XIAOMI_API_KEY` / `MIMO_API_KEY` are compatibility fallbacks |
+| Alibaba DashScope | `ALIYUN_AK_ID` + `ALIYUN_AK_SECRET` | Queries Aliyun BSS account balance; not `DASHSCOPE_API_KEY` |
+| Volcengine Ark | — | Detection only; management-plane usage API is not integrated yet |
+| StepFun | `STEPFUN_API_KEY` | Falls back to `ANTHROPIC_AUTH_TOKEN` if unset |
+| SiliconFlow | `SILICONFLOW_API_KEY` | Falls back to `ANTHROPIC_AUTH_TOKEN` if unset |
 
 **Set them in statusLine.command** (recommended):
 
@@ -504,6 +522,27 @@ npm run build   # recompile
 # restart Claude Code
 ```
 
+### Change Progress Bar Style
+
+Switch themes with an environment variable — **no code changes needed**:
+
+```bash
+CLAUDE_MINI_HUD_THEME=arrow  # options: default/neon/braille/hardcore/minimal/pixel/diamond/arrow/wave/tide/dot/target/gradient/shades/retro/ascii/rail/star/spark/heart/love
+```
+
+For a custom theme, edit `ThemeConfig` in `src/themes.ts`:
+
+```ts
+export interface ThemeConfig {
+  filled: string[];    // filled characters, e.g. ['█'], ['◆'], ['▸']
+  empty: string;       // empty character, e.g. '░', '◇', '▹'
+  leftBorder: string;  // left border, e.g. '[', '⟦', ''
+  rightBorder: string; // right border, e.g. ']', '⟧', ''
+  width: number;       // preferred width; runtime still adapts to narrow terminals
+  // ...
+}
+```
+
 ### Change Progress Bar Color Thresholds
 
 Since v1.2.0, color thresholds are centralized as environment variables — **no code changes needed**:
@@ -519,12 +558,6 @@ CLAUDE_MINI_HUD_YELLOW_PCT=70
 Add them to your `statusLine.command`. Applies to all percentages (Context / usage windows / monthly).
 
 > 💡 For finer control (e.g. separate thresholds for Context vs Usage), edit the `RED_PCT` / `YELLOW_PCT` constants in `src/render.ts`.
-
-### Change Progress Bar Width
-
-```ts
-function progressBar(percent: number, width: number = 30) {  // 30 for wider bar
-```
 
 ### Change Token Line Format
 
@@ -739,7 +772,7 @@ npm run build      # tsc compile src/ → dist/
 
 ```bash
 npm install
-npm test            # build + typecheck + run 48 tests (using tsx to run ts tests directly)
+npm test            # build + typecheck + run 57 tests (using tsx to run ts tests directly)
 npm run test:stdin  # manually test a single stdin input
 npm run typecheck   # type-check only, no emit
 ```
@@ -752,25 +785,16 @@ npm run dev   # tsc --watch, auto-recompile
 echo '{"model":{"display_name":"dev"}}' | node dist/index.js
 ```
 
-### Test Coverage (48 test cases)
+### Test Coverage (57 test cases)
 
 | # | Case | Verification |
 |---|------|-------------|
-| 1 | CLI accepts stdin JSON and outputs required lines | context + token lines |
-| 2 | Model line hidden by default | default hidden |
-| 3 | `CLAUDE_MINI_HUD_SHOW_MODEL=1` shows model line | env takes effect |
-| 4 | Empty stdin outputs fallback | error handling |
-| 5 | Progress bar uses red when > 80% | color threshold |
-| 6 | Progress bar uses green when < 60% | color threshold |
-| 7 | Context line format used/total + remaining | `100k / 1M` format |
-| 8 | Token line breaks down in/out/cache | exact value match |
-| 9 | Read todos from transcript_path | in_progress + `1/3` |
-| 10–11 | Large transcript Todo regressions | TaskCreate/TaskUpdate matching in long sessions |
-| 12 | Provider detection (minimaxi) | output with SHOW_MODEL=1 |
-| 13–15 | Language modes | zh/en/minimal output verification |
-| 16–17 | CLI/theme regressions | `--version` + gradient theme |
-| 18–37 | Multi-platform detection | URL matching (incl. international) |
-| 38–48 | Cache read/write + E2E + Aliyun/MiniMax regressions | see `tests/usage.test.ts` |
+| 1–3 | CLI / version / non-blocking refresh | base output, `--version`, and no HTTP wait in the main process |
+| 4–9 | Optional model / fallback / colors / theme | environment and rendering regressions |
+| 10–15 | Context / Token / Todo / provider | values and transcript regressions |
+| 16–18 | Language modes | zh/en/minimal output verification |
+| 19–38 | Multi-platform detection | URL matching (incl. international) |
+| 39–57 | Cache, credentials, refresh lock, balance parsing, and E2E | see `tests/usage.test.ts` |
 
 ### Project Structure
 
@@ -866,7 +890,7 @@ Planned:
 
 | Project | Style | Best For |
 |---------|-------|----------|
-| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (this project) | Lightweight, up to 7 lines | Prefer clean display with core metrics only |
+| [**claude-mini-hud**](https://github.com/zander-zyx/claude-mini-hud) (this project) | Lightweight, 2 default base lines + conditional lines | Prefer clean display with core metrics only |
 | [**claude-hud**](https://github.com/jarrodwatts/claude-hud) | Full-featured, 10+ lines | Want git status / agents / tool statistics |
 | [**tweakcc**](https://github.com/adamelliotfields/tweakcc) | Config / prompt level | Want to change Claude Code's own behavior |
 

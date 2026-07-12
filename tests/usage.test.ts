@@ -289,6 +289,153 @@ test('getApiKeyForPlatform: alibaba 使用 ALIYUN_AK_ID/ALIYUN_AK_SECRET 触发�
   }
 });
 
+test('parseAlibabaBalance: Code=200 的成功响应应解析为人民币余额', async () => {
+  const usage = await import('../src/usage.js') as unknown as {
+    parseAlibabaBalance: (json: unknown) => unknown;
+  };
+
+  assert.deepEqual(usage.parseAlibabaBalance({
+    Code: '200',
+    Success: true,
+    Data: {
+      AvailableAmount: '123.45',
+      AvailableCashAmount: '100.00',
+      Currency: 'CNY',
+    },
+  }), {
+    provider: 'alibaba',
+    alibaba: {
+      totalBalance: 123.45,
+      cashBalance: 100,
+      currency: 'CNY',
+    },
+  });
+});
+
+test('renderUsageLine: 阿里余额应按金额显示而不是固定 Token 额度', async () => {
+  const { renderUsageLine } = await import('../src/render.js');
+  const line = renderUsageLine({
+    provider: 'alibaba',
+    alibaba: {
+      totalBalance: 123.45,
+      cashBalance: 100,
+      currency: 'CNY',
+    },
+    updatedAt: Date.now(),
+  } as any);
+  const plain = line?.replace(/\x1b\[[0-9;]*m/g, '') ?? '';
+
+  assert.match(plain, /阿里.*¥123\.45/);
+  assert.doesNotMatch(plain, /\d+\/\d+/);
+});
+
+test('renderUsageLine: 旧版阿里缓存结构不应导致渲染崩溃', async () => {
+  const { renderUsageLine } = await import('../src/render.js');
+
+  assert.doesNotThrow(() => renderUsageLine({
+    provider: 'alibaba',
+    alibaba: { used: 0, total: 12345, plan: '¥123.45' },
+    updatedAt: Date.now(),
+  } as any));
+});
+
+test('getApiKeyForPlatform: 未实现查询的平台不应触发刷新', async () => {
+  const usage = await import('../src/usage.js') as unknown as {
+    getApiKeyForPlatform: (platform: string) => string | null;
+  };
+  const oldArk = process.env.ARK_API_KEY;
+  const oldVolc = process.env.VOLC_API_KEY;
+  const oldAuth = process.env.ANTHROPIC_AUTH_TOKEN;
+
+  process.env.ARK_API_KEY = 'ark-test-key';
+  process.env.VOLC_API_KEY = 'volc-test-key';
+  process.env.ANTHROPIC_AUTH_TOKEN = 'proxy-test-key';
+
+  try {
+    for (const platform of ['volcengine', 'qianfan', 'hunyuan', 'spark']) {
+      assert.equal(usage.getApiKeyForPlatform(platform), null, `${platform} 不应触发刷新`);
+    }
+  } finally {
+    if (oldArk === undefined) delete process.env.ARK_API_KEY; else process.env.ARK_API_KEY = oldArk;
+    if (oldVolc === undefined) delete process.env.VOLC_API_KEY; else process.env.VOLC_API_KEY = oldVolc;
+    if (oldAuth === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN; else process.env.ANTHROPIC_AUTH_TOKEN = oldAuth;
+  }
+});
+
+test('usage refresh lock: 同一平台只允许一个后台刷新进程', async () => {
+  const usage = await import('../src/usage.js') as unknown as {
+    claimUsageRefresh: (platform: string) => boolean;
+    releaseUsageRefresh: (platform: string) => void;
+  };
+  const platform = `lock-test-${process.pid}`;
+
+  try {
+    usage.releaseUsageRefresh(platform);
+    assert.equal(usage.claimUsageRefresh(platform), true);
+    assert.equal(usage.claimUsageRefresh(platform), false);
+    usage.releaseUsageRefresh(platform);
+    assert.equal(usage.claimUsageRefresh(platform), true);
+  } finally {
+    usage.releaseUsageRefresh(platform);
+  }
+});
+
+test('usage refresh lock: 拒绝可能逃逸缓存目录的平台名', async () => {
+  const usage = await import('../src/usage.js') as unknown as {
+    claimUsageRefresh: (platform: string) => boolean;
+    releaseUsageRefresh: (platform: string) => void;
+  };
+  const platform = `../escape-${process.pid}`;
+
+  try {
+    assert.equal(usage.claimUsageRefresh(platform), false);
+  } finally {
+    usage.releaseUsageRefresh(platform);
+  }
+});
+
+test('getApiKeyForPlatform: kimi 直连优先使用 MOONSHOT_API_KEY', async () => {
+  const usage = await import('../src/usage.js') as unknown as {
+    getApiKeyForPlatform: (platform: string) => string | null;
+  };
+  const oldMoonshot = process.env.MOONSHOT_API_KEY;
+  const oldAuth = process.env.ANTHROPIC_AUTH_TOKEN;
+
+  process.env.MOONSHOT_API_KEY = 'moonshot-direct-key';
+  delete process.env.ANTHROPIC_AUTH_TOKEN;
+
+  try {
+    assert.equal(usage.getApiKeyForPlatform('kimi'), 'moonshot-direct-key');
+  } finally {
+    if (oldMoonshot === undefined) delete process.env.MOONSHOT_API_KEY; else process.env.MOONSHOT_API_KEY = oldMoonshot;
+    if (oldAuth === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN; else process.env.ANTHROPIC_AUTH_TOKEN = oldAuth;
+  }
+});
+
+test('getApiKeyForPlatform: xiaomi 仅设置 XIAOMI_COOKIE 也应触发刷新', async () => {
+  const usage = await import('../src/usage.js') as unknown as {
+    getApiKeyForPlatform: (platform: string) => string | null;
+  };
+  const oldCookie = process.env.XIAOMI_COOKIE;
+  const oldApiKey = process.env.XIAOMI_API_KEY;
+  const oldMimoKey = process.env.MIMO_API_KEY;
+  const oldAuth = process.env.ANTHROPIC_AUTH_TOKEN;
+
+  process.env.XIAOMI_COOKIE = 'serviceToken=test-cookie';
+  delete process.env.XIAOMI_API_KEY;
+  delete process.env.MIMO_API_KEY;
+  delete process.env.ANTHROPIC_AUTH_TOKEN;
+
+  try {
+    assert.equal(usage.getApiKeyForPlatform('xiaomi'), 'xiaomi-cookie');
+  } finally {
+    if (oldCookie === undefined) delete process.env.XIAOMI_COOKIE; else process.env.XIAOMI_COOKIE = oldCookie;
+    if (oldApiKey === undefined) delete process.env.XIAOMI_API_KEY; else process.env.XIAOMI_API_KEY = oldApiKey;
+    if (oldMimoKey === undefined) delete process.env.MIMO_API_KEY; else process.env.MIMO_API_KEY = oldMimoKey;
+    if (oldAuth === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN; else process.env.ANTHROPIC_AUTH_TOKEN = oldAuth;
+  }
+});
+
 test('端到端: Claude rate_limits 从 stdin 直接输出', async () => {
   const { getUsageData } = await import('../src/usage.js');
   const stdin = {

@@ -1,7 +1,7 @@
 {
   "name": "claude-mini-hud",
   "version": "1.2.1",
-  "description": "Claude Code StatusLine plugin — context / token / todos / tools / agents + 21 progress bar themes + multi-provider usage (Claude/MiniMax/Zhipu/MiMo/DeepSeek/Kimi/StepFun/SiliconFlow/...)",
+  "description": "Claude Code StatusLine plugin — context / token / todos / tools / agents + cost / Git / ETA / alerts + 21 progress bar themes + multi-provider usage",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -36,7 +36,22 @@
     "stepfun",
     "siliconflow",
     "dashscope",
-    "qwen"
+    "qwen",
+    "claude-code-plugin",
+    "typescript",
+    "usage",
+    "quota",
+    "cost",
+    "git",
+    "themes",
+    "agents",
+    "xiaomi",
+    "mimo",
+    "alibaba",
+    "volcengine",
+    "qianfan",
+    "hunyuan",
+    "spark"
   ],
   "author": "Zander Zhang",
   "license": "MIT",

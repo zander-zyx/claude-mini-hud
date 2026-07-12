@@ -12,7 +12,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -73,6 +74,38 @@ test('cli --version 输出 package.json 版本号', () => {
   const result = runCliArgs(['--version']);
   assert.equal(result.status, 0);
   assert.equal(result.stdout.trim(), pkg.version);
+});
+
+test('用量缓存未命中时主 StatusLine 不应等待 HTTP 刷新', async () => {
+  const server = createServer((_req, res) => {
+    setTimeout(() => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ success: false }));
+    }, 1200);
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  assert.ok(address && typeof address === 'object');
+
+  const startedAt = Date.now();
+  const child = spawn('node', [DIST], {
+    env: {
+      ...process.env,
+      ANTHROPIC_BASE_URL: `http://127.0.0.1:${address.port}/glm`,
+      ANTHROPIC_AUTH_TOKEN: 'test-token',
+    },
+    stdio: ['pipe', 'ignore', 'ignore'],
+  });
+  child.stdin.end(JSON.stringify({ model: { display_name: 'test' }, context_window: {} }));
+  const exitCode = await new Promise<number | null>((resolve) => child.once('exit', resolve));
+  const elapsedMs = Date.now() - startedAt;
+
+  server.close();
+  server.closeAllConnections();
+
+  assert.equal(exitCode, 0);
+  assert.ok(elapsedMs < 500, `主 StatusLine 应在 500ms 内退出，实际 ${elapsedMs}ms`);
 });
 
 test('默认不显示模型行 (SHOW_MODEL 未设)', () => {

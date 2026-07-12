@@ -5,14 +5,14 @@
     "email": "sou_time@163.com"
   },
   "metadata": {
-    "description": "Minimal Claude Code statusline — context / token / todos (model optional)",
+    "description": "Lightweight Claude Code statusline — context, tokens, todos, tools, agents, cost, Git, ETA, alerts, and multi-provider usage.",
     "version": "1.2.1"
   },
   "plugins": [
     {
       "name": "claude-mini-hud",
       "source": "./",
-      "description": "Minimal Claude Code statusline — context / token / todos / tools / agents + 21 progress bar themes + cost / Git / ETA / alerts + multi-provider usage (Claude/MiniMax/Zhipu/MiMo/DeepSeek/Kimi/StepFun/SiliconFlow). Zero dependencies, multi-module TypeScript.",
+      "description": "Lightweight Claude Code statusline — context / token / todos / tools / agents + 21 progress bar themes + cost / Git / ETA / alerts + multi-provider usage (Claude/MiniMax/Zhipu/MiMo/Alibaba/DeepSeek/Kimi/StepFun/SiliconFlow). Zero runtime dependencies, multi-module TypeScript.",
       "category": "monitoring",
       "tags": [
         "hud",
@@ -24,7 +24,11 @@
         "minimal",
         "cost",
         "git",
-        "usage"
+        "usage",
+        "themes",
+        "alerts",
+        "eta",
+        "agents"
       ]
     }
   ]
