@@ -451,3 +451,65 @@ test('CLAUDE_MINI_HUD_LANG=minimal: 无 emoji + 英中混搭', () => {
     );
   }
 });
+
+test('CLAUDE_MINI_HUD_USAGE_INLINE=1: 配额进度条内联到 Context 行, 独立用量行隐藏', async () => {
+  const { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } = await import('node:fs');
+  const { homedir } = await import('node:os');
+
+  // 写入 zhipu 用量缓存 fixture (若本机已有真实缓存, 先备份, 结束后还原)
+  const cacheDir = path.join(homedir(), '.claude-mini-hud', 'usage-cache');
+  const cacheFile = path.join(cacheDir, 'zhipu.json');
+  mkdirSync(cacheDir, { recursive: true });
+  const backup = existsSync(cacheFile) ? readFileSync(cacheFile, 'utf8') : null;
+  const now = Date.now();
+  writeFileSync(cacheFile, JSON.stringify({
+    provider: 'zhipu',
+    zhipu: {
+      usedPercent: 40,
+      weeklyPercent: 15,
+      level: 'pro',
+      resetAt: Math.round(now / 1000) + 3600,
+      weeklyResetAt: Math.round(now / 1000) + 86400,
+    },
+    updatedAt: now,
+  }));
+
+  const input = JSON.stringify({
+    model: { display_name: 'test' },
+    context_window: {
+      current_usage: { input_tokens: 22000, output_tokens: 342 },
+      context_window_size: 200000,
+    },
+  });
+  const baseEnv = {
+    ...process.env,
+    CLAUDE_MINI_HUD_LANG: 'zh',
+    ANTHROPIC_BASE_URL: 'https://open.bigmodel.cn/api/anthropic',
+  };
+
+  try {
+    // 内联开: 配额段 (含进度条) 并入首行, 独立用量行隐藏
+    const inline = runCli(input, { ...baseEnv, CLAUDE_MINI_HUD_USAGE_INLINE: '1' });
+    assert.equal(inline.status, 0, `stderr: ${inline.stderr}`);
+    const lines = inline.stdout.split('\n').filter(Boolean);
+    assert.ok(lines.length >= 2, `至少应有 context+token 两行: ${inline.stdout}`);
+    assert.ok(lines[0].includes('智谱'), `内联配额段应在首行: ${lines[0]}`);
+    assert.ok(lines[0].includes('[pro]'), `首行应含套餐等级: ${lines[0]}`);
+    assert.match(lines[0], /5h:.*█/, `5h 配额段应带进度条: ${lines[0]}`);
+    for (let i = 1; i < lines.length; i++) {
+      assert.ok(!lines[i].includes('智谱'), `独立用量行应隐藏, 第 ${i + 1} 行: ${lines[i]}`);
+    }
+
+    // 内联关 (默认): 独立用量行恢复, 且无进度条, 首行无配额段
+    const standalone = runCli(input, { ...baseEnv, CLAUDE_MINI_HUD_USAGE_INLINE: '' });
+    assert.equal(standalone.status, 0, `stderr: ${standalone.stderr}`);
+    const lines2 = standalone.stdout.split('\n').filter(Boolean);
+    assert.ok(!lines2[0].includes('智谱'), `默认模式首行不应含配额段: ${lines2[0]}`);
+    const usageLine = lines2.find((l) => l.includes('智谱'));
+    assert.ok(usageLine, `默认模式应有独立用量行: ${standalone.stdout}`);
+    assert.doesNotMatch(usageLine!, /5h:.*█/, `默认模式独立用量行无进度条: ${usageLine}`);
+  } finally {
+    if (backup !== null) writeFileSync(cacheFile, backup);
+    else rmSync(cacheFile, { force: true });
+  }
+});
