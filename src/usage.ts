@@ -563,18 +563,21 @@ async function queryZhipu(apiKey: string): Promise<UsageData | null> {
     let weeklyResetAt: number | undefined;
     let monthlyResetAt: number | undefined;
 
+    // 2026-08 起智谱套餐迁积分制, type 返回 CREDIT_LIMIT; 旧套餐仍返回 TOKENS_LIMIT, 两者都收
+    const isTokensLimit = (t: string) => t === 'TOKENS_LIMIT' || t === 'CREDIT_LIMIT';
+
     for (const item of limits) {
-      if (item.type === 'TOKENS_LIMIT' && item.unit === 3) {
+      if (isTokensLimit(item.type) && item.unit === 3) {
         usedPercent = item.percentage;
         resetAt = item.nextResetTime ? Math.round(item.nextResetTime / 1000) : undefined;
-      } else if (item.type === 'TOKENS_LIMIT' && item.unit === 6) {
+      } else if (isTokensLimit(item.type) && item.unit === 6) {
         weeklyPercent = item.percentage;
         weeklyResetAt = item.nextResetTime ? Math.round(item.nextResetTime / 1000) : undefined;
       } else if (item.type === 'TIME_LIMIT') {
         mcpPercent = item.percentage;
         mcpUsed = item.currentValue;
         mcpTotal = item.usage;
-      } else if (item.type === 'TOKENS_LIMIT' && item.unit !== 3 && item.unit !== 6) {
+      } else if (isTokensLimit(item.type) && item.unit !== 3 && item.unit !== 6) {
         // 其他 unit 值视为月限额 (仅取第一个)
         if (monthlyPercent === undefined) {
           monthlyPercent = item.percentage;
