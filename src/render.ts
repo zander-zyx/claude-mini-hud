@@ -10,7 +10,7 @@
 
 import type { StdinData, TranscriptData, TodoItem, ToolActivity, AgentActivity, TokenBreakdown } from './types.js';
 import type { GitInfo } from './types.js';
-import type { UsageData } from './usage.js';
+import type { UsageData, ZhipuUsage } from './usage.js';
 import { c } from './colors.js';
 import { t, MINIMAL, LANG, lbl } from './i18n.js';
 import { THEME, THEME_NAME, MARKS } from './themes.js';
@@ -24,6 +24,13 @@ import { execFileSync } from 'node:child_process';
 
 // simpleHash 从 cache.ts re-export (供 index.ts 继续从 render.js 导入, 保持向后兼容)
 export { simpleHash };
+
+// 用量内联模式: CLAUDE_MINI_HUD_USAGE_INLINE=1 时, 配额进度条 (如智谱 5h/7d)
+// 追加到 Context 行尾, 独立用量行隐藏
+const USAGE_INLINE = process.env.CLAUDE_MINI_HUD_USAGE_INLINE === '1';
+
+// 内联配额条的宽度 (比 Context 条窄, 避免单行过长)
+const QUOTA_BAR_WIDTH = 10;
 
 // ─── 颜色阈值 (集中管理, 支持环境变量覆盖) ─────────────────────────────────
 // 默认: >=80 红, >=60 黄, <60 绿。用户可通过环境变量自定义:
@@ -230,6 +237,16 @@ export function getContextPercent(stdin: StdinData): number {
 }
 
 export function renderContextLine(stdin: StdinData, usage: UsageData | null, cacheDir?: string): string {
+  const line = renderContextLineBase(stdin, usage, cacheDir);
+  // 内联模式: 配额段追加到 Context 行尾 (主题无关)
+  if (USAGE_INLINE && usage?.zhipu) {
+    const seg = renderZhipuInlineSegment(usage.zhipu);
+    if (seg) return `${line} ${c.dim('│')} ${seg}`;
+  }
+  return line;
+}
+
+function renderContextLineBase(stdin: StdinData, usage: UsageData | null, cacheDir?: string): string {
   const pct = getContextPercent(stdin);
   const size = resolveContextSize(stdin);
   const rawTokens = getTotalTokens(stdin);
@@ -288,8 +305,8 @@ export function renderContextLine(stdin: StdinData, usage: UsageData | null, cac
     return `${pctStr}${theme.separator}${detail}`;
   }
 
-  // 通用进度条 + 百分比 (非 minimal 主题共用)
-  const bar = progressBar(pct);
+  // 通用进度条 + 百分比 (非 minimal 主题共用); 内联模式与配额条同宽, 视觉对齐
+  const bar = progressBar(pct, USAGE_INLINE ? QUOTA_BAR_WIDTH : undefined);
   const pctStr = pctColorFn(c.bold(`${pct}%`));
 
   // ─── 霓虹矩阵主题: ⟦ CTX: ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░ 42% ⟧
@@ -952,10 +969,80 @@ export function renderTokenLine(stdin: StdinData, tdata: TranscriptData | null, 
   return lines;
 }
 
+// ─── 智谱配额段 (用量行与 Context 行内联共用) ─────────────────────────────
+
+/** 生成 zhipu 配额 parts: 5h / 7d / m / mcp; withBars 时每段前置配额进度条 */
+function zhipuQuotaParts(z: ZhipuUsage, withBars: boolean): string[] {
+  const parts: string[] = [];
+  const bar = (pct: number) => (withBars ? `${progressBar(pct, QUOTA_BAR_WIDTH)} ` : '');
+
+  // 5小时窗口用量 + 刷新倒计时 (仅存在时显示)
+  if (z.usedPercent !== undefined) {
+    const color = pctColor(z.usedPercent);
+    let seg = `5h:${bar(z.usedPercent)}${color(`${z.usedPercent}%`)}`;
+    if (z.resetAt) {
+      const countdown = formatCountdown(z.resetAt);
+      if (countdown) seg += c.dim(` (${countdown})`);
+    }
+    parts.push(seg);
+  }
+
+  // 周限额
+  if (z.weeklyPercent !== undefined) {
+    const color = pctColor(z.weeklyPercent);
+    let seg = `7d:${bar(z.weeklyPercent)}${color(`${z.weeklyPercent}%`)}`;
+    if (z.weeklyResetAt) {
+      const countdown = formatCountdown(z.weeklyResetAt);
+      if (countdown) seg += c.dim(` (${countdown})`);
+    }
+    parts.push(seg);
+  }
+
+  // 月限额
+  if (z.monthlyPercent !== undefined) {
+    const color = pctColor(z.monthlyPercent);
+    let seg = `m:${bar(z.monthlyPercent)}${color(`${z.monthlyPercent}%`)}`;
+    if (z.monthlyResetAt) {
+      const countdown = formatCountdown(z.monthlyResetAt, true);
+      if (countdown) seg += c.dim(` (${countdown})`);
+    }
+    parts.push(seg);
+  }
+
+  // MCP 工具用量 — 简短格式: mcp 已用/总数 (数值按阈值着色)
+  if (z.mcpPercent !== undefined) {
+    const color = pctColor(z.mcpPercent);
+    const detail = (z.mcpUsed !== undefined && z.mcpTotal !== undefined)
+      ? `${bar(z.mcpPercent)}${color(`${z.mcpUsed}/${z.mcpTotal}`)}`
+      : `${bar(z.mcpPercent)}${color(`${z.mcpPercent}%`)}`;
+    parts.push(`mcp:${detail}`);
+  }
+
+  return parts;
+}
+
+/** zhipu 前缀: 图标 + 平台名 + 套餐等级标签 */
+function zhipuPrefixTag(z: ZhipuUsage): string {
+  const levelTag = z.level ? c.dim(` [${z.level}]`) : '';
+  const baseUrl = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
+  const zhipuName = baseUrl.includes('z.ai') ? 'GLM' : (LANG === 'en' ? 'Zhipu' : '智谱');
+  return `${lbl('usage', zhipuName, '[B]')}${levelTag}`;
+}
+
+/** 内联到 Context 行尾的配额段: 💳 Zhipu [pro] 5h ██░░ 7% (3h) │ 7d █░░ 3% */
+function renderZhipuInlineSegment(z: ZhipuUsage): string | null {
+  const parts = zhipuQuotaParts(z, true);
+  if (parts.length === 0) return null;
+  return `${zhipuPrefixTag(z)} ${parts.join(c.dim(' │ '))}`;
+}
+
 // ─── 用量/余额行 ──────────────────────────────────────────────────────────
 
 export function renderUsageLine(usage: UsageData | null): string | null {
   if (!usage) return null;
+
+  // 内联模式: zhipu 配额已并入 Context 行, 隐藏独立用量行
+  if (USAGE_INLINE && usage.zhipu) return null;
 
   if (usage.claude) {
     const { fiveHour, sevenDay, fiveHourResetAt, sevenDayResetAt } = usage.claude;
@@ -1098,58 +1185,9 @@ export function renderUsageLine(usage: UsageData | null): string | null {
   }
 
   if (usage.zhipu) {
-    const z = usage.zhipu;
-    const parts: string[] = [];
-
-    // 5小时窗口 Token 用量 + 刷新倒计时 (仅存在时显示)
-    if (z.usedPercent !== undefined) {
-      const color = pctColor(z.usedPercent);
-      let seg = `5h:${color(`${z.usedPercent}%`)}`;
-      if (z.resetAt) {
-        const countdown = formatCountdown(z.resetAt);
-        if (countdown) seg += c.dim(` (${countdown})`);
-      }
-      parts.push(seg);
-    }
-
-    // 周限额
-    if (z.weeklyPercent !== undefined) {
-      const color = pctColor(z.weeklyPercent);
-      let seg = `7d:${color(`${z.weeklyPercent}%`)}`;
-      if (z.weeklyResetAt) {
-        const countdown = formatCountdown(z.weeklyResetAt);
-        if (countdown) seg += c.dim(` (${countdown})`);
-      }
-      parts.push(seg);
-    }
-
-    // 月限额
-    if (z.monthlyPercent !== undefined) {
-      const color = pctColor(z.monthlyPercent);
-      let seg = `m:${color(`${z.monthlyPercent}%`)}`;
-      if (z.monthlyResetAt) {
-        const countdown = formatCountdown(z.monthlyResetAt, true);
-        if (countdown) seg += c.dim(` (${countdown})`);
-      }
-      parts.push(seg);
-    }
-
-    // MCP 工具用量 — 简短格式: mcp 已用/总数 (数值按阈值着色)
-    if (z.mcpPercent !== undefined) {
-      const color = pctColor(z.mcpPercent);
-      const detail = (z.mcpUsed !== undefined && z.mcpTotal !== undefined)
-        ? `mcp:${color(`${z.mcpUsed}/${z.mcpTotal}`)}`
-        : `mcp:${color(`${z.mcpPercent}%`)}`;
-      parts.push(detail);
-    }
-
+    const parts = zhipuQuotaParts(usage.zhipu, false);
     if (parts.length === 0) return null;
-
-    const levelTag = z.level ? c.dim(` [${z.level}]`) : '';
-    const baseUrl = (process.env.ANTHROPIC_BASE_URL ?? '').toLowerCase();
-    const zhipuName = baseUrl.includes('z.ai') ? 'GLM' : (LANG === 'en' ? 'Zhipu' : '智谱');
-    const prefix = lbl('usage', zhipuName, '[B]');
-    return `${prefix}${levelTag} ${parts.join(' ')}`;
+    return `${zhipuPrefixTag(usage.zhipu)} ${parts.join(' ')}`;
   }
 
   // ─── 固定额度平台 (小米 / 火山引擎) ──────────────────────────────────
